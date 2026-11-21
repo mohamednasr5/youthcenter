@@ -286,6 +286,7 @@ img{max-width:100%;display:block}
 .fin-head .month{font-size:.7rem;font-weight:800;color:var(--gold-2);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);padding:3px 9px;border-radius:var(--r-full)}
 .fin-note{font-size:.68rem;color:var(--txt-mute);margin-bottom:10px;font-weight:600}
 .fb-post-slot{margin-top:14px}
+.fb-embed-frame{width:100%;max-width:100%;overflow:hidden;border-radius:10px;background:#fff}.fb-embed-frame iframe{display:block;width:100%;max-width:100%;border:0;background:#fff}
 /* LAST FACEBOOK POST (قسم آخر منشور على صفحة المركز — تحت الإحصائيات المالية) */
 .fb-post{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;transition:.3s}
 .fb-post:hover{border-color:rgba(24,119,242,.55);box-shadow:0 10px 26px rgba(24,119,242,.08)}
