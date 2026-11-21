@@ -268,6 +268,16 @@
   </div>
 </nav>
 
+<script>
+(() => {
+ const lb=document.getElementById("galleryLightbox"); if(!lb)return;
+ const img=lb.querySelector("img");
+ const close=()=>{lb.classList.remove("show");lb.setAttribute("aria-hidden","true");document.body.style.overflow="";if(img)img.src="";};
+ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&lb.classList.contains("show"))close();if((e.key==="Enter"||e.key===" ")&&document.activeElement?.classList.contains("gitem")){e.preventDefault();const item=document.activeElement;const source=item.getAttribute("data-full");if(source){img.src=source;lb.querySelector(".lb-cap").textContent=item.querySelector("figcaption")?.textContent||"";lb.classList.add("show");lb.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";}}});
+ lb.addEventListener("click",e=>{if(e.target===lb||e.target.closest(".lb-close"))close();});
+})();
+</script>
+
 <script defer src="data.js"></script>
 <script defer src="fb-post.js"></script>
 <script defer src="app.js"></script>
