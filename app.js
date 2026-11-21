@@ -1,7 +1,7 @@
 /* app.js — رسم منصة مركز شباب الأحمدية من البيانات + التفاعلات + PWA */
 (function () {
   "use strict";
-  const D = window.SiteData.load();
+  let D = window.SiteData.load();
 
   // ---- helpers ----
   const $ = (s, r) => (r || document).querySelector(s);
@@ -727,7 +727,13 @@
   }
 
   // ===== BOOT =====
-  function boot() {
+  async function boot() {
+    try {
+      await window.SiteData.syncFromCloud();
+      D = window.SiteData.load();
+    } catch (error) {
+      console.warn("[Youth Center] Shared database unavailable; showing cached content.", error);
+    }
     renderTopBar(); renderBrand(); renderNews(); renderAnnouncement();
     renderBoard(); renderAcademies(); renderArticles(); renderActivities();
     renderGallery(); renderFinance(); renderFooter();
