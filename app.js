@@ -373,7 +373,7 @@
     const savedCode = String((D.meta && D.meta.fbEmbedCode) || "").trim();
     if (savedCode) {
       // نقبل رابط إضافة فيسبوك الرسمي أو كود التضمين، وننشئ الإطار بأمان دون تنفيذ HTML الملصوق.
-      const match = savedCode.match(/src\\s*=\\s*["']([^"']+)["']/i);
+      const match = savedCode.match(/src\s*=\s*["']([^"']+)["']/i);
       const rawUrl = match ? match[1] : savedCode;
       let safeUrl = null;
       try {
