@@ -128,17 +128,43 @@
       </div>`).join("");
   }
 
-  // ===== GALLERY =====
-  function renderGallery() {
-    const g = D.gallery || [];
+  // ===== GALLERY: discover every uploaded image from a generated manifest =====
+  async function renderGallery() {
     const slot = $("#galleryGrid");
     if (!slot) return;
-    if (!g.length) { slot.parentElement.style.display = "none"; return; }
-    slot.innerHTML = g.map(p => `
-      <figure class="gitem tilt" data-full="gallery/${esc(p.id)}.jpg" tabindex="0" role="button" aria-label="${esc(p.cap)}">
-        <img src="gallery/${esc(p.id)}.jpg" alt="${esc(p.cap)}" loading="lazy" decoding="async">
-        <figcaption>${esc(p.cap)}</figcaption>
-      </figure>`).join("");
+    const section = slot.closest("#gallery");
+    try {
+      const response = await fetch("gallery/gallery-manifest.json", { cache: "no-store" });
+      if (!response.ok) throw new Error("تعذّر تحميل فهرس الصور");
+      const manifest = await response.json();
+      const images = Array.isArray(manifest.images) ? manifest.images : [];
+      if (!images.length) {
+        if (section) section.style.display = "none";
+        return;
+      }
+      if (section) section.style.display = "";
+      slot.innerHTML = images.map((item, index) => {
+        const src = typeof item === "string" ? item : item.src;
+        const cap = typeof item === "string" ? "من أنشطة مركز شباب الأحمدية" : (item.caption || "من أنشطة مركز شباب الأحمدية");
+        if (!src || !/^gallery\\/[a-zA-Z0-9._-]+\\.(?:jpe?g|png|webp|avif)$/i.test(src)) return "";
+        return `
+          <figure class="gitem tilt" data-full="${esc(src)}" tabindex="0" role="button" aria-label="${esc(cap)}">
+            <img src="${esc(src)}" alt="${esc(cap)}" loading="${index < 2 ? "eager" : "lazy"}" decoding="async">
+            <figcaption>${esc(cap)}</figcaption>
+          </figure>`;
+      }).join("");
+      if (!slot.children.length && section) section.style.display = "none";
+    } catch (error) {
+      console.warn("[Gallery] Dynamic manifest unavailable; using configured gallery.", error);
+      const fallback = D.gallery || [];
+      if (!fallback.length) { if (section) section.style.display = "none"; return; }
+      slot.innerHTML = fallback.map(item => {
+        const src = `gallery/${item.id}.jpg`;
+        return `<figure class="gitem tilt" data-full="${esc(src)}" tabindex="0" role="button" aria-label="${esc(item.cap)}">
+          <img src="${esc(src)}" alt="${esc(item.cap)}" loading="lazy" decoding="async"><figcaption>${esc(item.cap)}</figcaption>
+        </figure>`;
+      }).join("");
+    }
   }
 
   // ===== FINANCE (يدوية بالكامل — تُدخل من لوحة التحكم كما هي) =====
