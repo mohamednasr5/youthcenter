@@ -45,18 +45,35 @@
   }
 
   /* ---------- LOGIN ---------- */
-  function initLogin() {
-    if (sessionStorage.getItem(SESSION_KEY) === "1") { openDashboard(); return; }
+  async function initLogin() {
     const btn = $("#loginBtn");
     const pass = $("#loginPass");
-    const tryLogin = () => {
-      const v = pass.value;
-      if (v === state.meta.adminPassword) {
-        sessionStorage.setItem(SESSION_KEY, "1");
-        openDashboard();
-      } else {
-        $("#loginErr").textContent = "كلمة المرور غير صحيحة";
-        pass.value = "";
+    const error = $("#loginErr");
+    try {
+      await SiteData.syncFromCloud({ seedIfMissing: true });
+      state = SiteData.load();
+    } catch (e) {
+      error.textContent = "تعذر الاتصال بقاعدة بيانات الأكاديمية. تحقق من إعدادات Firebase ثم أعد المحاولة.";
+      console.error("Youth center cloud initialization failed:", e);
+    }
+    if (sessionStorage.getItem(SESSION_KEY) === "1" && !error.textContent) { openDashboard(); return; }
+    const tryLogin = async () => {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      error.textContent = "";
+      try {
+        const ok = await SiteData.verifyAdminPassword(pass.value);
+        if (ok) {
+          sessionStorage.setItem(SESSION_KEY, "1");
+          openDashboard();
+        } else {
+          error.textContent = "كلمة المرور غير صحيحة";
+          pass.value = "";
+        }
+      } catch (e) {
+        error.textContent = e.message || "تعذر التحقق من كلمة المرور عبر قاعدة البيانات.";
+      } finally {
+        btn.disabled = false;
       }
     };
     btn.addEventListener("click", tryLogin);
@@ -142,7 +159,6 @@
       ["الشهر المالي", state.finance.month],
       ["صافي الرصيد", state.finance.net.toLocaleString("en-US") + " ج.م"],
       ["عنوان الإعلان", state.announcement.title],
-      ["كلمة المرور", state.meta.adminPassword],
       ["حالة البيانات", SiteData.hasSaved() ? "محفوظة (معدّلة)" : "الافتراضية"]
     ];
     $("#ovSummary").innerHTML = `<div class="grid-2">${sum.map(s => `<div class="coll-item" style="padding:12px 14px"><div style="font-size:.78rem;color:var(--txt-mute);font-weight:700">${s[0]}</div><div style="font-size:.92rem;color:#fff;font-weight:800;margin-top:2px">${esc(s[1])}</div></div>`).join("")}</div>`;
@@ -186,7 +202,7 @@
           ${field("اسم المطور", "meta.devName", m.devName)}
           ${field("رابط المطور", "meta.devLink", m.devLink, { hint: "رابط واتساب أو موقع المطور" })}
         </div>
-        ${field("كلمة مرور لوحة التحكم", "meta.adminPassword", m.adminPassword, { hint: "غيّرها لحماية اللوحة" })}
+        
       </div>`;
   }
 
@@ -428,19 +444,26 @@
   }
 
   /* ---------- save / reset / backup ---------- */
-  function save() {
-    // normalize numeric finance chart values
+  async function save() {
     if (state.finance && state.finance.chart) state.finance.chart = state.finance.chart.map(v => Number(v) || 0);
-    SiteData.save(state);
-    clearDirty();
-    toast("✓ تم حفظ التغييرات بنجاح");
+    try {
+      await SiteData.save(state);
+      clearDirty();
+      toast("✓ تم حفظ التغييرات في قاعدة البيانات المشتركة");
+    } catch (e) {
+      toast("تعذر الحفظ في قاعدة البيانات: " + (e.message || "خطأ غير معروف"), true);
+    }
   }
-  function reset() {
+  async function reset() {
     if (!confirm("⚠️ سيتم استعادة كل المحتوى إلى الحالة الافتراضية وحذف كل تعديلاتك. هل أنت متأكد؟")) return;
-    state = SiteData.reset();
-    renderAll();
-    clearDirty();
-    toast("تمت استعادة المحتوى الافتراضي", true);
+    try {
+      state = await SiteData.reset();
+      renderAll();
+      clearDirty();
+      toast("تمت استعادة الافتراضي في قاعدة البيانات", true);
+    } catch (e) {
+      toast("تعذر الاستعادة: " + (e.message || "خطأ غير معروف"), true);
+    }
   }
   function exportJSON() {
     const blob = new Blob([SiteData.exportJSON()], { type: "application/json" });
@@ -453,15 +476,15 @@
   }
   function importJSON(file) {
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
-        state = SiteData.importJSON(reader.result);
+        state = await SiteData.importJSON(reader.result);
         renderAll(); clearDirty();
-        $("#importMsg").innerHTML = '<span style="color:var(--emerald-2);font-weight:800">✓ تم الاستيراد بنجاح</span>';
+        $("#importMsg").innerHTML = '<span style="color:var(--emerald-2);font-weight:800">✓ تم الاستيراد والحفظ في قاعدة البيانات</span>';
         toast("✓ تم استيراد البيانات");
       } catch (e) {
-        $("#importMsg").innerHTML = '<span style="color:var(--red);font-weight:800">✗ ملف JSON غير صالح</span>';
-        toast("ملف غير صالح", true);
+        $("#importMsg").innerHTML = '<span style="color:var(--red);font-weight:800">✗ تعذر الاستيراد أو الحفظ في قاعدة البيانات</span>';
+        toast("ملف غير صالح أو تعذر الاتصال بقاعدة البيانات", true);
       }
     };
     reader.readAsText(file);
