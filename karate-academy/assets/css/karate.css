@@ -508,3 +508,11 @@ body {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   .reveal { opacity: 1; transform: none; }
 }
+
+
+/* Clear return-to-center link */
+.center-home-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;flex-shrink:0;padding:9px 13px;border:1px solid rgba(244,63,94,.48);border-radius:12px;background:linear-gradient(135deg,rgba(244,63,94,.18),rgba(168,85,247,.08));color:#fecdd3;text-decoration:none;font-size:.82rem;font-weight:900;box-shadow:0 6px 22px rgba(0,0,0,.2);transition:transform .2s ease,border-color .2s ease}
+.center-home-link:hover{transform:translateY(-2px);border-color:var(--accent-red)}
+.app-header .header-container{gap:10px}
+@media(max-width:640px){.center-home-link{padding:7px 9px;font-size:.72rem;gap:4px}.app-header .header-container{gap:7px}}
+ 
