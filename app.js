@@ -368,10 +368,45 @@
       </div>`;
   }
   function initFbPost() {
-    if (!window.FBPost || !$("#fbPostSlot")) return;
-    window.FBPost.init(D, (post, src) => {
-      renderFbPost(post, src);
-    });
+    const slot = $("#fbPostSlot");
+    if (!slot) return;
+    const savedCode = String((D.meta && D.meta.fbEmbedCode) || "").trim();
+    if (savedCode) {
+      // نقبل رابط إضافة فيسبوك الرسمي أو كود التضمين، وننشئ الإطار بأمان دون تنفيذ HTML الملصوق.
+      const match = savedCode.match(/src\\s*=\\s*["']([^"']+)["']/i);
+      const rawUrl = match ? match[1] : savedCode;
+      let safeUrl = null;
+      try {
+        const candidate = new URL(rawUrl);
+        if (candidate.protocol === "https:" &&
+            (candidate.hostname === "www.facebook.com" || candidate.hostname === "facebook.com") &&
+            candidate.pathname === "/plugins/post.php") {
+          candidate.searchParams.set("width", "320");
+          safeUrl = candidate.toString();
+        }
+      } catch (e) { /* رابط أو كود غير صالح */ }
+      if (!safeUrl) {
+        slot.innerHTML = '<div class="fb-post empty"><div class="fbp-body">كود تضمين فيسبوك غير صالح. راجع إعدادات الموقع في لوحة الإدارة.</div></div>';
+        return;
+      }
+      slot.innerHTML = '<div class="fb-post"><div class="fbp-head"><span class="fbp-logo">' +
+        SVG_FB + '</span><div class="fbp-meta"><div class="fbp-page">مركز شباب الأحمدية</div>' +
+        '<div class="fbp-date">منشور من الصفحة الرسمية</div></div></div><div class="fb-embed-frame"></div></div>';
+      const frame = document.createElement("iframe");
+      frame.src = safeUrl;
+      frame.title = "منشور مركز شباب الأحمدية على فيسبوك";
+      frame.width = "100%";
+      frame.height = "605";
+      frame.style.cssText = "width:100%;max-width:100%;height:605px;border:0;overflow:hidden";
+      frame.scrolling = "no";
+      frame.setAttribute("allow", "autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share");
+      frame.setAttribute("allowfullscreen", "");
+      frame.setAttribute("loading", "lazy");
+      slot.querySelector(".fb-embed-frame").appendChild(frame);
+      return;
+    }
+    if (!window.FBPost) return;
+    window.FBPost.init(D, (post, src) => renderFbPost(post, src));
   }
 
   // ===== FOOTER =====
