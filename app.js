@@ -543,10 +543,13 @@
 
   // ===== GALLERY LIGHTBOX =====
   function initLightbox() {
-    const lb = document.createElement("div");
-    lb.className = "lb"; lb.setAttribute("role", "dialog"); lb.setAttribute("aria-modal", "true"); lb.setAttribute("aria-hidden", "true");
-    lb.innerHTML = `<button class="lb-close" aria-label="إغلاق">✕</button><img alt=""><div class="lb-cap"></div>`;
-    document.body.appendChild(lb);
+    const existing = document.getElementById("galleryLightbox");
+    const lb = existing || document.createElement("div");
+    if (!existing) lb.className = "lb"; lb.setAttribute("role", "dialog"); lb.setAttribute("aria-modal", "true"); lb.setAttribute("aria-hidden", "true");
+    if (!existing) {
+      lb.innerHTML = `<button class="lb-close" aria-label="إغلاق">✕</button><img alt=""><div class="lb-cap"></div>`;
+      document.body.appendChild(lb);
+    }
     const lbImg = lb.querySelector("img"), lbCap = lb.querySelector(".lb-cap");
     function open(src, cap) {
       lbImg.src = src; lbCap.textContent = cap || "";
@@ -558,6 +561,12 @@
       document.body.style.overflow = "";
     }
     document.addEventListener("click", e => {
+      const carouselSlide = e.target.closest(".gallery-carousel-slide");
+      if (carouselSlide) {
+        const image = carouselSlide.querySelector("img");
+        if (image) open(image.src, carouselSlide.querySelector(".gallery-carousel-caption")?.textContent || image.alt || "");
+        return;
+      }
       const it = e.target.closest(".gitem");
       if (it) open(it.getAttribute("data-full"), it.querySelector("figcaption")?.textContent || "");
     });
