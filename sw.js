@@ -1,6 +1,6 @@
 /* sw.js — service worker لمركز شباب الأحمدية
    caching: app-shell precache + stale-while-revalidate للأصول + network-first للتنقل */
-const CACHE = "ahmadiah-v4";
+const CACHE = "ahmadiah-v5";
 const CORE = [
   "./", "./index.html", "./article.html", "./admin.html",
   "./styles.css", "./admin.css",
@@ -9,6 +9,7 @@ const CORE = [
   "./assets/logo.png", "./assets/favicon.png", "./assets/center-photo.jpg", "./assets/og-image.jpg",
   "./assets/icons/icon-192.png", "./assets/icons/icon-512.png",
   "./assets/icons/icon-192-maskable.png", "./assets/icons/icon-512-maskable.png", "./assets/icons/apple-touch-icon.png",
+  "./gallery/gallery-manifest.json",
   "./gallery/01.jpg", "./gallery/02.jpg", "./gallery/03.jpg", "./gallery/04.jpg", "./gallery/05.jpg", "./gallery/06.jpg"
 ];
 
