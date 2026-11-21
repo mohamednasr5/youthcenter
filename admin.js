@@ -176,12 +176,8 @@
         <h3 style="margin-top:18px">🔗 روابط التواصل الاجتماعي</h3>
         <p class="sub">المركز له صفحة رسمية على فيسبوك فقط — وسائل التواصل الأخرى ملغاة</p>
         ${field("رابط صفحة فيسبوك", "meta.fbLink", m.fbLink)}
-        <div class="grid-2">
-          ${field("معرف صفحة فيسبوك", "meta.fbPageId", m.fbPageId || "", { hint: "من الرابط مثل: Markz.shabab.elahmadya" })}
-          ${field("توكن فيسبوك (اختياري)", "meta.fbToken", m.fbToken || "", { type: "password", hint: "Page Access Token — يجلب آخر منشور على الصفحة تلقائياً ويظهر تحت الإحصائيات المالية" })}
-        </div>
-        <button class="btn btn-emerald btn-sm" id="fbTestBtn" style="margin-top:6px">📡 اختبار جلب آخر منشور من فيسبوك</button>
-        <div id="fbTestOut" style="margin-top:10px;font-size:.84rem;line-height:1.7"></div>
+        ${field("كود منشور فيسبوك", "meta.fbEmbedCode", m.fbEmbedCode || "", { type: "textarea", hint: "الصق كود iframe الذي تنسخه من فيسبوك. بعد حفظ التغييرات سيظهر المنشور في الموقع." })}
+        <p class="sub" style="margin-top:8px">طريقة الاستخدام: انسخ كود التضمين من فيسبوك، الصقه هنا، ثم اضغط «حفظ التغييرات». لا تحتاج إلى Page ID أو Access Token.</p>
       </div>
       <div class="admin-card">
         <h3>💻 المطور والأمان</h3>
