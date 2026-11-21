@@ -1,0 +1,53 @@
+name: Build center gallery manifest
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "gallery/**"
+      - ".github/workflows/gallery-manifest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Generate manifest for every gallery image
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("gallery")
+          allowed = {".jpg", ".jpeg", ".png", ".webp", ".avif"}
+          images = sorted(
+              (
+                  {"src": f"gallery/{p.name}", "caption": "من أنشطة وفعاليات مركز شباب الأحمدية"}
+                  for p in root.iterdir()
+                  if p.is_file() and p.suffix.lower() in allowed and p.name != "gallery-manifest.json"
+              ),
+              key=lambda item: item["src"].casefold()
+          )
+          (root / "gallery-manifest.json").write_text(
+              json.dumps({"images": images}, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8"
+          )
+          print(f"Indexed {len(images)} gallery images.")
+          PY
+      - name: Commit manifest when changed
+        run: |
+          if git diff --quiet -- gallery/gallery-manifest.json; then
+            echo "Gallery manifest is already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gallery/gallery-manifest.json
+          git commit -m "chore: update center gallery manifest"
+          git push
