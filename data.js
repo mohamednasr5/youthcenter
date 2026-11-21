@@ -21,7 +21,6 @@
       fbEmbedCode: "https://www.facebook.com/plugins/post.php?href=https%3A%2F%2Fwww.facebook.com%2FMarkz.shabab.elahmadya%2Fposts%2Fpfbid0ZNyhk6wRi9o2aJDePhXgmLonckrCZMdM8viPqrLLiFp5az21Hdb3RhbHUN5cMyPCl&show_text=true&width=500",
       centerPhoto: "assets/center-photo.jpg",
       logo: "assets/logo.png",
-      adminPassword: "ahmadiah2026"
     },
 
     news: [
@@ -165,9 +164,71 @@
     ]
   };
 
+
   const KEY = "ahmadiah_site_data_v2";
+  const CLOUD_PATH = "youthcenter/state";
+  const AUTH_PATH = "youthcenter/adminAuth";
+  const firebaseConfig = {
+    apiKey: "AIzaSyDJYIKnZNBMZuXhVAhP4irqjLuzP4jQ16g",
+    authDomain: "academia-e6d7b.firebaseapp.com",
+    databaseURL: "https://academia-e6d7b-default-rtdb.firebaseio.com",
+    projectId: "academia-e6d7b",
+    storageBucket: "academia-e6d7b.firebasestorage.app",
+    messagingSenderId: "679214276618",
+    appId: "1:679214276618:web:f34c9e48d83e338facfff3",
+    measurementId: "G-ME9ZF20CZ0"
+  };
+
+  // Initial credential: password is never stored in plaintext.
+  // PBKDF2-SHA256, 310,000 iterations, unique salt.
+  const INITIAL_ADMIN_AUTH = {
+    algorithm: "PBKDF2-SHA256",
+    iterations: 310000,
+    salt: "zno1wgNtIPqKAg8-wpM7xQ",
+    hash: "cinsRxKIBW1xRCmUQuekvtbQjXFIo2QTQD3HI2H2Bss"
+  };
 
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function mergeData(parsed) {
+    const merged = Object.assign(clone(DEFAULT_DATA), parsed || {}, {
+      meta: Object.assign(clone(DEFAULT_DATA.meta), (parsed && parsed.meta) || {}),
+      announcement: Object.assign(clone(DEFAULT_DATA.announcement), (parsed && parsed.announcement) || {}),
+      finance: Object.assign(clone(DEFAULT_DATA.finance), (parsed && parsed.finance) || {}),
+      academies: Object.assign(clone(DEFAULT_DATA.academies), (parsed && parsed.academies) || {})
+    });
+    // Never keep legacy plaintext credentials in browser cache or content exports.
+    if (merged.meta) delete merged.meta.adminPassword;
+    return merged;
+  }
+
+  let cloudDb = null;
+  function getCloudDb() {
+    if (cloudDb) return cloudDb;
+    if (!global.firebase || !global.firebase.database) {
+      throw new Error("تعذر تحميل خدمة قاعدة بيانات الأكاديمية.");
+    }
+    let app = global.firebase.apps.find(item => item.name === "youthcenter");
+    if (!app) app = global.firebase.initializeApp(firebaseConfig, "youthcenter");
+    cloudDb = app.database();
+    return cloudDb;
+  }
+
+  function toBytes(value) {
+    const padded = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - value.length % 4) % 4);
+    return Uint8Array.from(atob(padded), ch => ch.charCodeAt(0));
+  }
+  function toBase64Url(bytes) {
+    let binary = "";
+    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  }
+  async function derivePasswordHash(password, salt) {
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(password)), "PBKDF2", false, ["deriveBits"]);
+    const bits = await crypto.subtle.deriveBits({
+      name: "PBKDF2", salt: toBytes(salt), iterations: INITIAL_ADMIN_AUTH.iterations, hash: "SHA-256"
+    }, key, 256);
+    return toBase64Url(new Uint8Array(bits));
+  }
 
   const SiteData = {
     KEY,
@@ -175,30 +236,65 @@
     load() {
       try {
         const raw = localStorage.getItem(KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          // دمج القيم الافتراضية للمفاتيح الناقصة (لإضافة حقول جديدة مستقبلاً)
-          return Object.assign(clone(DEFAULT_DATA), parsed, {
-            meta: Object.assign(clone(DEFAULT_DATA.meta), parsed.meta || {}),
-            announcement: Object.assign(clone(DEFAULT_DATA.announcement), parsed.announcement || {}),
-            finance: Object.assign(clone(DEFAULT_DATA.finance), parsed.finance || {}),
-            academies: Object.assign(clone(DEFAULT_DATA.academies), parsed.academies || {})
-          });
+        return raw ? mergeData(JSON.parse(raw)) : clone(DEFAULT_DATA);
+      } catch (e) {
+        console.warn("SiteData cache read failed:", e);
+        return clone(DEFAULT_DATA);
+      }
+    },
+    async syncFromCloud(options) {
+      const db = getCloudDb();
+      const ref = db.ref(CLOUD_PATH);
+      const snapshot = await ref.once("value");
+      let data;
+      if (snapshot.exists()) {
+        data = mergeData(snapshot.val());
+      } else {
+        data = this.load();
+        if (options && options.seedIfMissing) {
+          await ref.set(data);
         }
-      } catch (e) { console.warn("SiteData load failed:", e); }
-      return clone(DEFAULT_DATA);
+      }
+      localStorage.setItem(KEY, JSON.stringify(data));
+      return data;
     },
-    save(data) {
-      try { localStorage.setItem(KEY, JSON.stringify(data)); return true; }
-      catch (e) { console.error("SiteData save failed:", e); return false; }
+    async save(data) {
+      const safe = mergeData(data);
+      // Cloud write is authoritative: do not report success or update cache before confirmation.
+      await getCloudDb().ref(CLOUD_PATH).set(safe);
+      localStorage.setItem(KEY, JSON.stringify(safe));
+      return true;
     },
-    reset() { localStorage.removeItem(KEY); return this.load(); },
-    hasSaved() { return !!localStorage.getItem(KEY); },
-    exportJSON() { return JSON.stringify(this.load(), null, 2); },
-    importJSON(str) {
-      const obj = JSON.parse(str);
-      this.save(obj);
+    async reset() {
+      const fresh = clone(DEFAULT_DATA);
+      await this.save(fresh);
+      return this.load();
+    },
+    hasSaved() {
+      try { return !!localStorage.getItem(KEY); } catch { return false; }
+    },
+    exportJSON() {
+      return JSON.stringify(this.load(), null, 2);
+    },
+    async importJSON(str) {
+      const obj = mergeData(JSON.parse(str));
+      await this.save(obj);
       return obj;
+    },
+    async verifyAdminPassword(input) {
+      const ref = getCloudDb().ref(AUTH_PATH);
+      let snapshot = await ref.once("value");
+      if (!snapshot.exists()) {
+        // First deployment seeds the requested password hash directly in the shared database.
+        await ref.set(INITIAL_ADMIN_AUTH);
+        snapshot = await ref.once("value");
+      }
+      const auth = snapshot.val() || {};
+      if (auth.algorithm !== "PBKDF2-SHA256" || !auth.salt || !auth.hash) {
+        throw new Error("إعداد كلمة مرور لوحة الإدارة غير مكتمل في قاعدة البيانات.");
+      }
+      const actual = await derivePasswordHash(input, auth.salt);
+      return actual === auth.hash;
     }
   };
 
