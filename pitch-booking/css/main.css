@@ -1606,3 +1606,11 @@ body {
 @keyframes resultsPulse{0%,100%{box-shadow:0 0 0 rgba(16,185,129,0)}50%{box-shadow:0 0 18px rgba(16,185,129,.18)}}
 @media(max-width:560px){.match-results-heading{align-items:flex-start;flex-direction:column}.match-result-card{padding:16px}.match-results-section{padding:18px 14px}}
 @media(prefers-reduced-motion:reduce){.results-live-dot{animation:none}.match-result-card{animation:none}}
+
+
+/* Clear return-to-center link */
+.center-home-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;flex-shrink:0;padding:9px 13px;border:1px solid rgba(16,185,129,.5);border-radius:12px;background:linear-gradient(135deg,rgba(16,185,129,.18),rgba(13,27,42,.28));color:#a7f3d0;text-decoration:none;font-size:.82rem;font-weight:900;box-shadow:0 6px 22px rgba(0,0,0,.2);transition:transform .2s ease,border-color .2s ease}
+.center-home-link:hover{transform:translateY(-2px);border-color:var(--accent-green)}
+.app-header .header-container{gap:10px}
+@media(max-width:640px){.center-home-link{padding:7px 9px;font-size:.72rem;gap:4px}.app-header .header-container{gap:7px}}
+ 
