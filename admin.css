@@ -1,0 +1,103 @@
+/* admin.css — لوحة تحكم مركز شباب الأحمدية */
+.admin-shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+@media(max-width:880px){.admin-shell{grid-template-columns:1fr}}
+
+/* SIDEBAR */
+.admin-side{background:linear-gradient(180deg,#0a1120,#05080f);border-left:1px solid var(--border);padding:18px 14px;position:sticky;top:0;height:100vh;overflow-y:auto}
+@media(max-width:880px){.admin-side{position:fixed;inset:0 auto 0 0;z-index:60;width:260px;transform:translateX(-100%);transition:transform .3s}.admin-side.open{transform:translateX(0)}}
+.admin-side .as-brand{display:flex;align-items:center;gap:10px;padding:8px 6px 16px;border-bottom:1px solid var(--border);margin-bottom:14px}
+.admin-side .as-brand img{width:40px;height:40px;border-radius:10px}
+.admin-side .as-brand h2{font-size:.95rem;font-weight:900;color:#fff;line-height:1.2}
+.admin-side .as-brand span{font-size:.68rem;color:var(--gold-2);font-weight:700}
+.admin-side .as-nav{display:flex;flex-direction:column;gap:3px}
+.admin-side .as-nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:.86rem;font-weight:700;color:var(--txt-2);transition:.2s;cursor:pointer;border:1px solid transparent}
+.admin-side .as-nav a:hover{background:var(--bg-glass);color:#fff}
+.admin-side .as-nav a.active{background:linear-gradient(135deg,rgba(245,158,11,.18),rgba(16,185,129,.1));color:#fff;border-color:var(--border-strong)}
+.admin-side .as-nav a .ai{font-size:1.05rem;width:22px;text-align:center}
+.admin-side .as-foot{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+.admin-side .as-foot a{font-size:.8rem;color:var(--txt-mute);font-weight:700;padding:8px 10px;border-radius:8px;transition:.2s}
+.admin-side .as-foot a:hover{color:#fff;background:var(--bg-glass)}
+
+/* MAIN */
+.admin-main{padding:22px 26px 60px;min-width:0}
+@media(max-width:520px){.admin-main{padding:16px 14px 50px}}
+.admin-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px;flex-wrap:wrap}
+.admin-top .at-left{display:flex;align-items:center;gap:12px}
+.admin-top .at-left h1{font-size:1.4rem;font-weight:900;color:#fff}
+.admin-top .at-left p{font-size:.78rem;color:var(--txt-mute);font-weight:600}
+.admin-top .at-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.admin-mtoggle{display:none;width:42px;height:42px;border-radius:11px;background:var(--bg-glass);border:1px solid var(--border);color:#fff;cursor:pointer;align-items:center;justify-content:center;font-size:1.2rem}
+@media(max-width:880px){.admin-mtoggle{display:flex}}
+
+/* SAVE BAR */
+.save-bar{position:sticky;bottom:14px;background:linear-gradient(135deg,rgba(16,185,129,.95),rgba(5,150,105,.95));border:1px solid rgba(110,231,183,.5);border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 14px 40px rgba(16,185,129,.35);z-index:30;margin-top:22px}
+.save-bar .sb-txt{font-size:.86rem;font-weight:800;color:#fff}
+.save-bar .sb-txt small{display:block;font-weight:600;font-size:.72rem;opacity:.9}
+.save-bar .sb-actions{display:flex;gap:8px;flex-wrap:wrap}
+.save-bar .sb-actions button{border:0;cursor:pointer;font-family:inherit;font-weight:800;font-size:.82rem;padding:9px 16px;border-radius:10px;background:#fff;color:#047857}
+.save-bar .sb-actions button.secondary{background:rgba(255,255,255,.2);color:#fff}
+
+/* SECTIONS */
+.admin-sec{display:none;animation:fadeUp .35s ease}
+.admin-sec.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.admin-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:22px;margin-bottom:18px}
+.admin-card > h3{font-size:1.05rem;font-weight:900;color:#fff;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.admin-card > .sub{font-size:.8rem;color:var(--txt-mute);margin-bottom:16px;font-weight:600}
+
+/* FORM CONTROLS */
+.field{margin-bottom:14px}
+.field > label{display:block;font-size:.82rem;font-weight:800;color:var(--txt-2);margin-bottom:6px}
+.field > label .hint{font-size:.7rem;color:var(--txt-mute);font-weight:500}
+.field input,.field textarea,.field select{width:100%;background:rgba(3,6,12,.6);border:1px solid var(--border);border-radius:10px;color:#fff;font-family:inherit;font-size:.9rem;padding:10px 12px;transition:.2s}
+.field input:focus,.field textarea:focus,.field select:focus{outline:0;border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,158,11,.18)}
+.field textarea{resize:vertical;min-height:80px;line-height:1.7}
+.field input[type=color]{padding:4px;height:42px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:600px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+/* COLLECTION ITEMS */
+.coll-item{background:rgba(3,6,12,.5);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;position:relative}
+.coll-item .ci-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.coll-item .ci-head .ci-title{font-size:.84rem;font-weight:800;color:var(--gold-2)}
+.coll-item .ci-actions{display:flex;gap:6px;flex-shrink:0}
+.coll-item .ci-actions button{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--bg-glass);color:#fff;cursor:pointer;font-size:.9rem;display:grid;place-items:center;transition:.2s}
+.coll-item .ci-actions button:hover{border-color:var(--gold)}
+.coll-item .ci-actions button.del:hover{border-color:var(--red);color:var(--red)}
+.coll-item .ci-actions button.up:hover,.coll-item .ci-actions button.down:hover{border-color:var(--emerald);color:var(--emerald-2)}
+.btn-add{display:inline-flex;align-items:center;gap:7px;background:rgba(245,158,11,.12);border:1px dashed rgba(245,158,11,.4);color:var(--gold-2);font-family:inherit;font-weight:800;font-size:.84rem;padding:9px 14px;border-radius:10px;cursor:pointer;transition:.2s;margin-top:4px}
+.btn-add:hover{background:rgba(245,158,11,.2);transform:translateY(-1px)}
+
+/* OVERVIEW STATS */
+.ov-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+@media(max-width:760px){.ov-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:420px){.ov-grid{grid-template-columns:1fr}}
+.ov-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:16px}
+.ov-card .ov-ico{font-size:1.4rem;margin-bottom:6px}
+.ov-card .ov-num{font-size:1.7rem;font-weight:900;color:#fff;line-height:1}
+.ov-card .ov-lbl{font-size:.76rem;color:var(--txt-mute);font-weight:700;margin-top:4px}
+.ov-card.gold .ov-num{color:var(--gold-2)}
+.ov-card.emerald .ov-num{color:var(--emerald-2)}
+.ov-card.blue .ov-num{color:var(--blue)}
+.ov-card.purple .ov-num{color:var(--purple)}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:grid;place-items:center;padding:20px}
+.login-card{background:var(--bg-card);border:1px solid var(--border-strong);border-radius:var(--r-lg);padding:34px 30px;max-width:380px;width:100%;text-align:center;box-shadow:var(--sh)}
+.login-card img{width:70px;height:70px;margin:0 auto 14px;border-radius:16px;box-shadow:0 0 26px var(--gold-glow)}
+.login-card h2{font-size:1.3rem;font-weight:900;color:#fff;margin-bottom:4px}
+.login-card p{font-size:.82rem;color:var(--txt-mute);margin-bottom:20px}
+.login-card .err{color:var(--red);font-size:.78rem;font-weight:700;margin-top:10px;min-height:1rem}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:linear-gradient(135deg,var(--emerald),#047857);color:#fff;font-weight:800;font-size:.86rem;padding:12px 22px;border-radius:12px;box-shadow:0 12px 34px rgba(16,185,129,.4);z-index:90;transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.warn{background:linear-gradient(135deg,var(--red),#be123c);box-shadow:0 12px 34px rgba(244,63,94,.4)}
+
+/* JSON AREA */
+.json-area{width:100%;min-height:280px;background:rgba(3,6,12,.7);border:1px solid var(--border);border-radius:10px;color:#a7f3d0;font-family:'Sarasa Mono SC','DejaVu Sans Mono',monospace;font-size:.78rem;padding:14px;line-height:1.6;direction:ltr;text-align:left;resize:vertical}
+
+/* ============ مثال صيغة منشور التقرير المالي (الجلب التلقائي من فيسبوك) ============ */
+pre.fmt-example{background:rgba(3,6,12,.7);border:1px solid var(--border-strong);border-radius:12px;padding:14px 16px;font-family:var(--font);font-size:.8rem;line-height:1.9;color:var(--txt-2);white-space:pre-wrap;margin-bottom:14px}
+.admin-card code{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);border-radius:5px;padding:1px 6px;font-size:.8rem;color:var(--gold-2);direction:ltr;display:inline-block}

@@ -1,0 +1,25 @@
+{
+  "name": "مركز شباب الأحمدية",
+  "short_name": "الأحمدية",
+  "description": "المنصة الرسمية لمركز شباب الأحمدية - المنزلة، الدقهلية. مجلس الإدارة، أكاديميات كرة القدم والكاراتيه، حجز الملعب الخماسي، أخبار ونشاطات.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05080f",
+  "theme_color": "#070b16",
+  "categories": ["sports", "education", "lifestyle"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "أكاديمية كرة القدم", "url": "football-academy/index.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "أكاديمية الكاراتيه", "url": "karate-academy/index.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "حجز الملعب الخماسي", "url": "pitch-booking/index.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

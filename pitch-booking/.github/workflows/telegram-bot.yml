@@ -1,0 +1,65 @@
+name: Ahmadiah Telegram Bot
+
+on:
+  schedule:
+    # GitHub Actions cron uses UTC; this starts a fresh five-hour worker window.
+    - cron: "0 */5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ahmadiah-telegram-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  telegram-bot:
+    name: Keep Telegram bot running and recover crashes
+    runs-on: ubuntu-latest
+    # Five-hour bot window plus setup/retry/cleanup margin (GitHub maximum is 6 hours).
+    timeout-minutes: 350
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+            echo "::error::Missing TELEGRAM_BOT_TOKEN. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Validate bot JavaScript
+        run: node --check bot-runner.js
+
+      - name: Run bot for five hours and restart it after unexpected exits
+        shell: bash
+        run: |
+          WINDOW_SECONDS=18000
+          END_AT=$((SECONDS + WINDOW_SECONDS))
+
+          while [ "$SECONDS" -lt "$END_AT" ]; do
+            REMAINING_SECONDS=$((END_AT - SECONDS))
+            export BOT_RUNNER_DURATION_MS=$((REMAINING_SECONDS * 1000))
+
+            echo "[Actions] Starting Telegram bot. Remaining window: ${REMAINING_SECONDS}s"
+            node bot-runner.js
+            EXIT_CODE=$?
+
+            if [ "$SECONDS" -lt "$END_AT" ]; then
+              echo "::warning::Telegram bot process exited (code $EXIT_CODE). Restarting in 15 seconds."
+              sleep 15
+            fi
+          done
+
+          echo "[Actions] Five-hour worker window completed."

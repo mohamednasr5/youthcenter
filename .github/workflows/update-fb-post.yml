@@ -1,0 +1,47 @@
+name: Update Latest Facebook Post
+
+# يجلب آخر منشور من صفحة المركز على فيسبوك يومياً عبر Graph API
+# ويحدّث fb-post.json — فيظهر المنشور في قسم «آخر منشورات فيسبوك» تحت الإحصائيات المالية.
+# المتطلبات (مرة واحدة): Settings → Secrets and variables → Actions → New repository secret
+#   FB_PAGE_ID    = Markz.shabab.elahmadya (أو الرقم التعريفي للصفحة)
+#   FB_PAGE_TOKEN = Page Access Token طويل الأمد له صلاحية قراءة المنشورات
+
+on:
+  schedule:
+    - cron: "0 5 * * *"    # يومياً 05:00 UTC = 07:00 ص بتوقيت القاهرة
+  workflow_dispatch:        # إمكانية التشغيل اليدوي من تبويب Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fb-post
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch latest post from Facebook
+        env:
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+        run: python tools/update_fb_post.py
+
+      - name: Commit fb-post.json if changed
+        run: |
+          git config user.name "fb-post-bot"
+          git config user.email "actions@github.com"
+          if [ -n "$(git status --porcelain fb-post.json)" ]; then
+            git add fb-post.json
+            git commit -m "chore: تحديث آخر منشور فيسبوك في fb-post.json"
+            git push
+          else
+            echo "لا تغييرات في آخر منشور"
+          fi

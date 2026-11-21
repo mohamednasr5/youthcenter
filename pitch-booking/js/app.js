@@ -1,0 +1,313 @@
+/**
+ * app.js - Main Client Application Logic
+ * Initializes clock, date navigator, PWA registration, bottom navigation, and settings synchronization.
+ */
+
+import { dbRefs, onValue } from './firebase-config.js';
+import { 
+  getEgyptNow, 
+  formatEgyptDateKey, 
+  getArabicDayName, 
+  formatArabicFullDate, 
+  formatCurrency, 
+  showToast 
+} from './utils.js';
+import { setPitchSettings, initBookingModal } from './booking.js';
+import { loadScheduleForDate } from './schedule.js';
+import { soundFX } from './audio-fx.js';
+
+let currentDate = getEgyptNow();
+let deferredPrompt = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateCopyrightYear();
+  initLiveClock();
+  initDateNavigator();
+  initSettingsListener();
+  initBookingModal();
+  initBottomNav();
+  initPwaAndServiceWorker();
+  initNetworkListeners();
+  initMatchResultsListener();
+
+  // Load today's schedule initially
+  const initialDateKey = formatEgyptDateKey(currentDate);
+  loadScheduleForDate(initialDateKey);
+});
+
+/**
+ * Switch view between Tactical Pitch Formation and Cards List
+ */
+window.switchScheduleView = function(view) {
+  soundFX.playClick();
+  const pitchContainer = document.getElementById('pitchFormationContainer');
+  const cardsContainer = document.getElementById('slotsContainer');
+  const pitchBtn = document.getElementById('viewTogglePitchBtn');
+  const cardsBtn = document.getElementById('viewToggleCardsBtn');
+
+  if (view === 'pitch') {
+    if (pitchContainer) pitchContainer.style.display = 'block';
+    if (cardsContainer) cardsContainer.style.display = 'none';
+    if (pitchBtn) pitchBtn.classList.add('active');
+    if (cardsBtn) cardsBtn.classList.remove('active');
+  } else {
+    if (pitchContainer) pitchContainer.style.display = 'none';
+    if (cardsContainer) cardsContainer.style.display = 'grid';
+    if (cardsBtn) cardsBtn.classList.add('active');
+    if (pitchBtn) pitchBtn.classList.remove('active');
+  }
+};
+
+/**
+ * Live Egypt Digital Clock
+ */
+function initLiveClock() {
+  const clockEl = document.getElementById('liveEgyptClock');
+  const updateClock = () => {
+    if (!clockEl) return;
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit',
+      second: '2-digit', hour12: false
+    }).formatToParts(new Date()).reduce((acc, part) => {
+      acc[part.type] = part.value;
+      return acc;
+    }, {});
+    const rawHour = Number(parts.hour);
+    const period = rawHour >= 12 ? 'م' : 'ص';
+    const hours = String(rawHour % 12 || 12).padStart(2, '0');
+    const minutes = parts.minute;
+    const seconds = parts.second;
+    clockEl.textContent = `${hours}:${minutes}:${seconds} ${period}`;
+  };
+
+  updateClock();
+  setInterval(updateClock, 1000);
+}
+
+/**
+ * Date Navigator (Previous, Next, Today, Date Picker)
+ */
+function initDateNavigator() {
+  const prevBtn = document.getElementById('prevDateBtn');
+  const nextBtn = document.getElementById('nextDateBtn');
+  const todayBtn = document.getElementById('todayDateBtn');
+  const dateInput = document.getElementById('datePickerInput');
+  const dateDisplay = document.getElementById('dateDisplayArea');
+
+  const updateDateUI = () => {
+    const dayNameEl = document.getElementById('dateDayName');
+    const formattedEl = document.getElementById('dateFormatted');
+    const dateKey = formatEgyptDateKey(currentDate);
+
+    if (dayNameEl) dayNameEl.textContent = getArabicDayName(currentDate);
+    if (formattedEl) formattedEl.textContent = formatArabicFullDate(currentDate);
+    if (dateInput) dateInput.value = dateKey;
+
+    loadScheduleForDate(dateKey);
+  };
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      soundFX.playClick();
+      currentDate.setDate(currentDate.getDate() - 1);
+      updateDateUI();
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      soundFX.playClick();
+      currentDate.setDate(currentDate.getDate() + 1);
+      updateDateUI();
+    });
+  }
+
+  if (todayBtn) {
+    todayBtn.addEventListener('click', () => {
+      soundFX.playClick();
+      currentDate = getEgyptNow();
+      updateDateUI();
+    });
+  }
+
+  if (dateDisplay && dateInput) {
+    dateDisplay.addEventListener('click', () => {
+      try {
+        dateInput.showPicker();
+      } catch (e) {
+        dateInput.focus();
+      }
+    });
+
+    dateInput.addEventListener('change', (e) => {
+      if (e.target.value) {
+        const [y, m, d] = e.target.value.split('-').map(Number);
+        currentDate = new Date(y, m - 1, d);
+        updateDateUI();
+      }
+    });
+  }
+
+  updateDateUI();
+}
+/** Live match-results feed; the public 24-hour feed is distinct from permanent booking history. */
+function initMatchResultsListener() {
+  const list = document.getElementById('matchResultsList');
+  if (!list) return;
+  const resultsRef = dbRefs.matchResults ? dbRefs.matchResults() : null;
+  if (!resultsRef) return;
+  const render = (snapshot) => {
+    const now = Date.now();
+    const all = snapshot.val() || {};
+    const results = [];
+    Object.entries(all).forEach(([date, day]) => {
+      Object.entries(day || {}).forEach(([id, result]) => {
+        if (!result || result.feedExpired || !Number(result.expiresAt) || Number(result.expiresAt) <= now) return;
+        results.push({...result, date, bookingId:id});
+      });
+    });
+    results.sort((a,b) => Number(b.publishedAt || 0) - Number(a.publishedAt || 0));
+    if (!results.length) {
+      list.innerHTML = '<div class="match-result-empty">⚽ لا توجد نتائج منشورة خلال آخر 24 ساعة.</div>';
+      return;
+    }
+    list.innerHTML = results.map((r,index) => {
+      const one = escapeResultText(r.teamOneCaptain);
+      const two = escapeResultText(r.teamTwoCaptain);
+      const winnerName = r.winner === 'team1' ? one : r.winner === 'team2' ? two : '';
+      const winnerBadge = r.winner === 'draw' ? '🤝 تعادل' : '🏆 فاز الكابتن ' + winnerName;
+      const dateLabel = new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}).format(new Date(Number(r.publishedAt)));
+      return `<article class="match-result-card ${r.winner === 'draw' ? '' : 'winner-card'}" data-expires-at="${Number(r.expiresAt)}" style="animation-delay:${Math.min(index,8)*65}ms">
+        <div class="match-result-top"><span>⚽ مباراة رقم ${escapeResultText(r.bookingId)}</span><span class="match-result-winner">${winnerBadge}</span></div>
+        <div class="match-result-versus">
+          <div class="match-result-team"><span class="match-result-team-name">فريق الكابتن ${one}</span><span class="match-result-team-caption">الفريق الأول</span><strong class="match-result-score">${Number(r.teamOneScore)}</strong></div>
+          <span class="match-result-vs">VS</span>
+          <div class="match-result-team"><span class="match-result-team-name">فريق الكابتن ${two}</span><span class="match-result-team-caption">الفريق الثاني</span><strong class="match-result-score">${Number(r.teamTwoScore)}</strong></div>
+        </div>
+        <div class="match-result-bottom"><span>📅 ${dateLabel}</span><span>⏳ يختفي من قائمة اليوم بعد 24 ساعة</span></div>
+      </article>`;
+    }).join('');
+  };
+  onValue(resultsRef, render);
+  setInterval(() => {
+    const cards = list.querySelectorAll('.match-result-card');
+    cards.forEach(card => { const expiry = Number(card.dataset.expiresAt); if (expiry && expiry <= Date.now()) card.remove(); });
+  }, 60000);
+}
+
+function escapeResultText(value) {
+  return String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+
+/**
+ * Settings listener from Firebase Realtime Database
+ */
+function initSettingsListener() {
+  const settingsRef = dbRefs.settings();
+  onValue(settingsRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      setPitchSettings(data);
+
+      const pitchNameEl = document.getElementById('pitchNameTitle');
+      const dayRateEl = document.getElementById('heroDayRate');
+      const nightRateEl = document.getElementById('heroNightRate');
+
+      if (pitchNameEl && data.pitchName) pitchNameEl.textContent = data.pitchName;
+      if (dayRateEl && data.dayPrice) dayRateEl.textContent = formatCurrency(data.dayPrice);
+      if (nightRateEl && data.nightPrice) nightRateEl.textContent = formatCurrency(data.nightPrice);
+    }
+  });
+}
+
+/**
+ * Mobile Bottom Navigation active states & scrolling
+ */
+function initBottomNav() {
+  const navItems = document.querySelectorAll('.bottom-nav-item');
+  navItems.forEach((item) => {
+    item.addEventListener('click', (e) => {
+      const target = item.getAttribute('data-target');
+      if (target && target.startsWith('#')) {
+        e.preventDefault();
+        navItems.forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+
+        const section = document.querySelector(target);
+        if (section) {
+          section.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    });
+  });
+}
+
+/**
+ * PWA Service Worker Registration & Installation Prompt
+ */
+function initPwaAndServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => {
+          console.log('Ahmadiah Pitch Service Worker registered with scope:', reg.scope);
+        })
+        .catch((err) => {
+          console.warn('Service Worker registration error:', err);
+        });
+    });
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const installBanner = document.getElementById('pwaInstallPrompt');
+    if (installBanner) installBanner.style.display = 'flex';
+  });
+
+  const installBtn = document.getElementById('btnInstallApp');
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          showToast('شكراً لتثبيت تطبيق ملعب الأحمدية!', 'success');
+        }
+        deferredPrompt = null;
+        const banner = document.getElementById('pwaInstallPrompt');
+        if (banner) banner.style.display = 'none';
+      }
+    });
+  }
+}
+
+/**
+ * Online / Offline Status Detection
+ */
+function initNetworkListeners() {
+  const banner = document.getElementById('offlineBanner');
+  const updateStatus = () => {
+    if (!navigator.onLine) {
+      if (banner) banner.classList.add('active');
+      showToast('أنت غير متصل بالإنترنت حالياً. تم تعطيل الحجز حتى عودة الاتصال.', 'error');
+    } else {
+      if (banner) banner.classList.remove('active');
+    }
+  };
+
+  window.addEventListener('online', updateStatus);
+  window.addEventListener('offline', updateStatus);
+  updateStatus();
+}
+
+
+/**
+ * Keep the footer copyright year synchronized with the visitor's current year.
+ */
+function updateCopyrightYear() {
+  const yearElement = document.getElementById('currentYear');
+  if (yearElement) {
+    yearElement.textContent = String(new Date().getFullYear());
+  }
+}

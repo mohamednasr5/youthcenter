@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="شعار مركز شباب الأحمدية">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="0.5" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="emerald" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6ee7b7"/>
+      <stop offset="1" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="navy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1224"/>
+      <stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.4" r="0.6">
+      <stop offset="0" stop-color="#f59e0b" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+    <path id="topArc" d="M 30,100 A 70,70 0 0 1 170,100" fill="none"/>
+    <path id="botArc" d="M 35,108 A 65,65 0 0 0 165,108" fill="none"/>
+  </defs>
+
+  <!-- خلفية دائرية -->
+  <circle cx="100" cy="100" r="98" fill="url(#navy)" stroke="url(#gold)" stroke-width="3"/>
+  <circle cx="100" cy="100" r="98" fill="url(#glow)"/>
+
+  <!-- حلقة ذهبية داخلية -->
+  <circle cx="100" cy="100" r="74" fill="none" stroke="url(#gold)" stroke-width="2" opacity="0.8"/>
+  <circle cx="100" cy="100" r="70" fill="none" stroke="#ffffff" stroke-width="0.6" opacity="0.25"/>
+
+  <!-- نص علوي: مركز شباب الأحمدية -->
+  <text font-family="'Cairo','Tajawal',sans-serif" font-size="15" font-weight="800" fill="url(#gold)" letter-spacing="1">
+    <textPath href="#topArc" startOffset="50%" text-anchor="middle">مركز شباب الأحمدية</textPath>
+  </text>
+  <!-- نص سفلي: المنزلة - الدقهلية -->
+  <text font-family="'Cairo','Tajawal',sans-serif" font-size="9" font-weight="700" fill="#cbd5e1" letter-spacing="2">
+    <textPath href="#botArc" startOffset="50%" text-anchor="middle">المنزلة • الدقهلية</textPath>
+  </text>
+
+  <!-- رمز الشباب: شعلة + نجمة + كرة -->
+  <!-- شعلة -->
+  <g transform="translate(100,92)">
+    <!-- لهب الشعلة -->
+    <path d="M 0,-30 C 10,-14 12,-4 6,6 C 2,12 -2,12 -6,6 C -12,-4 -8,-16 0,-30 Z" fill="url(#gold)"/>
+    <path d="M 0,-22 C 5,-12 6,-4 2,2 C 0,5 -2,4 -4,0 C -6,-6 -3,-14 0,-22 Z" fill="#fff7ed"/>
+    <!-- قاعدة الشعلة -->
+    <rect x="-7" y="6" width="14" height="14" rx="2" fill="url(#emerald)"/>
+    <rect x="-9" y="18" width="18" height="4" rx="2" fill="url(#gold)"/>
+  </g>
+  <!-- نجوم جانبية -->
+  <g fill="url(#gold)">
+    <path d="M 58,100 l 3,7 7,1 -5,5 1,7 -6,-3 -6,3 1,-7 -5,-5 7,-1 z"/>
+    <path d="M 142,100 l 3,7 7,1 -5,5 1,7 -6,-3 -6,3 1,-7 -5,-5 7,-1 z"/>
+  </g>
+  <!-- شريط أسفل: EST -->
+  <text x="100" y="150" font-family="'Cairo',sans-serif" font-size="8" font-weight="700" fill="#94a3b8" text-anchor="middle" letter-spacing="3">YOUTH CENTER</text>
+</svg>

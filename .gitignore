@@ -1,0 +1,23 @@
+# نظام التشغيل
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# المحررات
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# السجلات
+*.log
+npm-debug.log*
+
+# ملفات مؤقتة
+.tmp/
+.cache/
+__pycache__/
+
+# ملف التسليم المضغوط (نسخة معبأة من المستودع نفسه)
+ahmadiah-youth-center.zip

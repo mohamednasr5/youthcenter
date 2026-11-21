@@ -1,0 +1,564 @@
+/**
+ * bot-runner.js - Standalone 24/7 Telegram Bot Runner
+ * Pure Node.js (zero dependencies, uses standard built-in https module).
+ * Connects directly to Telegram Bot API & Firebase Realtime Database.
+ * Handles /start, /subscribe, /unsubscribe, /today, /available, /help,
+ * and broadcasts notifications when bookings change.
+ */
+
+const https = require('https');
+
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const RUN_DURATION_MS = Number(process.env.BOT_RUNNER_DURATION_MS || 240000);
+const ADMIN_CHAT_IDS = String(process.env.TELEGRAM_ADMIN_CHAT_IDS || '')
+  .split(',').map(value => value.trim()).filter(Boolean);
+const RESULT_ADMIN_CODE = '521988';
+const RESULT_ADMIN_IDS = String(process.env.TELEGRAM_ADMIN_CHAT_IDS || '').split(',').map(v => v.trim()).filter(Boolean);
+const RESULT_TTL_MS = 24 * 60 * 60 * 1000;
+
+const runStartedAt = Date.now();
+const FIREBASE_DB_BASE = 'https://hagz-a49fa-default-rtdb.firebaseio.com';
+
+let lastUpdateId = 0;
+// Track notified bookings: key = `${id}_${status}` to re-notify on status change
+const notifiedKeys = new Set();
+let botStartTimestamp = Date.now(); // Only notify bookings created AFTER bot starts
+
+if (!BOT_TOKEN) {
+  console.error('Missing TELEGRAM_BOT_TOKEN secret. Add it in GitHub repository Actions secrets.');
+  process.exit(1);
+}
+
+console.log('----------------------------------------------------');
+console.log('🤖 بوت ملعب مركز شباب الأحمدية قيد التشغيل والجاهزية...');
+console.log('Bot Username: @AhmadiahPitchBot');
+console.log('وقت البدء:', new Date().toLocaleString('ar-EG', {timeZone:'Africa/Cairo'}));
+console.log('----------------------------------------------------');
+
+
+/**
+ * Generic HTTPS JSON Request Helper
+ */
+function request(url, options = {}, postData = null) {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const reqOptions = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || 443,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: options.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      }
+    };
+
+    const req = https.request(reqOptions, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(body);
+          resolve(parsed);
+        } catch (e) {
+          resolve(body);
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.setTimeout(35000, () => {
+      req.abort();
+      reject(new Error('Request timeout'));
+    });
+
+    if (postData) {
+      req.write(typeof postData === 'string' ? postData : JSON.stringify(postData));
+    }
+    req.end();
+  });
+}
+
+/**
+ * Sends a message via Telegram Bot API
+ */
+async function sendTelegramMessage(chatId, text, replyMarkup = null) {
+  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+  const payload = {
+    chat_id: chatId,
+    text,
+    parse_mode: 'HTML'
+  };
+  if (replyMarkup) payload.reply_markup = replyMarkup;
+
+  try {
+    return await request(url, { method: 'POST' }, payload);
+  } catch (err) {
+    console.error(`Error sending message to chatId ${chatId}:`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Converts 24H time "17:00" to 12H Arabic "05:00 م"
+ */
+function to12H(time24) {
+  if (!time24) return '';
+  const [hStr, mStr] = time24.split(':');
+  let h = parseInt(hStr, 10);
+  const m = mStr || '00';
+  const period = h >= 12 ? 'م' : 'ص';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${m} ${period}`;
+}
+
+/**
+ * Gets Egypt Date Key YYYY-MM-DD
+ */
+function getEgyptDateKey() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date());
+}
+
+function escapeTelegram(value) {
+  return String(value || '').replace(/[&<>"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+}
+
+/**
+ * Handles Incoming Telegram Message
+ */
+async function handleTelegramMessage(message) {
+  if (!message || !message.text) return;
+
+  const chatId = String(message.chat.id);
+  const text = message.text.trim();
+  const userName = message.from.first_name || 'كابتن';
+  // Result entry is authorized by the private-chat PIN; group chats can never start it.
+  const isPrivateChat = message.chat.type === 'private';
+  const stateUrl = `${FIREBASE_DB_BASE}/telegramResultSessions/${chatId}.json`;
+  const sessionResponse = await request(stateUrl);
+  let session = sessionResponse && typeof sessionResponse === 'object' ? sessionResponse : null;
+
+  console.log(`[Telegram Update] From: ${userName} (${chatId}) | Text: ${text}`);
+
+  if (isPrivateChat && text === RESULT_ADMIN_CODE) {
+    await request(stateUrl, { method: 'PUT' }, {
+      step: 'booking',
+      startedAt: Date.now(),
+      adminChatId: chatId,
+      adminAuthorized: true
+    });
+    await sendTelegramMessage(chatId,
+      '🔐 <b>تم فتح تسجيل النتائج.</b>\n\nأرسل رقم الحجز الذي انتهى كما ظهر في إشعار انتهاء المباراة.\nأرسل /cancel لإلغاء العملية.');
+    return;
+  }
+
+  if (isPrivateChat && session && session.adminAuthorized && text === '/cancel') {
+    await request(stateUrl, { method: 'DELETE' });
+    await sendTelegramMessage(chatId, '✅ تم إلغاء تسجيل النتيجة.');
+    return;
+  }
+
+  if (isPrivateChat && session && session.adminAuthorized && session.adminChatId === chatId) {
+    if (Date.now() - Number(session.startedAt || 0) > 15 * 60 * 1000) {
+      await request(stateUrl, { method: 'DELETE' });
+      await sendTelegramMessage(chatId, 'انتهت صلاحية جلسة التسجيل. أرسل 521988 للبدء مجدداً.');
+      return;
+    }
+
+    if (session.step === 'booking') {
+      const bookingId = text.trim();
+      if (!/^[A-Za-z0-9_-]{5,100}$/.test(bookingId)) {
+        await sendTelegramMessage(chatId, 'رقم الحجز غير صحيح. أرسله كما ظهر في إشعار البوت.');
+        return;
+      }
+
+      const dateKeys = [getEgyptDateKey()];
+      const yesterday = new Date(Date.now() - 86400000);
+      dateKeys.push(new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(yesterday));
+
+      let found = null;
+      for (const dateKey of dateKeys) {
+        const candidate = await request(`${FIREBASE_DB_BASE}/bookings/${dateKey}/${bookingId}.json`);
+        if (candidate && candidate.status === 'confirmed') {
+          found = { dateKey, bookingId, booking: candidate };
+          break;
+        }
+      }
+
+      if (!found) {
+        await sendTelegramMessage(chatId, 'لم أعثر على حجز مؤكد بهذا الرقم لليوم أو الأمس. تحقق من رقم الحجز.');
+        return;
+      }
+
+      const booking = found.booking;
+      if (!booking.teamOneCaptain || !booking.teamTwoCaptain) {
+        await request(stateUrl, { method: 'DELETE' });
+        await sendTelegramMessage(chatId, '⚠️ هذا الحجز لا يحتوي على اسمي قائدي الفريقين. أضفهما من الإدارة قبل تسجيل النتيجة.');
+        return;
+      }
+      if (booking.resultPublished) {
+        await request(stateUrl, { method: 'DELETE' });
+        await sendTelegramMessage(chatId, 'هذه المباراة لها نتيجة منشورة بالفعل.');
+        return;
+      }
+
+      session = { ...session, ...found, step: 'score1' };
+      await request(stateUrl, { method: 'PUT' }, session);
+      await sendTelegramMessage(chatId,
+        `⚽ <b>مباراة الحجز ${escapeTelegram(bookingId)}</b>\n\n🥇 الفريق الأول: <b>${escapeTelegram(booking.teamOneCaptain)}</b>\nأرسل عدد أهداف الفريق الأول:`);
+      return;
+    }
+
+    if (session.step === 'score1' || session.step === 'score2') {
+      if (!/^[0-9]{1,2}$/.test(text) || Number(text) > 99) {
+        await sendTelegramMessage(chatId, 'أرسل عدد الأهداف كرقم صحيح من 0 إلى 99.');
+        return;
+      }
+
+      if (session.step === 'score1') {
+        session.score1 = Number(text);
+        session.step = 'score2';
+        await request(stateUrl, { method: 'PUT' }, session);
+        await sendTelegramMessage(chatId,
+          `✅ أهداف ${escapeTelegram(session.booking.teamOneCaptain)}: <b>${session.score1}</b>\n\n🥈 أرسل عدد أهداف الفريق الثاني (<b>${escapeTelegram(session.booking.teamTwoCaptain)}</b>):`);
+        return;
+      }
+
+      const score2 = Number(text);
+      const score1 = Number(session.score1);
+      const bookingRef = `${FIREBASE_DB_BASE}/bookings/${session.dateKey}/${session.bookingId}.json`;
+      const current = await request(bookingRef);
+      if (!current || current.status !== 'confirmed' || current.resultPublished) {
+        await request(stateUrl, { method: 'DELETE' });
+        await sendTelegramMessage(chatId, 'تعذر اعتماد النتيجة: الحجز غير موجود أو سبق نشر نتيجته.');
+        return;
+      }
+      if (Number(current.endTimestamp) > Date.now()) {
+        await sendTelegramMessage(chatId, '⏳ لم ينته وقت هذا الحجز بعد. لا يمكن اعتماد النتيجة قبل انتهاء المباراة.');
+        return;
+      }
+
+      const existingResult = await request(`${FIREBASE_DB_BASE}/matchResults/${session.dateKey}/${session.bookingId}.json`);
+      if (existingResult) {
+        await request(stateUrl, { method: 'DELETE' });
+        await sendTelegramMessage(chatId, 'هذه المباراة لها نتيجة مسجلة بالفعل.');
+        return;
+      }
+
+      const winner = score1 === score2 ? 'draw' : (score1 > score2 ? 'team1' : 'team2');
+      const publishedAt = Date.now();
+      const result = {
+        bookingId: session.bookingId,
+        date: session.dateKey,
+        teamOneCaptain: current.teamOneCaptain,
+        teamTwoCaptain: current.teamTwoCaptain,
+        teamOneScore: score1,
+        teamTwoScore: score2,
+        winner,
+        publishedAt,
+        expiresAt: publishedAt + RESULT_TTL_MS,
+        feedExpired: false,
+        createdAt: publishedAt
+      };
+
+      const saved = await request(
+        `${FIREBASE_DB_BASE}/matchResults/${session.dateKey}/${session.bookingId}.json`,
+        { method: 'PUT' },
+        result
+      );
+      if (!saved || saved.error) {
+        await sendTelegramMessage(chatId, 'تعذر حفظ النتيجة في قاعدة البيانات. لم يتم نشرها.');
+        return;
+      }
+
+      await request(bookingRef, { method: 'PATCH' }, {
+        resultPublished: true,
+        resultPublishedAt: publishedAt,
+        teamOneScore: score1,
+        teamTwoScore: score2
+      });
+      await request(stateUrl, { method: 'DELETE' });
+
+      const winnerText = winner === 'draw'
+        ? '🤝 انتهت المباراة بالتعادل.'
+        : `🏆 ألف مبروك لفريق الكابتن <b>${escapeTelegram(winner === 'team1' ? current.teamOneCaptain : current.teamTwoCaptain)}</b>!`;
+      const announcement = `🏆⚽ <b>نتيجة مباراة جديدة | ملعب الأحمدية</b>
+━━━━━━━━━━━━━━━━━━
+🥇 <b>فريق الكابتن ${escapeTelegram(current.teamOneCaptain)}</b> — <b>${score1}</b>
+
+⚔️ <b>VS</b>
+
+🥈 <b>فريق الكابتن ${escapeTelegram(current.teamTwoCaptain)}</b> — <b>${score2}</b>
+━━━━━━━━━━━━━━━━━━
+${winnerText}
+${winner === 'draw' ? 'أداء رائع وروح رياضية من الفريقين.' : 'هارد لك للفريق الآخر، وحظاً أوفر في المباريات القادمة.'}
+
+مع أطيب التهاني ❤️
+مع تحيات
+<b>المهندس محمد حماد</b>
+مبرمج المنصة
+
+🌐 <a href="https://mohamednasr5.github.io/hagz/">مشاهدة النتائج على الموقع</a>`;
+
+      const subscribers = await request(`${FIREBASE_DB_BASE}/telegramSubscribers.json`) || {};
+      let failures = 0;
+      for (const subscriberId of Object.keys(subscribers)) {
+        const sent = await sendTelegramMessage(subscriberId, announcement);
+        if (!sent || !sent.ok) failures++;
+      }
+      await sendTelegramMessage(chatId,
+        `✅ تم اعتماد النتيجة ونشرها.\n${escapeTelegram(current.teamOneCaptain)} ${score1} - ${score2} ${escapeTelegram(current.teamTwoCaptain)}\nتعذر تسليم الإشعار إلى ${failures} مشترك.`);
+      return;
+    }
+  }
+
+  if (text.startsWith('/start')) {
+    const welcome = `
+⚽ <b>أهلاً بك يا ${escapeTelegram(userName)} في بوت ملعب الأحمدية الخماسي!</b>
+
+نظام المتابعة والإشعار اللحظي لملعب كرة القدم بمركز شباب الأحمدية.
+📍 <b>الموقع:</b> قرية الأحمدية - مركز المنزلة - محافظة الدقهلية.
+
+📋 <b>الأوامر السريعة:</b>
+/subscribe - تفعيل إشعارات الحجز المباشر 🔔
+/today - جدول مباريات اليوم 📅
+/available - المواعيد المتاحة للحجز اليوم ⚡
+/unsubscribe - إلغاء الاشتراك ❌
+/help - المساعدة والدعم ℹ️
+    `;
+    const keyboard = {
+      keyboard: [
+        [{ text: '/today 📅 مباريات اليوم' }, { text: '/available ⚡ المواعيد المتاحة' }],
+        [{ text: '/subscribe 🔔 تفعيل الإشعارات' }, { text: '/help ℹ️ مساعدة' }]
+      ],
+      resize_keyboard: true,
+      one_time_keyboard: false
+    };
+    await sendTelegramMessage(chatId, welcome, keyboard);
+
+  } else if (text.startsWith('/subscribe') || text.includes('تفعيل الإشعارات')) {
+    const subscriberData = {
+      chatId,
+      name: `${message.from.first_name || ''} ${message.from.last_name || ''}`.trim(),
+      username: message.from.username ? `@${message.from.username}` : null,
+      subscribedAt: Date.now()
+    };
+    await request(`${FIREBASE_DB_BASE}/telegramSubscribers/${chatId}.json`, { method: 'PUT' }, subscriberData);
+    await sendTelegramMessage(chatId,
+      '✅ <b>تم تفعيل اشتراكك بنجاح في إشعارات ملعب الأحمدية!</b>\nستصلك تنبيهات تأكيد الحجز وانتهاء المباريات والنتائج الرسمية.');
+
+  } else if (text.startsWith('/unsubscribe')) {
+    await request(`${FIREBASE_DB_BASE}/telegramSubscribers/${chatId}.json`, { method: 'DELETE' });
+    await sendTelegramMessage(chatId, '❌ تم إلغاء اشتراكك. يمكنك العودة عبر /subscribe.');
+
+  } else if (text.startsWith('/today') || text.includes('مباريات اليوم')) {
+    const todayKey = getEgyptDateKey();
+    const bookingsData = await request(`${FIREBASE_DB_BASE}/bookings/${todayKey}.json`) || {};
+    const confirmed = Object.values(bookingsData)
+      .filter(b => b.status === 'confirmed')
+      .sort((a, b) => a.startTimestamp - b.startTimestamp);
+    let reply = `📅 <b>جدول مباريات اليوم (${todayKey}):</b>\n\n`;
+    if (!confirmed.length) {
+      reply += '🟢 لا توجد حجوزات مؤكدة مسجلة لليوم حتى الآن.';
+    } else {
+      confirmed.forEach(b => {
+        reply += `⏰ <b>${to12H(b.startTime)} - ${to12H(b.endTime)}</b>\n👤 ${escapeTelegram(b.customerName || 'محجوز')}\n\n`;
+      });
+    }
+    await sendTelegramMessage(chatId, reply);
+
+  } else if (text.startsWith('/available') || text.includes('المواعيد المتاحة')) {
+    const todayKey = getEgyptDateKey();
+    const bookingsData = await request(`${FIREBASE_DB_BASE}/bookings/${todayKey}.json`) || {};
+    const bookedTimes = new Set();
+    Object.values(bookingsData).forEach(b => {
+      if (b.status === 'confirmed' || b.status === 'pending') bookedTimes.add(b.startTime);
+    });
+    const allSlots = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00','00:00'];
+    const available = allSlots.filter(s => !bookedTimes.has(s));
+    const reply = available.length
+      ? `⚡ <b>المواعيد الشاغرة اليوم (${todayKey}):</b>\n${available.map(s => `🟢 ${to12H(s)}`).join('\n')}\n\nhttps://mohamednasr5.github.io/hagz/`
+      : '🔴 جميع ساعات اليوم محجوزة.';
+    await sendTelegramMessage(chatId, reply);
+
+  } else if (text.startsWith('/help') || text.includes('مساعدة')) {
+    await sendTelegramMessage(chatId,
+      'ℹ️ <b>مساعدة ملعب الأحمدية</b>\nقرية الأحمدية - مركز المنزلة - الدقهلية\nhttps://mohamednasr5.github.io/hagz/');
+  }
+}
+
+/**
+ * Long Polling loop for Telegram Bot
+ */
+async function pollTelegramUpdates() {
+  const url = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId}&timeout=20`;
+
+  try {
+    const response = await request(url);
+    if (response && response.ok && Array.isArray(response.result)) {
+      for (const update of response.result) {
+        lastUpdateId = update.update_id + 1;
+        if (update.message) {
+          await handleTelegramMessage(update.message);
+        }
+      }
+    }
+  } catch (err) {
+    if (!err.message.includes('timeout')) {
+      console.warn('Polling error (will retry):', err.message);
+    }
+  }
+
+  if (Date.now() - runStartedAt < RUN_DURATION_MS) {
+    setTimeout(pollTelegramUpdates, 1000);
+  } else {
+    console.log('[Bot] Polling window complete; the next scheduled Actions run will restart it.');
+  }
+}
+
+/**
+ * Watcher for new confirmed/pending bookings to broadcast to Telegram subscribers
+ * Runs every 10 seconds and checks today + tomorrow
+ */
+async function checkBookingNotifications() {
+  try {
+    const todayKey = getEgyptDateKey();
+    const tomorrowDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowKey = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(tomorrowDate);
+
+    const subscribersData = await request(`${FIREBASE_DB_BASE}/telegramSubscribers.json`) || {};
+    const subscriberIds = Object.keys(subscribersData);
+    if (subscriberIds.length) {
+    for (const dateKey of [todayKey, tomorrowKey]) {
+      const bookings = await request(`${FIREBASE_DB_BASE}/bookings/${dateKey}.json`) || {};
+      if (!bookings || typeof bookings !== 'object') continue;
+
+      // Daily public results expire from the current-day feed after 24h; history is kept separately.
+      const oldResults = await request(`${FIREBASE_DB_BASE}/matchResults/${dateKey}.json`) || {};
+      for (const [resultId, result] of Object.entries(oldResults)) {
+        if (result && Number(result.expiresAt) && Date.now() >= Number(result.expiresAt) && !result.feedExpired) {
+          await request(`${FIREBASE_DB_BASE}/matchResults/${dateKey}/${resultId}.json`,{method:'PATCH'},{feedExpired:true});
+        }
+      }
+
+      for (const [id, booking] of Object.entries(bookings)) {
+        if (booking && booking.resultPublished && booking.resultPublishedAt && Date.now() - Number(booking.resultPublishedAt) >= RESULT_TTL_MS) {
+          const resultUrl = `${FIREBASE_DB_BASE}/matchResults/${dateKey}/${id}.json`;
+          const publicResult = await request(resultUrl);
+          if (publicResult && !publicResult.feedExpired) await request(resultUrl,{method:'PATCH'},{feedExpired:true});
+        }
+        if (!booking || !booking.status) continue;
+        const durationMinutes = Number(booking.durationMinutes) ||
+          (booking.startTimestamp && booking.endTimestamp
+            ? Math.max(0, Math.round((booking.endTimestamp - booking.startTimestamp) / 60000)) : 0);
+        const duration = durationMinutes
+          ? `${Math.floor(durationMinutes / 60) ? Math.floor(durationMinutes / 60) + ' ساعة' : ''}${durationMinutes % 60 ? (durationMinutes >= 60 ? ' و' : '') + durationMinutes % 60 + ' دقيقة' : ''}`
+          : 'غير محددة';
+        const price = Number(booking.totalPrice);
+        const priceText = Number.isFinite(price) ? `${price.toLocaleString('ar-EG')} ج.م` : 'غير محدد';
+        const base = `📅 <b>التاريخ:</b> ${dateKey}
+⏰ <b>البداية:</b> ${to12H(booking.startTime)}
+🏁 <b>النهاية:</b> ${to12H(booking.endTime)}
+⏳ <b>المدة:</b> ${duration}
+👥 <b>الفريق:</b> ${booking.customerName || 'فريق رياضي'}
+💰 <b>السعر:</b> ${priceText}
+🆔 <b>رقم الحجز:</b> <code>${id}</code>`;
+
+        let marker = null;
+        let message = '';
+        if (booking.status === 'confirmed' && !booking.telegramConfirmedNotified) {
+          marker = 'telegramConfirmedNotified';
+          message = `🎉 <b>تم تأكيد الحجز بنجاح | ملعب الأحمدية</b>
+━━━━━━━━━━━━━━━━━━
+${base}
+━━━━━━━━━━━━━━━━━━
+📍 مركز شباب الأحمدية - المنزلة - الدقهلية
+يرجى الحضور قبل الموعد بـ 10 دقائق ⚽`;
+        } else if (booking.status === 'pending' && !booking.telegramPendingNotified) {
+          marker = 'telegramPendingNotified';
+          message = `📋 <b>طلب حجز جديد بانتظار موافقة الإدارة</b>
+━━━━━━━━━━━━━━━━━━
+${base}
+━━━━━━━━━━━━━━━━━━
+🛠️ <a href="https://mohamednasr5.github.io/hagz/admin/">فتح لوحة الإدارة</a>`;
+        } else if (booking.status === 'cancelled' && !booking.telegramCancelledNotified) {
+          marker = 'telegramCancelledNotified';
+          message = `📢 <b>تم إلغاء الحجز وإتاحة الموعد</b>
+━━━━━━━━━━━━━━━━━━
+${base}
+🟢 الموعد متاح للحجز الآن.`;
+        } else if (booking.status === 'confirmed' && Date.now() >= Number(booking.endTimestamp) && !booking.telegramExpiredNotified) {
+          marker = 'telegramExpiredNotified';
+          message = `⏰ <b>انتهى وقت الحجز</b>
+━━━━━━━━━━━━━━━━━━
+${base}
+🟢 الملعب جاهز لاستقبال الحجز التالي.\n\n🆔 لإدخال النتيجة: أرسل 521988 إلى البوت من حساب الإدارة.
+
+🆔 لإدخال النتيجة: أرسل 521988 إلى البوت من حساب الإدارة، ثم اتبع الأسئلة.`;
+        }
+
+        if (marker && message) {
+          let delivered = true;
+          for (const chatId of subscriberIds) {
+            const result = await sendTelegramMessage(chatId, message);
+            if (!result || !result.ok) delivered = false;
+          }
+          if (delivered) {
+            await request(`${FIREBASE_DB_BASE}/bookings/${dateKey}/${id}.json`, { method: 'PATCH' }, {
+              [marker]: true,
+              telegramLastNotifiedAt: Date.now()
+            });
+            console.log(`[Bot] ${marker} sent for booking ${id}`);
+          }
+        }
+      }
+    }
+    }
+  } catch (err) {
+    console.error('[Bot] Booking notification watcher error:', err.message);
+  }
+
+  if (Date.now() - runStartedAt < RUN_DURATION_MS) {
+    setTimeout(checkBookingNotifications, 10000);
+  }
+}
+
+// GitHub Actions is the sole Telegram update consumer for this deployment.
+async function startBot() {
+  try {
+    const webhookResult = await request(
+      `https://api.telegram.org/bot${BOT_TOKEN}/deleteWebhook`,
+      { method: 'POST' },
+      { drop_pending_updates: false }
+    );
+    if (!webhookResult || !webhookResult.ok) {
+      throw new Error('Telegram deleteWebhook failed: ' + JSON.stringify(webhookResult));
+    }
+    console.log('[Bot] Webhook cleared; GitHub Actions long polling is active.');
+  } catch (error) {
+    console.error('[Bot] Could not prepare Telegram polling:', error.message);
+    process.exit(1);
+  }
+
+  pollTelegramUpdates();
+  checkBookingNotifications();
+
+  setTimeout(() => {
+    console.log('[Bot] Scheduled execution window ended. Exiting cleanly.');
+    process.exit(0);
+  }, RUN_DURATION_MS);
+}
+
+startBot();
+

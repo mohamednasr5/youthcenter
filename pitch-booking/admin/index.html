@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <title>لوحة تحكم إدارة ملعب مركز شباب الأحمدية | Admin Portal</title>
+  <meta name="theme-color" content="#070d1e">
+  <link rel="icon" type="image/svg+xml" href="../assets/icons/icon-192.svg">
+  <link rel="stylesheet" href="../css/animations.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+  <!-- Secure Login Screen Overlay -->
+  <div id="authOverlay" class="auth-wrapper" style="display: flex;">
+    <div class="auth-box">
+      <img src="../assets/icons/icon-192.svg" alt="ملعب الأحمدية" class="auth-logo">
+      <h2 class="auth-title">إدارة ملعب الأحمدية الخماسي</h2>
+      <p class="auth-subtitle">يرجى إدخال كلمة مرور المسؤول للمتابعة</p>
+
+      <form id="adminLoginForm">
+        <input type="password" id="adminPasswordInput" class="auth-input" placeholder="••••••" autofocus required>
+        <button type="submit" class="auth-btn">تسجيل الدخول إلى النظام 🔒</button>
+      </form>
+
+      <div id="adminLoginError" class="auth-error"></div>
+      <div style="font-size: 0.75rem; color: #64748b; margin-top: 20px;">
+        نظام تشغيل محمي بتشفير SHA-256 • مركز شباب الأحمدية
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar Backdrop Overlay (Mobile) -->
+  <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+  <!-- Admin Dashboard Layout -->
+  <div class="admin-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <div class="sidebar-brand">
+        <div class="brand-info">
+          <img src="../assets/icons/icon-192.svg" alt="ملعب الأحمدية" class="sidebar-logo">
+          <div>
+            <h2>ملعب الأحمدية</h2>
+            <span class="brand-badge">لوحة المدير العام</span>
+          </div>
+        </div>
+        <button id="closeSidebarBtn" class="sidebar-close-btn" aria-label="إغلاق القائمة">✕</button>
+      </div>
+
+      <nav class="sidebar-menu">
+        <button class="menu-item active" data-tab="overview">
+          <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          <span>نظرة عامة ومؤشرات</span>
+        </button>
+
+        <button class="menu-item" data-tab="bookings">
+          <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
+          <span>إدارة الحجوزات</span>
+        </button>
+
+        <button class="menu-item" data-tab="finance">
+          <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+          <span>الحسابات اليومية</span>
+        </button>
+
+        <button class="menu-item" data-tab="expenses">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span>سجل المصروفات</span>
+        </button>
+
+        <button class="menu-item" data-tab="reports">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+          <span>التقارير الشهرية</span>
+        </button>
+
+        <button class="menu-item" data-tab="settings">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          <span>إعدادات النظام</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="../index.html" class="menu-item" style="color: #38bdf8;">
+          <span>🌐 الواجهة العامة للحجز</span>
+        </a>
+        <a href="../display.html" class="menu-item" style="color: var(--accent-green);">
+          <span>📺 شاشة الملعب</span>
+        </a>
+        <button id="adminLogoutBtn" class="menu-item" style="color: var(--accent-red);">
+          <span>🚪 خروج من النظام</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Admin Content -->
+    <main class="admin-main">
+      <!-- Topbar Header -->
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button id="toggleSidebarBtn" class="mobile-toggle-btn" aria-label="فتح القائمة">☰</button>
+          <div class="topbar-title-wrap">
+            <div class="topbar-title">نظام إدارة الملعب الخماسي</div>
+            <div class="topbar-subtitle">مركز شباب الأحمدية</div>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="topbar-date-group">
+            <span class="topbar-date-label">التاريخ:</span>
+            <input type="date" id="adminDateSelect" class="form-input topbar-date-input">
+          </div>
+          <div class="topbar-quick-btns">
+            <button id="btnBookFromNow" class="btn-primary topbar-btn topbar-btn-now">⚡ حجز من الآن</button>
+            <button id="btnBookNext" class="btn-primary topbar-btn topbar-btn-next">⏭ الحجز التالي</button>
+            <button id="btnOpenManualBookingModal" class="btn-primary topbar-btn topbar-btn-manual">+ حجز يدوي</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- TAB 1: OVERVIEW -->
+      <section id="tab-overview" class="admin-tab-section active">
+        <!-- KPI Cards Grid -->
+        <div class="stats-grid">
+          <div class="kpi-card blue">
+            <span class="kpi-title">إجمالي حجوزات اليوم</span>
+            <span class="kpi-value" id="kpiBookingsToday">0</span>
+            <span class="kpi-badge" style="background: rgba(59,130,246,0.2); color: #60a5fa;">مباريات مسجلة</span>
+          </div>
+
+          <div class="kpi-card green">
+            <span class="kpi-title">الساعات المحجوزة اليوم</span>
+            <span class="kpi-value" id="kpiBookedHours">0 س</span>
+            <span class="kpi-badge" style="background: rgba(16,185,129,0.2); color: #34d399;">ساعات تشغيل</span>
+          </div>
+
+          <div class="kpi-card purple">
+            <span class="kpi-title">الساعات المتاحة للتشغيل</span>
+            <span class="kpi-value" id="kpiAvailableHours">0 س</span>
+            <span class="kpi-badge" style="background: rgba(139,92,246,0.2); color: #a78bfa;">شاغرة اليوم</span>
+          </div>
+
+          <div class="kpi-card green">
+            <span class="kpi-title">المقبوضات المحصلة اليوم</span>
+            <span class="kpi-value" id="kpiDailyRevenue">0 ج.م</span>
+            <span class="kpi-badge" style="background: rgba(16,185,129,0.2); color: #34d399;">إيرادات الحجوزات المؤكدة</span>
+          </div>
+
+          <div class="kpi-card red">
+            <span class="kpi-title">مصروفات اليوم</span>
+            <span class="kpi-value" id="kpiDailyExpenses">0 ج.م</span>
+            <span class="kpi-badge" style="background: rgba(239,68,68,0.2); color: #f87171;">كهرباء وصيانة</span>
+          </div>
+
+          <div class="kpi-card blue">
+            <span class="kpi-title">صافي الدخل اليومي</span>
+            <span class="kpi-value" id="kpiDailyNet">0 ج.م</span>
+            <span class="kpi-badge" style="background: rgba(59,130,246,0.2); color: #60a5fa;">المقبوض - المصروفات</span>
+          </div>
+
+          <div class="kpi-card yellow">
+            <span class="kpi-title">طلبات معلقة للموافقة</span>
+            <span class="kpi-value" id="kpiPendingCount">0</span>
+            <span class="kpi-badge" style="background: rgba(245,158,11,0.2); color: #fbbf24;">في انتظارك</span>
+          </div>
+
+          <div class="kpi-card red">
+            <span class="kpi-title">مباريات جارية الآن</span>
+            <span class="kpi-value" id="kpiActiveCount">0</span>
+            <span class="kpi-badge" style="background: rgba(239,68,68,0.2); color: #f87171;">على أرض الملعب</span>
+          </div>
+        </div>
+
+        <!-- Pending Approvals Panel -->
+        <div class="panel-box">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>🔔 طلبات الحجز بانتظار الموافقة والتأكيد</span>
+            </div>
+          </div>
+          <div id="pendingRequestsContainer" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Rendered by admin-dashboard.js -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: BOOKINGS MANAGEMENT -->
+      <section id="tab-bookings" class="admin-tab-section">
+        <div class="panel-box">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>📋 جدول حجوزات اليوم المحدد: </span>
+              <span id="adminCurrentDateLabel" style="color: var(--accent-green); font-size: 1rem;">--</span>
+            </div>
+            <button id="btnOpenManualBookingModal2" class="btn-primary" style="padding: 6px 14px; font-size: 0.85rem;" onclick="document.getElementById('manualBookingModal').classList.add('active')">
+              + حجز جديد
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>اسم العميل / الفريق</th>
+                  <th>الهاتف</th>
+                  <th>الوقت</th>
+                  <th>المدة</th>
+                  <th>الحالة</th>
+                  <th>القيمة</th>
+                  <th>المدفوع</th>
+                  <th>المتبقي</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="allBookingsTableBody">
+                <!-- Bookings rendered here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: DAILY FINANCIAL REPORT -->
+      <section id="tab-finance" class="admin-tab-section">
+        <div class="panel-box">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>💰 التقرير المالي اليومي الدقيق</span>
+            </div>
+          </div>
+
+          <div class="finance-summary-grid">
+            <div>
+              <div style="color: var(--text-muted); font-size: 0.85rem;">اليوم والتاريخ:</div>
+              <div id="finReportDayName" style="font-weight: 800; font-size: 1.1rem; color: #fff;">--</div>
+              <div id="finReportDateStr" style="font-size: 0.85rem; color: #94a3b8;">--</div>
+            </div>
+            <div>
+              <div style="color: var(--text-muted); font-size: 0.85rem;">عدد الحجوزات:</div>
+              <div id="finReportBookingsCount" style="font-weight: 800; font-size: 1.1rem; color: #fff;">0</div>
+            </div>
+            <div>
+              <div style="color: var(--text-muted); font-size: 0.85rem;">ساعات التشغيل:</div>
+              <div id="finReportHours" style="font-weight: 800; font-size: 1.1rem; color: #fff;">0 ساعة</div>
+            </div>
+            <div>
+              <div style="color: var(--text-muted); font-size: 0.85rem;">إجمالي التعاقدات:</div>
+              <div id="finReportContractRev" style="font-weight: 800; font-size: 1.1rem; color: #fff;">0 ج.م</div>
+            </div>
+            <div>
+              <div style="color: var(--text-muted); font-size: 0.85rem;">إيرادات الحجوزات المؤكدة:</div>
+              <div id="finReportCashCollected" style="font-weight: 800; font-size: 1.25rem; color: var(--accent-green);">0 ج.م</div>
+            </div>
+            <div>
+              <div style="color: var(--text-muted); font-size: 0.85rem;">المبالغ المتبقية غير المحصلة:</div>
+              <div id="finReportOutstanding" style="font-weight: 800; font-size: 1.1rem; color: var(--accent-yellow);">0 ج.م</div>
+            </div>
+            <div>
+              <div style="color: var(--text-muted); font-size: 0.85rem;">إجمالي مصروفات اليوم:</div>
+              <div id="finReportExpenses" style="font-weight: 800; font-size: 1.1rem; color: var(--accent-red);">0 ج.م</div>
+            </div>
+            <div>
+              <div style="color: var(--text-muted); font-size: 0.85rem;">إيرادات أخرى:</div>
+              <div id="finReportOtherIncome" style="font-weight: 800; font-size: 1.1rem; color: var(--accent-green);">0 ج.م</div>
+            </div>
+            <div style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 10px; padding: 10px;">
+              <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 700;">راتب مسؤول الملعب (10%):</div>
+              <div id="finReportManagerSalary" style="font-weight: 800; font-size: 1.1rem; color: #fbbf24;">0 ج.م</div>
+              <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 700; margin-top:8px;">صافي الدخل اليومي بعد خصم الراتب والمصروفات:</div>
+              <div id="finReportNetIncome" style="font-weight: 900; font-size: 1.4rem; color: var(--accent-green);">0 ج.م</div>
+              <div style="font-size: 0.72rem; color: #94a3b8;">(إيرادات الحجوزات المؤكدة + الإيرادات الأخرى - المصروفات)</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: EXPENSES -->
+      <section id="tab-expenses" class="admin-tab-section">
+        <div class="panel-box">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>🧾 إدارة وتسجيل مصروفات الملعب</span>
+            </div>
+            <button class="btn-primary" style="padding: 8px 16px; font-size: 0.88rem;" onclick="document.getElementById('expenseModal').classList.add('active')">
+              + إضافة مصروف جديد
+            </button>
+          </div>
+
+          <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); padding: 12px 18px; border-radius: 12px;">
+            <span>إجمالي مصروفات هذا اليوم المستقطعة من الإيراد:</span>
+            <strong id="dailyTotalExpensesValue" style="color: var(--accent-red); font-size: 1.2rem;">0 ج.م</strong>
+          </div>
+
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>بيان المصروف</th>
+                  <th>التصنيف</th>
+                  <th>المبلغ</th>
+                  <th>ملاحظات / السبب</th>
+                  <th>وقت التسجيل</th>
+                  <th>الإجراء</th>
+                </tr>
+              </thead>
+              <tbody id="expensesTableBody">
+                <!-- Expenses rendered here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: FINANCIAL REPORTS -->
+      <section id="tab-reports" class="admin-tab-section">
+        <div class="panel-box reports-panel">
+          <div class="panel-header">
+            <div class="panel-title"><span>📊 مركز التقارير المالية والتحليل التفصيلي</span></div>
+            <div class="report-actions">
+              <button id="printFinancialReportBtn" class="btn-primary">🖨️ طباعة التقرير / PDF</button>
+              <button id="exportFinancialReportCSVBtn" class="btn-secondary">📥 تصدير CSV</button>
+            </div>
+          </div>
+          <div class="report-filter-box">
+            <div class="report-presets" role="group" aria-label="الفترة">
+              <button type="button" class="report-preset active" data-period="day">اليوم</button>
+              <button type="button" class="report-preset" data-period="week">هذا الأسبوع</button>
+              <button type="button" class="report-preset" data-period="month">هذا الشهر</button>
+              <button type="button" class="report-preset" data-period="year">هذه السنة</button>
+              <button type="button" class="report-preset" data-period="custom">من تاريخ إلى تاريخ</button>
+            </div>
+            <div class="report-date-fields">
+              <label>من تاريخ<input type="date" id="reportFromDate" class="form-input"></label>
+              <label>إلى تاريخ<input type="date" id="reportToDate" class="form-input"></label>
+              <button type="button" id="applyReportFilterBtn" class="btn-primary">تطبيق الفلتر</button>
+            </div>
+            <div id="reportPeriodLabel" class="report-period-label">تقرير اليوم</div>
+          </div>
+          <div id="financialReportPrintable" class="financial-report-printable">
+            <header class="report-print-heading">
+              <div class="report-brand-mark">مركز شباب الأحمدية</div>
+              <h2>كشف الإيرادات والمصروفات</h2>
+              <p>ملعب مركز شباب الأحمدية</p>
+              <div class="report-period-band">مدة التقرير: <strong id="reportPrintPeriod">الفترة المحددة</strong></div>
+            </header>
+
+            <section class="ledger-section revenue-ledger">
+              <div class="ledger-title"><span>تفصيل الإيرادات</span><small>جميع المبالغ المحصلة خلال الفترة</small></div>
+              <div class="table-responsive">
+                <table class="ledger-table">
+                  <thead><tr><th class="serial-col">م</th><th>التاريخ</th><th>البند</th><th>التفاصيل</th><th class="amount-col">المبلغ (ج.م)</th></tr></thead>
+                  <tbody id="reportRevenueDetail"></tbody>
+                  <tfoot><tr><th colspan="4">إجمالي الإيرادات</th><th id="reportRevenueTotal">0.00</th></tr></tfoot>
+                </table>
+              </div>
+            </section>
+
+            <section class="ledger-section expense-ledger">
+              <div class="ledger-title"><span>تفصيل المصروفات</span><small>المصروفات المسجلة خلال الفترة</small></div>
+              <div class="table-responsive">
+                <table class="ledger-table">
+                  <thead><tr><th class="serial-col">م</th><th>التاريخ</th><th>البند</th><th>التفاصيل</th><th class="amount-col">المبلغ (ج.م)</th></tr></thead>
+                  <tbody id="reportExpenseDetail"></tbody>
+                  <tfoot><tr><th colspan="4">إجمالي المصروفات</th><th id="reportExpenseTotal">0.00</th></tr></tfoot>
+                </table>
+              </div>
+            </section>
+
+            <section class="report-settlement">
+              <div class="settlement-line"><span>إجمالي الإيرادات</span><strong id="reportSettlementRevenue">0.00 ج.م</strong></div>
+              <div class="settlement-line deduction"><span>(−) المصروفات التشغيلية</span><strong id="reportSettlementExpenses">0.00 ج.م</strong></div>
+              <div class="settlement-line deduction"><span>(−) راتب المسؤول عن إدارة الملعب الخماسي (10%)</span><strong id="reportManagerSalary">0.00 ج.م</strong></div>
+              <div class="settlement-line deduction"><span>إجمالي الاستقطاعات</span><strong id="reportTotalDeductions">0.00 ج.م</strong></div>
+              <div class="settlement-line net-line"><span>صافي الإيراد بعد خصم المصروفات</span><strong id="reportSettlementNet">0.00 ج.م</strong></div>
+            </section>
+
+            <section class="report-extra-summary">
+              <div><span>عدد الحجوزات المؤكدة</span><strong id="rptBookingsCount">0</strong></div>
+              <div><span>ساعات التشغيل</span><strong id="rptHours">0 ساعة</strong></div>
+              <div><span>إجمالي قيمة الحجوزات</span><strong id="rptContracted">0 ج.م</strong></div>
+              <div><span>مبالغ الحجوزات المتبقية للتحصيل</span><strong id="rptOutstanding">0 ج.م</strong></div>
+            </section>
+            <footer class="report-print-footer">
+              <span>تم إعداد هذا الكشف من نظام إدارة ملعب مركز شباب الأحمدية</span>
+              <span>توقيع المسؤول: ____________________</span>
+            </footer>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: SETTINGS & TELEGRAM -->
+      <section id="tab-settings" class="admin-tab-section">
+        <div class="panel-box">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>⚙️ إعدادات الملعب والتسعير والإشعارات</span>
+            </div>
+          </div>
+
+          <form id="settingsForm">
+            <div class="settings-grid">
+              <div class="form-group">
+                <label>اسم الملعب:</label>
+                <input type="text" id="settingPitchName" class="form-input" required>
+              </div>
+
+              <div class="form-group">
+                <label>سعر الساعة النهارية (ج.م):</label>
+                <input type="number" id="settingDayPrice" class="form-input" min="1" required>
+              </div>
+
+              <div class="form-group">
+                <label>سعر الساعة الليلية - الكشافات (ج.م):</label>
+                <input type="number" id="settingNightPrice" class="form-input" min="1" required>
+              </div>
+
+              <div class="form-group">
+                <label>بداية الفترة النهارية:</label>
+                <input type="time" id="settingDayStart" class="form-input" required>
+              </div>
+
+              <div class="form-group">
+                <label>بداية الفترة الليلية (تشغيل الكشافات):</label>
+                <input type="time" id="settingNightStart" class="form-input" required>
+              </div>
+
+              <div class="form-group">
+                <label>قناة / معرف بوت تيليجرام:</label>
+                <input type="text" id="settingTelegramChannel" class="form-input" placeholder="@AhmadiahPitchBot">
+              </div>
+
+              <div class="form-group" style="grid-column: 1/-1;">
+                <label>Telegram Bot Token (سري ومحمي):</label>
+                <input type="password" id="settingTelegramBotToken" class="form-input" placeholder="توكن البوت من BotFather">
+              </div>
+
+              <div class="form-group" style="grid-column: 1/-1; display: flex; flex-direction: row; align-items: center; gap: 10px;">
+                <input type="checkbox" id="settingBookingEnabled" style="width: 20px; height: 20px;">
+                <label for="settingBookingEnabled" style="margin: 0; cursor: pointer;">
+                  تفعيل استقبال طلبات الحجز العامة عبر الموقع
+                </label>
+              </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+              <button type="submit" class="btn-primary">حفظ كافة الإعدادات 💾</button>
+            </div>
+          </form>
+
+          <!-- Change Password Section -->
+          <div style="margin-top: 40px; border-top: 1px solid var(--admin-border); padding-top: 24px;">
+            <h4 style="font-size: 1.15rem; margin-bottom: 16px;">🔐 تغيير كلمة مرور الإدارة</h4>
+            <form id="changePasswordForm" style="max-width: 450px; display: flex; flex-direction: column; gap: 14px;">
+              <div class="form-group">
+                <label>كلمة المرور الحالية:</label>
+                <input type="password" id="currentAdminPassword" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label>كلمة المرور الجديدة:</label>
+                <input type="password" id="newAdminPassword" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label>تأكيد كلمة المرور الجديدة:</label>
+                <input type="password" id="confirmAdminPassword" class="form-input" required>
+              </div>
+              <button type="submit" class="btn-primary" style="background: var(--accent-blue);">تحديث كلمة المرور</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Admin Attribution Footer -->
+      <footer class="app-footer" style="margin-top: 40px;">
+        <div>نظام إدارة وتشغيل ملعب مركز شباب الأحمدية • إصدار الإنتاج</div>
+        <div class="footer-attribution">
+          برمجة وتطوير المهندس 
+          <a href="https://www.facebook.com/en.mohamed.nasr" target="_blank" rel="noopener noreferrer" class="developer-link">
+            محمد حماد
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Manual Booking Modal -->
+  <div id="liveBookingModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="liveBookingTitle">حجز فوري</h2>
+        <button type="button" id="closeLiveBookingModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="liveBookingForm">
+        <div class="modal-body">
+          <input type="hidden" id="liveBookingMode" value="now">
+          <p id="liveBookingStartHint" style="color:var(--accent-green);font-weight:700;">سيبدأ الحجز من توقيت القاهرة الحالي.</p>
+          <div class="form-group">
+            <label for="liveBookingCustomer">اسم العميل أو الفريق</label>
+            <input id="liveBookingCustomer" class="form-input" placeholder="حجز مباشر" maxlength="80">
+          </div>
+          <div class="form-group">
+            <label for="liveBookingDuration">مدة الحجز بالدقائق</label>
+            <input id="liveBookingDuration" class="form-input" type="number" min="1" max="720" step="1" value="60" required>
+            <small class="field-hint">يمكنك إدخال أي مدة بالدقائق، مثل 45 أو 60 أو 90 أو 120.</small>
+          </div>
+          <p style="color:var(--text-muted);font-size:.85rem;">سيحسب النظام موعد الانتهاء والسعر تلقائيًا، ويتحقق من عدم تعارض الحجز.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="cancelLiveBookingModal" class="btn-secondary">إلغاء</button>
+          <button type="submit" class="btn-primary">تأكيد الحجز</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="manualBookingModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>⚡ إنشاء حجز يدوي مباشر</h2>
+        <button id="closeManualBookingModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="manualBookingForm">
+        <div class="modal-body">
+          <input type="hidden" id="manualBookingDate">
+          <div class="form-group">
+            <label>اسم العميل / الفريق:</label>
+            <input type="text" id="manualCustomerName" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label>رقم الهاتف:</label>
+            <input type="tel" id="manualCustomerPhone" class="form-input">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label>وقت البداية (12 ساعة):</label>
+              <select id="manualStartTime" class="form-select" required aria-label="وقت بداية الحجز"></select>
+            </div>
+            <div class="form-group">
+              <label>المدة بالدقائق:</label>
+              <input type="number" id="manualDuration" class="form-input" min="1" max="720" step="1" value="60" required>
+              <small class="field-hint">أدخل أي مدة بالدقائق، مثل 60 أو 75 أو 90.</small>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label>القيمة الإجمالية (ج.م):</label>
+              <input type="number" id="manualCustomPrice" class="form-input" placeholder="150" required>
+            </div>
+            <div class="form-group">
+              <label>المبلغ المدفوع مقدماً (ج.م):</label>
+              <input type="number" id="manualPaidAmount" class="form-input" value="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>ملاحظات:</label>
+            <textarea id="manualNotes" class="form-textarea" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn-primary">حفظ وتأكيد الحجز</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<!-- Edit all booking details -->
+<div id="editBookingModal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2>✏️ تعديل جميع بيانات الحجز</h2>
+      <button type="button" id="closeEditBookingModal" class="modal-close-btn">&times;</button>
+    </div>
+    <form id="editBookingForm">
+      <div class="modal-body">
+        <input type="hidden" id="editBookingId">
+        <div class="form-section-title">بيانات الحجز الأساسية</div>
+        <div class="form-group"><label>اسم العميل / الفريق:</label><input type="text" id="editCustomerName" class="form-input" maxlength="80" required></div>
+        <div class="form-group"><label>رقم الهاتف:</label><input type="tel" id="editCustomerPhone" class="form-input"></div>
+        <div class="form-group"><label>حالة الحجز:</label><select id="editBookingStatus" class="form-select"><option value="pending">قيد الانتظار</option><option value="confirmed">مؤكد</option><option value="cancelled">ملغي</option></select></div>
+        <div class="form-group"><label>وقت بداية الحجز:</label><input type="time" id="editStartTime" class="form-input" required></div>
+        <div class="form-group"><label>المدة بالدقائق:</label><input type="number" id="editDuration" class="form-input" min="1" max="720" step="1" required><small class="field-hint">يمكن إدخال 60 أو 75 أو 90 دقيقة.</small></div>
+        <div class="form-section-title">بيانات الفريقين</div>
+        <div class="form-group"><label>اسم الفريق الأول:</label><input type="text" id="editTeamOneName" class="form-input" maxlength="80" placeholder="اسم الفريق الأول"></div>
+        <div class="form-group"><label>اسم / كابتن الفريق الأول:</label><input type="text" id="editTeamOneCaptain" class="form-input" maxlength="80" placeholder="اسم الكابتن"></div>
+        <div class="form-group"><label>اسم الفريق الثاني:</label><input type="text" id="editTeamTwoName" class="form-input" maxlength="80" placeholder="اسم الفريق الثاني"></div>
+        <div class="form-group"><label>اسم / كابتن الفريق الثاني:</label><input type="text" id="editTeamTwoCaptain" class="form-input" maxlength="80" placeholder="اسم الكابتن"></div>
+        <div class="form-section-title">الحسابات والملاحظات</div>
+        <div class="form-group"><label>المبلغ الإجمالي (ج.م):</label><input type="number" id="editTotalPrice" class="form-input" min="0" step="0.01" required></div>
+        <div class="form-group"><label>المبلغ المدفوع (ج.م):</label><input type="number" id="editPaidAmount" class="form-input" min="0" step="0.01"></div>
+        <div class="form-group"><label>ملاحظات:</label><textarea id="editNotes" class="form-textarea" rows="3"></textarea></div>
+      </div>
+      <div class="modal-footer"><button type="submit" class="btn-primary">حفظ التعديلات</button></div>
+    </form>
+  </div>
+</div>
+  <!-- Partial Payment Modal -->
+  <div id="paymentModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>💰 تحصيل دفعة نقدية لحجز</h2>
+        <button id="closePaymentModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="paymentForm">
+        <div class="modal-body">
+          <input type="hidden" id="paymentBookingId">
+          <div style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: 10px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>العميل:</span>
+              <strong id="paymentCustomerName" style="color: #fff;">--</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>القيمة الإجمالية:</span>
+              <span id="paymentTotalAmount">0 ج.م</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>المدفوع سابقاً:</span>
+              <span id="paymentCurrentPaid" style="color: var(--accent-green);">0 ج.م</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 6px;">
+              <span>المتبقي:</span>
+              <strong id="paymentRemaining" style="color: var(--accent-yellow);">0 ج.م</strong>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 14px;">
+            <label>المبلغ المدفوع حالياً (ج.م):</label>
+            <input type="number" id="paymentAddAmount" class="form-input" min="1" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn-primary">تسجيل الدفعة النقدية</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Expense Modal -->
+  <div id="expenseModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>🧾 تسجيل إيراد أو مصروف</h2>
+        <button type="button" class="modal-close-btn" onclick="document.getElementById('expenseModal').classList.remove('active')">&times;</button>
+      </div>
+      <form id="expenseForm">
+        <div class="modal-body">
+          <input type="hidden" id="expenseDateInput">
+          <div class="form-group">
+            <label>نوع العملية: *</label>
+            <select id="entryType" class="form-select">
+              <option value="expense">مصروف</option>
+              <option value="income">إيراد آخر</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>البيان / الاسم: *</label>
+            <input type="text" id="expenseTitle" class="form-input" placeholder="مثال: فاتورة كهرباء الكشافات" required>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label>المبلغ (ج.م): *</label>
+              <input type="number" id="expenseAmount" class="form-input" min="1" placeholder="50" required>
+            </div>
+            <div class="form-group">
+              <label>التصنيف (للمصروفات): *</label>
+              <select id="expenseCategory" class="form-select">
+                <option value="lighting">💡 كشافات وإنارة</option>
+                <option value="electricity">⚡ كهرباء عامة</option>
+                <option value="maintenance">🛠️ صيانة وتجهيزات</option>
+                <option value="cleaning">🧹 نظافة ومطهرات</option>
+                <option value="equipment">⚽ كرات ومعدات</option>
+                <option value="misc">📦 نثريات ومتنوع</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>ملاحظات إضافية:</label>
+            <textarea id="expenseNotes" class="form-textarea" rows="2" placeholder="أي تفاصيل أو سبب الصرف"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn-primary" style="background: var(--accent-red);">حفظ العملية</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mobile Admin Bottom Navigation Bar -->
+  <nav class="admin-mobile-nav" id="adminMobileNav" aria-label="شريط التنقل السريع للهاتف">
+    <button class="admin-mobile-nav-item active" data-tab="overview">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>المؤشرات</span>
+    </button>
+    <button class="admin-mobile-nav-item" data-tab="bookings">
+      <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
+      <span>الحجوزات</span>
+    </button>
+    <button class="admin-mobile-nav-item" data-tab="finance">
+      <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+      <span>الحسابات</span>
+    </button>
+    <button class="admin-mobile-nav-item" data-tab="expenses">
+      <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      <span>المصروفات</span>
+    </button>
+    <button id="mobileNavMenuTrigger" class="admin-mobile-nav-item" type="button" aria-label="فتح القائمة الكاملة">
+      <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+      <span>المزيد</span>
+    </button>
+  </nav>
+
+  <script type="module" src="../js/admin/admin-dashboard.js"></script>
+</body>
+</html>

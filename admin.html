@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>لوحة التحكم | مركز شباب الأحمدية</title>
+<meta name="theme-color" content="#070b16">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <img src="assets/logo.png" alt="شعار المركز">
+    <h2>لوحة تحكم المركز</h2>
+    <p>أدخل كلمة المرور للوصول إلى لوحة الإدارة</p>
+    <div class="field" style="text-align:right">
+      <input type="password" id="loginPass" placeholder="كلمة المرور" autocomplete="current-password" style="text-align:center">
+    </div>
+    <div class="err" id="loginErr"></div>
+    <button class="btn btn-gold" id="loginBtn" style="width:100%;justify-content:center;margin-top:8px">دخول 🔐</button>
+    <p style="margin-top:14px;font-size:.72rem">كلمة المرور الافتراضية: <strong style="color:var(--gold-2)">ahmadiah2026</strong> — يمكنك تغييرها من قسم الإعدادات</p>
+    <a href="index.html" style="display:inline-block;margin-top:10px;font-size:.78rem;color:var(--txt-mute);font-weight:700">← رجوع للموقع</a>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="admin-shell" id="adminShell" style="display:none">
+  <aside class="admin-side" id="adminSide">
+    <div class="as-brand">
+      <img src="assets/logo.png" alt="شعار">
+      <div><h2 id="asName">مركز شباب الأحمدية</h2><span>لوحة التحكم</span></div>
+    </div>
+    <nav class="as-nav" id="asNav">
+      <a data-sec="overview" class="active"><span class="ai">📊</span> لوحة المعلومات</a>
+      <a data-sec="settings"><span class="ai">⚙️</span> إعدادات الموقع</a>
+      <a data-sec="news"><span class="ai">📰</span> شريط الأخبار</a>
+      <a data-sec="announce"><span class="ai">📢</span> الإعلان الهام</a>
+      <a data-sec="board"><span class="ai">👥</span> مجلس الإدارة</a>
+      <a data-sec="articles"><span class="ai">📝</span> المقالات</a>
+      <a data-sec="activities"><span class="ai">📅</span> النشاطات القادمة</a>
+      <a data-sec="finance"><span class="ai">💰</span> الإحصائيات المالية</a>
+      <a data-sec="academies"><span class="ai">🏟️</span> الأكاديميات والحجز</a>
+      <a data-sec="backup"><span class="ai">💾</span> نسخ احتياطي</a>
+    </nav>
+    <div class="as-foot">
+      <a href="index.html" target="_blank">👁️ عرض الموقع</a>
+      <a href="#" id="logoutBtn">🚪 خروج</a>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-top">
+      <div class="at-left">
+        <button class="admin-mtoggle" id="adminMtoggle">☰</button>
+        <div>
+          <h1 id="secTitle">لوحة المعلومات</h1>
+          <p id="secSub">نظرة عامة على محتوى الموقع</p>
+        </div>
+      </div>
+      <div class="at-right">
+        <a href="index.html" target="_blank" class="btn btn-ghost btn-sm">👁️ معاينة الموقع</a>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <section class="admin-sec active" id="sec-overview">
+      <div class="ov-grid" id="ovGrid"></div>
+      <div class="admin-card">
+        <h3>📋 ملخص المحتوى</h3>
+        <p class="sub">استخدم القائمة الجانبية للتنقل بين الأقسام وتعديل أي محتوى في الموقع.</p>
+        <div id="ovSummary"></div>
+      </div>
+      <div class="admin-card">
+        <h3>💡 إرشادات الاستخدام</h3>
+        <p class="sub">كيف تعمل لوحة التحكم</p>
+        <ul style="list-style:none;display:grid;gap:10px;font-size:.86rem;color:var(--txt-2)">
+          <li>✏️ كل تعديل يُحفظ في متصفحك (localStorage) ويظهر فوراً على الموقع بعد التحديث.</li>
+          <li>💾 استخدم زر «حفظ التغييرات» أسفل الصفحة بعد إنهاء التعديلات في كل قسم.</li>
+          <li>📤 من قسم «نسخ احتياطي» يمكنك تصدير كل البيانات كملف JSON أو استيرادها مرة أخرى.</li>
+          <li>🔄 زر «استعادة الافتراضي» يعيد كل المحتوى لحالته الأصلية (لا يمكن التراجع).</li>
+          <li>🖼️ صور مجلس الإدارة: ضعها في مجلد <code>board/</code> بأسماء 001.jpg إلى 008.jpg.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="admin-sec" id="sec-settings"><div id="settingsForm"></div></section>
+    <!-- NEWS -->
+    <section class="admin-sec" id="sec-news"><div id="newsForm"></div></section>
+    <!-- ANNOUNCE -->
+    <section class="admin-sec" id="sec-announce"><div id="announceForm"></div></section>
+    <!-- BOARD -->
+    <section class="admin-sec" id="sec-board"><div id="boardForm"></div></section>
+    <!-- ARTICLES -->
+    <section class="admin-sec" id="sec-articles"><div id="articlesForm"></div></section>
+    <!-- ACTIVITIES -->
+    <section class="admin-sec" id="sec-activities"><div id="activitiesForm"></div></section>
+    <!-- FINANCE -->
+    <section class="admin-sec" id="sec-finance"><div id="financeForm"></div></section>
+    <!-- ACADEMIES -->
+    <section class="admin-sec" id="sec-academies"><div id="academiesForm"></div></section>
+    <!-- BACKUP -->
+    <section class="admin-sec" id="sec-backup"><div id="backupForm"></div></section>
+
+    <!-- SAVE BAR -->
+    <div class="save-bar">
+      <div class="sb-txt">احفظ تغييراتك لتظهر على الموقع<small id="dirtyNote">لا توجد تغييرات غير محفوظة</small></div>
+      <div class="sb-actions">
+        <button class="secondary" id="resetBtn">🔄 استعادة الافتراضي</button>
+        <button id="saveBtn">💾 حفظ التغييرات</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="importFile" accept="application/json" style="display:none">
+
+<script src="data.js"></script>
+<script src="fb-post.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
