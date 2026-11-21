@@ -129,42 +129,142 @@
   }
 
   // ===== GALLERY: discover every uploaded image from a generated manifest =====
+  // ===== GALLERY: carousel matching the football players showcase =====
   async function renderGallery() {
     const slot = $("#galleryGrid");
     if (!slot) return;
     const section = slot.closest("#gallery");
+    let images = [];
     try {
       const response = await fetch("gallery/gallery-manifest.json", { cache: "no-store" });
-      if (!response.ok) throw new Error("تعذّر تحميل فهرس الصور");
+      if (!response.ok) throw new Error("Gallery manifest unavailable");
       const manifest = await response.json();
-      const images = Array.isArray(manifest.images) ? manifest.images : [];
-      if (!images.length) {
-        if (section) section.style.display = "none";
-        return;
-      }
-      if (section) section.style.display = "";
-      slot.innerHTML = images.map((item, index) => {
-        const src = typeof item === "string" ? item : item.src;
-        const cap = typeof item === "string" ? "من أنشطة مركز شباب الأحمدية" : (item.caption || "من أنشطة مركز شباب الأحمدية");
-        if (!src || !/^gallery\\/[a-zA-Z0-9._-]+\\.(?:jpe?g|png|webp|avif)$/i.test(src)) return "";
-        return `
-          <figure class="gitem tilt" data-full="${esc(src)}" tabindex="0" role="button" aria-label="${esc(cap)}">
-            <img src="${esc(src)}" alt="${esc(cap)}" loading="${index < 2 ? "eager" : "lazy"}" decoding="async">
-            <figcaption>${esc(cap)}</figcaption>
-          </figure>`;
-      }).join("");
-      if (!slot.children.length && section) section.style.display = "none";
+      images = Array.isArray(manifest.images) ? manifest.images : [];
     } catch (error) {
-      console.warn("[Gallery] Dynamic manifest unavailable; using configured gallery.", error);
-      const fallback = D.gallery || [];
-      if (!fallback.length) { if (section) section.style.display = "none"; return; }
-      slot.innerHTML = fallback.map(item => {
-        const src = `gallery/${item.id}.jpg`;
-        return `<figure class="gitem tilt" data-full="${esc(src)}" tabindex="0" role="button" aria-label="${esc(item.cap)}">
-          <img src="${esc(src)}" alt="${esc(item.cap)}" loading="lazy" decoding="async"><figcaption>${esc(item.cap)}</figcaption>
-        </figure>`;
-      }).join("");
+      console.warn("[Gallery] Could not load dynamic image list:", error);
+      images = (D.gallery || []).map(item => ({
+        src: `gallery/${item.id}.jpg`,
+        caption: item.cap || "من أنشطة مركز شباب الأحمدية"
+      }));
     }
+
+    images = images.filter(item => {
+      const src = typeof item === "string" ? item : item?.src;
+      return typeof src === "string" &&
+        /^gallery\/[a-zA-Z0-9._-]+\.(?:jpe?g|png|webp|avif)$/i.test(src);
+    }).map(item => typeof item === "string"
+      ? { src: item, caption: "من أنشطة وفعاليات مركز شباب الأحمدية" }
+      : item);
+
+    if (!images.length) {
+      if (section) section.style.display = "none";
+      return;
+    }
+    if (section) section.style.display = "";
+
+    slot.classList.add("gallery-carousel");
+    slot.innerHTML = `
+      <div class="gallery-carousel-stage" id="galleryCarouselStage">
+        <div class="gallery-carousel-track" id="galleryCarouselTrack">
+          ${images.map((item, index) => `
+            <button class="gallery-carousel-slide" type="button" data-gallery-index="${index}"
+              aria-label="عرض الصورة رقم ${index + 1}" tabindex="-1">
+              <span class="gallery-carousel-image">
+                <img src="${esc(item.src)}" alt="${esc(item.caption || "من أنشطة المركز")}"
+                  loading="${index < 3 ? "eager" : "lazy"}" decoding="async" draggable="false">
+              </span>
+              <span class="gallery-carousel-caption">${esc(item.caption || "من أنشطة وفعاليات مركز شباب الأحمدية")}</span>
+            </button>`).join("")}
+        </div>
+        <button class="gallery-carousel-arrow gallery-carousel-prev" type="button" aria-label="الصورة السابقة">‹</button>
+        <button class="gallery-carousel-arrow gallery-carousel-next" type="button" aria-label="الصورة التالية">›</button>
+        <div class="gallery-carousel-controls">
+          <span class="gallery-carousel-counter" id="galleryCarouselCounter">01 / ${String(images.length).padStart(2,"0")}</span>
+          <div class="gallery-carousel-dots" id="galleryCarouselDots" aria-label="اختيار صورة">
+            ${images.map((_,index)=>`<button class="gallery-carousel-dot" type="button" data-go-gallery="${index}" aria-label="الصورة ${index+1}"></button>`).join("")}
+          </div>
+          <button class="gallery-carousel-pause" id="galleryCarouselPause" type="button" aria-pressed="false">Ⅱ إيقاف</button>
+        </div>
+      </div>`;
+
+    let active = 0;
+    let timer = null;
+    let paused = false;
+    const slides = [...slot.querySelectorAll(".gallery-carousel-slide")];
+    const dots = [...slot.querySelectorAll(".gallery-carousel-dot")];
+    const counter = slot.querySelector("#galleryCarouselCounter");
+    const pauseButton = slot.querySelector("#galleryCarouselPause");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function update() {
+      const total = slides.length;
+      slides.forEach((slide,index) => {
+        let offset = index - active;
+        if (offset > total / 2) offset -= total;
+        if (offset < -total / 2) offset += total;
+        slide.className = "gallery-carousel-slide";
+        slide.dataset.position = String(offset);
+        slide.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
+        slide.tabIndex = offset === 0 ? 0 : -1;
+        if (offset === 0) slide.classList.add("is-active");
+        else if (Math.abs(offset) === 1) slide.classList.add(offset < 0 ? "is-prev" : "is-next");
+        else if (Math.abs(offset) === 2) slide.classList.add("is-far");
+        else slide.classList.add("is-hidden");
+      });
+      if (counter) counter.textContent = `${String(active+1).padStart(2,"0")} / ${String(total).padStart(2,"0")}`;
+      dots.forEach((dot,index) => {
+        dot.classList.toggle("active",index===active);
+        dot.setAttribute("aria-current",index===active ? "true" : "false");
+      });
+    }
+    function move(step) {
+      active = (active + step + slides.length) % slides.length;
+      update();
+    }
+    function stop(){ if(timer){clearInterval(timer);timer=null;} }
+    function start(){
+      stop();
+      if(paused || reducedMotion || slides.length < 2) return;
+      timer = setInterval(()=>move(1),5000);
+    }
+    function restart(){start();}
+
+    slot.querySelector(".gallery-carousel-prev").addEventListener("click",()=>{move(-1);restart();});
+    slot.querySelector(".gallery-carousel-next").addEventListener("click",()=>{move(1);restart();});
+    dots.forEach(dot=>dot.addEventListener("click",()=>{
+      active=Number(dot.dataset.goGallery)||0;update();restart();
+    }));
+    pauseButton.addEventListener("click",()=>{
+      paused=!paused;
+      pauseButton.setAttribute("aria-pressed",String(paused));
+      pauseButton.textContent=paused?"▶ تشغيل":"Ⅱ إيقاف";
+      paused?stop():start();
+    });
+    slot.addEventListener("mouseenter",stop);
+    slot.addEventListener("mouseleave",start);
+    slot.addEventListener("focusin",stop);
+    slot.addEventListener("focusout",()=>setTimeout(()=>{
+      if(!slot.contains(document.activeElement)) start();
+    },0));
+    slot.addEventListener("keydown",event=>{
+      if(event.key==="ArrowLeft"){event.preventDefault();move(1);restart();}
+      if(event.key==="ArrowRight"){event.preventDefault();move(-1);restart();}
+    });
+    let touchX=0;
+    slot.addEventListener("touchstart",event=>{
+      touchX=event.changedTouches[0].clientX;stop();
+    },{passive:true});
+    slot.addEventListener("touchend",event=>{
+      const delta=event.changedTouches[0].clientX-touchX;
+      if(Math.abs(delta)>45)move(delta<0?1:-1);
+      start();
+    },{passive:true});
+    slides.forEach(slide=>slide.addEventListener("click",()=>{
+      const item=images[Number(slide.dataset.galleryIndex)];
+      openGalleryLightbox(item.src,item.caption||"");
+    }));
+    update();
+    start();
   }
 
   // ===== FINANCE (يدوية بالكامل — تُدخل من لوحة التحكم كما هي) =====
@@ -468,6 +568,18 @@
       }
     });
     lb.addEventListener("click", e => { if (e.target === lb || e.target.classList.contains("lb-close")) close(); });
+  }
+
+  function openGalleryLightbox(src, caption) {
+    const lb = document.getElementById("galleryLightbox");
+    if (!lb) return;
+    const img = lb.querySelector("img");
+    const cap = lb.querySelector(".lb-cap");
+    if (img) img.src = src;
+    if (cap) cap.textContent = caption || "";
+    lb.classList.add("show");
+    lb.setAttribute("aria-hidden","false");
+    document.body.style.overflow="hidden";
   }
 
   // ===== BOTTOM NAV =====
