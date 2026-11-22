@@ -4,6 +4,7 @@
  */
 
 import { dbRefs, onValue } from './firebase-config.js';
+import { subscribePublicDayBookings } from './availability.js';
 import { 
   getEgyptNow, 
   formatEgyptDateKey, 
@@ -59,10 +60,10 @@ function initSettings() {
 
 function initScheduleListener() {
   const todayKey = formatEgyptDateKey(getEgyptNow());
-  const todayRef = dbRefs.bookings(todayKey);
 
-  onValue(todayRef, (snapshot) => {
-    todaysBookings = snapshot.val() || {};
+  // النسخة العامة المصغّرة (بدون هاتف العميل أو ملاحظاته) مع احتياط للنموذج القديم
+  subscribePublicDayBookings(todayKey, (dayBookings) => {
+    todaysBookings = dayBookings || {};
     updateLiveDisplay();
   });
 

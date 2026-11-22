@@ -48,6 +48,9 @@ export const dbRefs = {
   settings: () => P('settings'),
   bookings: (date) => date ? P(`bookings/${date}`) : P('bookings'),
   bookingItem: (date, id) => P(`bookings/${date}/${id}`),
+  // النسخة العامة المصغّرة من الحجوزات (بدون بيانات خاصة) — انظر js/availability.js
+  availability: (date) => date ? P(`availability/${date}`) : P('availability'),
+  availabilityItem: (date, id) => P(`availability/${date}/${id}`),
   expenses: (date) => date ? P(`expenses/${date}`) : P('expenses'),
   expenseItem: (date, id) => P(`expenses/${date}/${id}`),
   payments: () => P('payments'),

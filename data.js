@@ -134,7 +134,7 @@
         tag: "🥋 KARATE DOJO",
         title: "أكاديمية الكاراتيه",
         desc: "فن ياباني أصيل يجمع بين الانضباط والإتقان، من الحزام الأبيض إلى الأسود الدان، بتدريس الكيهون والكاتا والكوميتيه.",
-        pills: ["من 5 سنوات", "مدربون دان 5+", "أحزمة", "بطولات"],
+        pills: ["من 5 سنوات", "مدربون حزام أسود", "أحزمة", "بطولات"],
         cta: "زيارة الأكاديمية ←"
       },
       pitch: {
@@ -397,8 +397,18 @@
       if (claims.ycAdmin === true) return true;
       return claims["yc" + role.charAt(0).toUpperCase() + role.slice(1)] === true;
     },
+    /* قائمة إيميلات الإدارة من yc-auth-config.js (قيد إضافي على المتصفح؛ الحماية الحقيقية في Custom Claims) */
+    allowedAdminEmails() {
+      const cfg = global.YC_AUTH_CONFIG || {};
+      const list = Array.isArray(cfg.adminEmails) ? cfg.adminEmails : [];
+      return list.map(item => String((item && item.email) || item || "").trim().toLowerCase()).filter(Boolean);
+    },
     async signIn(email, password, role) {
       if (!this.authEnabled()) throw new Error("خدمة المصادقة غير محمّلة (firebase-auth-compat.js).");
+      const allow = this.allowedAdminEmails();
+      if (allow.length && !allow.includes(String(email).trim().toLowerCase())) {
+        throw new Error("هذا البريد غير مدرج في قائمة إيميلات الإدارة (yc-auth-config.js).");
+      }
       const a = this._auth();
       const cred = await a.signInWithEmailAndPassword(String(email).trim(), String(password));
       const tok = await cred.user.getIdTokenResult(true);

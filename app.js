@@ -759,23 +759,39 @@
     });
   }
 
-  // ===== BOOT =====
-  async function boot() {
-    try {
-      await window.SiteData.syncFromCloud();
-      D = window.SiteData.load();
-    } catch (error) {
-      console.warn("[Youth Center] Shared database unavailable; showing cached content.", error);
-    }
+  function renderContent() {
     renderTopBar(); renderBrand(); renderNews(); renderAnnouncement();
     renderBoard(); renderAcademies(); renderArticles(); renderActivities();
     renderGallery(); renderFinance(); renderFooter();
+  }
+
+  // ===== BOOT =====
+  // نعرض المحتوى المحفوظ/الافتراضي فوراً ثم نحدّث من القاعدة في الخلفية —
+  // الزائر لا ينتظر Firebase ليرى الصفحة.
+  async function boot() {
+    renderContent();
     initClock(); initHeaderNav(); initReveal(); initCounters(); initTilt(); initHeroParallax(); initPWA();
     initLightbox(); initBottomNav(); initTicker();
     // قسم آخر منشور على صفحة المركز على فيسبوك (تحت الإحصائيات المالية)
     initFbPost();
     document.dispatchEvent(new Event("app:ready"));
     startRealtime();
+    try {
+      await window.SiteData.syncFromCloud();
+      const fresh = window.SiteData.load();
+      if (JSON.stringify(fresh) !== JSON.stringify(D)) {
+        D = fresh;
+        renderContent();
+        initReveal(); initCounters(); initTilt();
+        initFbPost();
+        document.querySelectorAll(".reveal:not(.in)").forEach(e => {
+          const r = e.getBoundingClientRect();
+          if (r.top < window.innerHeight && r.bottom > 0) e.classList.add("in");
+        });
+      }
+    } catch (error) {
+      console.warn("[Youth Center] Shared database unavailable; showing cached content.", error);
+    }
   }
 
   // ===== REALTIME: أي تعديل من لوحة الإدارة يصل لكل الزوار دون إعادة تحميل =====

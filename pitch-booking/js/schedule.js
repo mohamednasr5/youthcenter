@@ -4,7 +4,7 @@
  * coordinates active match spotlights and live countdowns.
  */
 
-import { dbRefs, onValue } from './firebase-config.js';
+import { subscribePublicDayBookings } from './availability.js';
 import { 
   formatTimeArabic, 
   formatTime12H,
@@ -42,7 +42,6 @@ export function loadScheduleForDate(dateKey) {
     activeDateListenerUnsubscribe = null;
   }
 
-  const dateRef = dbRefs.bookings(dateKey);
   const container = document.getElementById('slotsContainer');
   if (container) {
     container.innerHTML = `
@@ -53,9 +52,9 @@ export function loadScheduleForDate(dateKey) {
     `;
   }
 
-  // Subscribe to real-time changes
-  activeDateListenerUnsubscribe = onValue(dateRef, (snapshot) => {
-    currentDayBookings = snapshot.val() || {};
+  // Subscribe to real-time changes (النسخة العامة المصغّرة بدون بيانات العملاء الخاصة)
+  activeDateListenerUnsubscribe = subscribePublicDayBookings(dateKey, (dayBookings) => {
+    currentDayBookings = dayBookings || {};
     renderSlots();
     evaluateActiveSpotlightMatch();
   }, (err) => {

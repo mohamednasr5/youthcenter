@@ -4,13 +4,11 @@
  */
 
 import { 
-  db, 
   dbRefs, 
   push, 
-  set, 
-  get, 
   runTransaction 
 } from './firebase-config.js';
+import { syncAvailability } from './availability.js';
 import { 
   calculateBookingPrice, 
   formatCurrency, 
@@ -257,23 +255,8 @@ async function handleBookingSubmit(e) {
     const endM = endMinutes % 60;
     const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 
-    // Atomic conflict verification against bookings on this date
+    // Push new booking request (key generated client-side, written atomically below)
     const dateBookingsRef = dbRefs.bookings(date);
-    const snapshot = await get(dateBookingsRef);
-    const existingBookings = snapshot.val() || {};
-
-    const conflict = findBookingConflict(startMinutes, endMinutes, existingBookings);
-    if (conflict) {
-      soundFX.playError();
-      showToast(describeBookingConflict(conflict), 'error');
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
-      }
-      return;
-    }
-
-    // Push new booking request
     const newBookingRef = push(dateBookingsRef);
     const bookingData = {
       bookingId: newBookingRef.key,
@@ -301,7 +284,29 @@ async function handleBookingSubmit(e) {
       updatedAt: Date.now()
     };
 
-    await set(newBookingRef, bookingData);
+    // ذرّي فعلاً: فحص التعارض والإدراج داخل معاملة واحدة على عقدة اليوم.
+    // لو طلبان متزامنان حجزا نفس الموعد، تُعاد المعاملة على أحدث بيانات وينجح واحد فقط.
+    let latestConflict = null;
+    const transaction = await runTransaction(dateBookingsRef, (current) => {
+      const latestBookings = current || {};
+      latestConflict = findBookingConflict(startMinutes, endMinutes, latestBookings);
+      if (latestConflict) return; // إجهاض المعاملة
+      latestBookings[newBookingRef.key] = bookingData;
+      return latestBookings;
+    });
+
+    if (!transaction.committed) {
+      soundFX.playError();
+      showToast(latestConflict ? describeBookingConflict(latestConflict) : 'تعذر تسجيل الحجز، حاول مرة أخرى.', 'error');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+      return;
+    }
+
+    // انشر النسخة العامة المصغّرة (بدون هاتف العميل أو ملاحظاته)
+    await syncAvailability(date, newBookingRef.key, bookingData);
 
     // Celebration audio-visual effects
     soundFX.playWhistle();

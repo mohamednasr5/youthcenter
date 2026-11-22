@@ -307,7 +307,7 @@ ${winner === 'draw' ? 'أداء رائع وروح رياضية من الفريق
 <b>المهندس محمد حماد</b>
 مبرمج المنصة
 
-🌐 <a href="https://mohamednasr5.github.io/hagz/">مشاهدة النتائج على الموقع</a>`;
+🌐 <a href="https://mohamednasr5.github.io/youthcenter/pitch-booking/">مشاهدة النتائج على الموقع</a>`;
 
       const subscribers = await request(`${FIREBASE_DB_BASE}/telegramSubscribers.json`) || {};
       let failures = 0;
@@ -386,13 +386,13 @@ ${winner === 'draw' ? 'أداء رائع وروح رياضية من الفريق
     const allSlots = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00','00:00'];
     const available = allSlots.filter(s => !bookedTimes.has(s));
     const reply = available.length
-      ? `⚡ <b>المواعيد الشاغرة اليوم (${todayKey}):</b>\n${available.map(s => `🟢 ${to12H(s)}`).join('\n')}\n\nhttps://mohamednasr5.github.io/hagz/`
+      ? `⚡ <b>المواعيد الشاغرة اليوم (${todayKey}):</b>\n${available.map(s => `🟢 ${to12H(s)}`).join('\n')}\n\nhttps://mohamednasr5.github.io/youthcenter/pitch-booking/`
       : '🔴 جميع ساعات اليوم محجوزة.';
     await sendTelegramMessage(chatId, reply);
 
   } else if (text.startsWith('/help') || text.includes('مساعدة')) {
     await sendTelegramMessage(chatId,
-      'ℹ️ <b>مساعدة ملعب الأحمدية</b>\nقرية الأحمدية - مركز المنزلة - الدقهلية\nhttps://mohamednasr5.github.io/hagz/');
+      'ℹ️ <b>مساعدة ملعب الأحمدية</b>\nقرية الأحمدية - مركز المنزلة - الدقهلية\nhttps://mohamednasr5.github.io/youthcenter/pitch-booking/');
   }
 }
 
@@ -492,7 +492,7 @@ ${base}
 ━━━━━━━━━━━━━━━━━━
 ${base}
 ━━━━━━━━━━━━━━━━━━
-🛠️ <a href="https://mohamednasr5.github.io/hagz/admin/">فتح لوحة الإدارة</a>`;
+🛠️ <a href="https://mohamednasr5.github.io/youthcenter/pitch-booking/admin/">فتح لوحة الإدارة</a>`;
         } else if (booking.status === 'cancelled' && !booking.telegramCancelledNotified) {
           marker = 'telegramCancelledNotified';
           message = `📢 <b>تم إلغاء الحجز وإتاحة الموعد</b>

@@ -142,7 +142,7 @@ async function handleTelegramUpdate(update) {
     await sendMessage(chatId, scheduleText);
 
   } else if (text.startsWith('/available')) {
-    await sendMessage(chatId, 'يمكنك تصفح جميع الساعات المتاحة وحجز موعدك لحظياً عبر الرابط:\nhttps://mohamednasr5.github.io/hagz/');
+    await sendMessage(chatId, 'يمكنك تصفح جميع الساعات المتاحة وحجز موعدك لحظياً عبر الرابط:\nhttps://mohamednasr5.github.io/youthcenter/pitch-booking/');
 
   } else if (text.startsWith('/help')) {
     await sendMessage(chatId, 'لأي استفسار أو مساعدة، يرجى التواصل مع إدارة مركز شباب الأحمدية.');
