@@ -1,5 +1,5 @@
 /* admin.js — لوحة تحكم مركز شباب الأحمدية
-   تعديل كل محتوى الموقع وحفظه في localStorage. */
+   إدارة محتوى الموقع ومزامنته مع قاعدة Firebase المشتركة مع أكاديمية كرة القدم. */
 (function () {
   "use strict";
   const $ = (s, r) => (r || document).querySelector(s);
