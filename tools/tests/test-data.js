@@ -105,7 +105,7 @@ function boot(opts) {
       'boss@x.com': { pw: 'pw123456', claims: { ycAdmin: true } },
       'foot@x.com': { pw: 'pw123456', claims: { ycFootball: true } }
     };
-    const { SD, w } = boot({ users });
+    const { SD, w } = boot({ users, autoAuth: false });
     ok(SD.hasRole({ ycAdmin: true }, 'pitch') && !SD.hasRole({ ycKarate: true }, 'center') && SD.hasRole({ ycKarate: true }, 'karate'), 'hasRole منطق الأدوار');
     let user = await SD.signIn('karate@x.com', 'pw123456', 'karate');
     ok(user && user.email === 'karate@x.com', 'دخول مسؤول الكاراتيه للكاراتيه ينجح');
