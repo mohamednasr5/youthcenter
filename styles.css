@@ -494,3 +494,29 @@ img{max-width:100%;display:block}
 .gallery-carousel-dot.active{width:20px;flex-basis:20px;border-radius:8px;background:var(--gold);box-shadow:0 0 12px var(--gold-glow)}
 .gallery-carousel-pause{border:1px solid var(--border);border-radius:9px;padding:6px 11px;background:var(--bg-glass);color:var(--txt-2);font:inherit;font-size:.75rem;font-weight:800;cursor:pointer}
 @media(max-width:560px){.gallery-carousel-stage{min-height:350px;padding-bottom:62px}.gallery-carousel-track{height:290px}.gallery-carousel-slide{width:min(66vw,290px)}.gallery-carousel-slide.is-prev{transform:translateX(calc(-50% - min(66vw,290px) * .82)) scale(.72)}.gallery-carousel-slide.is-next{transform:translateX(calc(-50% + min(66vw,290px) * .82)) scale(.72)}.gallery-carousel-slide.is-far{transform:translateX(calc(-50% + min(66vw,290px) * var(--side,1) * 1.4)) scale(.56)}.gallery-carousel-arrow{width:36px;height:36px;font-size:1.5rem}.gallery-carousel-prev{right:5px}.gallery-carousel-next{left:5px}.gallery-carousel-controls{gap:8px}.gallery-carousel-dots{max-width:52vw}}
+
+/* Animated premium gold light travelling around every board member photo frame */
+.bcard{isolation:isolate;border:1px solid rgba(251,191,36,.2)}
+.bcard::before{
+ content:"";position:absolute;inset:0;z-index:5;padding:2px;border-radius:inherit;pointer-events:none;
+ background:conic-gradient(from 0deg,transparent 0deg 275deg,rgba(217,119,6,.18) 292deg,#d97706 310deg,#fff1b8 326deg,#fbbf24 338deg,rgba(245,158,11,.15) 352deg,transparent 360deg);
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+ -webkit-mask-composite:xor;mask-composite:exclude;
+ animation:boardGoldOrbit 4.8s linear infinite;
+ filter:drop-shadow(0 0 4px rgba(251,191,36,.38))
+}
+.bcard:hover::before{animation-duration:2.2s;filter:drop-shadow(0 0 7px rgba(251,191,36,.72))}
+@keyframes boardGoldOrbit{to{transform:rotate(360deg)}}
+.messenger-contact-btn{
+ display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:46px;
+ margin:10px 0 13px;padding:10px 14px;border:1px solid rgba(96,165,250,.42);border-radius:13px;
+ color:#fff;text-decoration:none;font-size:.86rem;font-weight:900;
+ background:linear-gradient(115deg,#0875e1,#0866c6 55%,#174ea6);
+ box-shadow:0 8px 22px rgba(8,102,198,.22),inset 0 1px 0 rgba(255,255,255,.16);
+ transition:transform .25s ease,box-shadow .25s ease,filter .25s ease
+}
+.messenger-contact-btn:hover{transform:translateY(-3px);filter:brightness(1.1);box-shadow:0 13px 28px rgba(8,102,198,.34),0 0 18px rgba(59,130,246,.2)}
+.messenger-contact-btn svg{width:21px;height:21px;flex:0 0 21px;fill:currentColor}
+.messenger-contact-btn span:nth-child(2){flex:1;text-align:center}
+.messenger-btn-arrow{font-size:1.1rem;opacity:.85}
+@media(prefers-reduced-motion:reduce){.bcard::before{animation:none;opacity:.75}.bcard,.messenger-contact-btn{transition:none}}
