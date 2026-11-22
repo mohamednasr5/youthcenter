@@ -108,6 +108,11 @@
     const gbtn = $("#googleLoginBtn");
     if (gbtn) gbtn.addEventListener("click", async () => {
       if (gbtn.disabled) return;
+      if (typeof SiteData.signInWithGoogle !== "function") {
+        // نسخة قديمة من data.js من الكاش — حدّث الصفحة
+        error.textContent = "الصفحة محمّلة بنسخة قديمة. اقفلها وافتحها من جديد (أو امسح بيانات الموقع مرة واحدة).";
+        return;
+      }
       gbtn.disabled = true;
       error.textContent = "";
       try {

@@ -1,6 +1,6 @@
 /* sw.js — service worker لمركز شباب الأحمدية
    caching: app-shell precache + stale-while-revalidate للأصول + network-first للتنقل */
-const CACHE = "ahmadiah-v11";
+const CACHE = "ahmadiah-v12";
 const CORE = [
   "./", "./index.html", "./article.html", "./admin.html",
   "./styles.css", "./admin.css",
@@ -57,7 +57,21 @@ self.addEventListener("fetch", e => {
     return;
   }
 
-  // الأصول: stale-while-revalidate
+  // الشيفرة والصفحات (js/css/html/json): network-first حتى تصل التحديثات فوراً، مع fallback للكاش دون اتصال
+  if (/\.(js|css|html|json)(\?|$)/.test(url.pathname)) {
+    e.respondWith(
+      fetch(req).then(res => {
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy));
+        }
+        return res;
+      }).catch(() => caches.match(req).then(cached => cached || Response.error()))
+    );
+    return;
+  }
+
+  // الأصول الثابتة (صور وخطوط): stale-while-revalidate
   e.respondWith(
     caches.match(req).then(cached => {
       const fetcher = fetch(req).then(res => {

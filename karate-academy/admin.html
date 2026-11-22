@@ -129,7 +129,9 @@ button.g{background:transparent;border:1px solid var(--line);color:var(--txt)}bu
   }
   $("#go").onclick=login; $("#pw").onkeydown=e=>{if(e.key==="Enter")login()};
   $("#ggo").onclick=async()=>{
-    const b=$("#ggo"); if(b.disabled)return; b.disabled=true; $("#loginMsg").textContent="";
+    const b=$("#ggo"); if(b.disabled)return;
+    if(typeof SiteData.signInWithGoogle!=="function"){ $("#loginMsg").textContent="الصفحة محمّلة بنسخة قديمة. اقفلها وافتحها من جديد."; return; }
+    b.disabled=true; $("#loginMsg").textContent="";
     try{ const u=await SiteData.signInWithGoogle("karate"); if(u) open(); else b.disabled=false; }
     catch(e){ $("#loginMsg").textContent=(e&&e.message)||"تعذر تسجيل الدخول عبر Google."; b.disabled=false; }
   };
