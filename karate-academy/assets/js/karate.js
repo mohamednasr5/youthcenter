@@ -617,7 +617,7 @@
       console.warn('Players manifest unavailable; scanning numbered image files.', error);
     }
 
-    const extensions = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
+    const extensions = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'];
     const found = [];
     const exists = async url => {
       try {
