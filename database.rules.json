@@ -107,7 +107,10 @@
     },
     "karate_academy": {
       ".read": true,
-      ".write": "auth.token.ycAdmin === true || auth.token.ycKarate === true"
+      ".write": "auth.token.ycAdmin === true || auth.token.ycKarate === true",
+      "schedules": {
+        ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true || auth.token.ycKarate === true"
+      }
     },
     "pitch_booking": {
       "settings": {
