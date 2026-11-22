@@ -97,11 +97,26 @@
       }
     };
     async function afterLogin() {
-      // البذر الأولي (إن كانت القاعدة فارغة) يتم بعد المصادقة فقط
-      try { await SiteData.syncFromCloud({ seedIfMissing: true }); state = SiteData.load(); } catch (e) { console.warn("seed/sync after login failed:", e); }
-      // توكن فيسبوك محفوظ في مسار خاص؛ نقرأه فقط بعد المصادقة حتى لا يُمسح عند الحفظ
-      try { const t = await SiteData.loadPrivate(); if (t && !state.meta.fbToken) state.meta.fbToken = t; } catch (e) { /* optional */ }
+      // لا نفتح لوحة الإدارة دون Firebase Authentication وCustom Claim صالح.
+      try {
+        const authorized = await SiteData.ensureCenterSession();
+        if (!authorized) {
+          error.textContent = "تعذر فتح لوحة الإدارة: سجّل الدخول ببريد Firebase المصرّح له بعد تفعيل صلاحية ycCenter أو ycAdmin. كلمة المرور القديمة لا تمنح صلاحية الكتابة في قاعدة البيانات.";
+          await SiteData.signOut();
+          return false;
+        }
+        await SiteData.syncFromCloud({ seedIfMissing: true });
+        state = SiteData.load();
+      } catch (e) {
+        console.error("Youth center admin initialization failed:", e);
+        error.textContent = (e && e.message) || "تعذر تهيئة لوحة الإدارة من Firebase.";
+        await SiteData.signOut();
+        return false;
+      }
+      // توكن فيسبوك محفوظ في مسار خاص؛ يُقرأ بعد التحقق من صلاحية المدير.
+      try { const t = await SiteData.loadPrivate(); if (t && !state.meta.fbToken) state.meta.fbToken = t; } catch (e) { console.warn("Private settings read failed:", e); }
       openDashboard();
+      return true;
     }
     btn.addEventListener("click", tryLogin);
     pass.addEventListener("keydown", e => { if (e.key === "Enter") tryLogin(); });
