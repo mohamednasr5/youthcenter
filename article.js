@@ -47,7 +47,22 @@
     const descMeta = document.querySelector('meta[name="description"]');
     if (descMeta) descMeta.setAttribute("content", a.excerpt || a.title);
     const bodyHtml = (a.body || []).map(p => `<p>${esc(p)}</p>`).join("");
-    const shareUrl = encodeURIComponent(location.href);
+    const articleUrl = new URL(location.href);
+    articleUrl.hash = "";
+    const shareUrl = articleUrl.href;
+    const encodedUrl = encodeURIComponent(shareUrl);
+    const encodedText = encodeURIComponent(a.title + " — مركز شباب الأحمدية");
+    const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=12&format=png&data=" + encodedUrl;
+    const shareItems = [
+      { name: "فيسبوك", cls: "facebook", url: "https://www.facebook.com/sharer/sharer.php?u=" + encodedUrl, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H8.1V12h2.34v-2.2c0-2.31 1.38-3.59 3.49-3.59 1.01 0 2.06.18 2.06.18v2.27h-1.16c-1.14 0-1.5.71-1.5 1.44V12h2.55l-.41 2.89h-2.14v6.99A10 10 0 0 0 22 12z"/></svg>' },
+      { name: "واتساب", cls: "whatsapp", url: "https://wa.me/?text=" + encodedText + "%20" + encodedUrl, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 3.5A11.8 11.8 0 0 0 2 17.7L.5 23.5l6-1.6A11.8 11.8 0 1 0 20.5 3.5ZM12 21a9 9 0 0 1-4.6-1.3l-.3-.2-3.5.9.9-3.4-.2-.4A9 9 0 1 1 12 21Zm5-6.7c-.3-.2-1.7-.9-2-.9s-.5-.2-.7.2-.8.9-1 1.1-.4.2-.7.1a7.4 7.4 0 0 1-2.2-1.4 8.2 8.2 0 0 1-1.5-1.9c-.2-.3 0-.5.1-.6l.5-.6c.2-.2.2-.4.3-.6s0-.4 0-.6l-.9-2.1c-.2-.5-.5-.4-.7-.4h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.8 1.2 3.2 1.4 3.4c.2.2 2.4 3.7 5.8 5.1.8.3 1.4.5 1.9.6.8.2 1.5.2 2.1.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.2-1.4s-.2-.2-.5-.4Z"/></svg>' },
+      { name: "تيليجرام", cls: "telegram", url: "https://t.me/share/url?url=" + encodedUrl + "&text=" + encodedText, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21.8 4.2-3.3 15.6c-.2 1.1-.8 1.3-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-4.8 8.8-8c.4-.4-.1-.6-.6-.2L6.5 13.7 1.9 12.3c-1-.3-1-1 .2-1.5L20 3.9c.9-.3 1.9.2 1.8.3Z"/></svg>' },
+      { name: "منصة X", cls: "x", url: "https://twitter.com/intent/tweet?url=" + encodedUrl + "&text=" + encodedText, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.5 22H2.3l7.3-8.4L1.8 2h6.5l4.5 6.8L18.9 2Zm-1.1 18h1.7L7.3 3.9H5.5L17.8 20Z"/></svg>' },
+      { name: "لينكدإن", cls: "linkedin", url: "https://www.linkedin.com/sharing/share-offsite/?url=" + encodedUrl, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 2H3.55C2.7 2 2 2.67 2 3.5v17c0 .83.7 1.5 1.55 1.5h16.9c.86 0 1.55-.67 1.55-1.5v-17c0-.83-.69-1.5-1.55-1.5ZM8 19H5V9h3v10ZM6.5 7.7a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5ZM19 19h-3v-5.2c0-3.1-4-2.9-4 0V19H9V9h3v1.6c1.4-2.6 7-2.8 7 2.5V19Z"/></svg>' },
+      { name: "ريدت", cls: "reddit", url: "https://www.reddit.com/submit?url=" + encodedUrl + "&title=" + encodedText, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12a3 3 0 0 0-5.1-2.1 14.5 14.5 0 0 0-6-1.9l1-4.7 3.3.7a2 2 0 1 0 .2-1.1l-4-.9a.6.6 0 0 0-.7.5l-1.2 5.4a14.6 14.6 0 0 0-6.3 2A3 3 0 1 0 2 14.2c0 3.7 4.5 6.8 10 6.8s10-3.1 10-6.8c0-.4-.1-.8-.2-1.2A3 3 0 0 0 24 12ZM7 14a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm9.2 4.1a6.4 6.4 0 0 1-8.4 0 .6.6 0 0 1 .8-.8 5.2 5.2 0 0 0 6.8 0 .6.6 0 0 1 .8.8ZM17 14a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"/></svg>' },
+      { name: "البريد الإلكتروني", cls: "email", url: "mailto:?subject=" + encodedText + "&body=" + encodedUrl, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm-.4 4.2-7 4.7a1 1 0 0 1-1.2 0l-7-4.7a1 1 0 1 1 1.2-1.6l6.4 4.3 6.4-4.3a1 1 0 0 1 1.2 1.6Z"/></svg>' }
+    ];
+    const shareLinks = shareItems.map(item => `<a class="share-action ${item.cls}" href="${item.url}" target="_blank" rel="noopener noreferrer" aria-label="مشاركة المقال عبر ${item.name}" title="${item.name}">${item.icon}<span>${item.name}</span></a>`).join("");
     $("#articleSlot").innerHTML = `
       <article class="article-hero">
         <a href="index.html#articles" class="article-back">→ رجوع لكل المقالات</a>
@@ -61,13 +76,64 @@
       </article>
       <div class="article-body">
         ${bodyHtml}
-        <div class="article-share">
-          <span class="slbl">شارك المقال:</span>
-          <a href="https://www.facebook.com/sharer/sharer.php?u=${shareUrl}" target="_blank" rel="noopener" aria-label="مشاركة على فيسبوك">${SVG_FB}</a>
-        </div>
+        <section class="article-share-panel" aria-label="مشاركة المقال">
+          <div class="share-panel-heading"><span class="share-heading-icon">↗</span><div><strong>شارك المقال</strong><small>انشر المعرفة مع أصدقائك عبر منصات التواصل</small></div></div>
+          <div class="article-share">
+            ${shareLinks}
+            <button type="button" class="share-action share-copy" id="copyArticleLink" aria-label="نسخ رابط المقال"><span class="share-action-icon">⧉</span><span>نسخ الرابط</span></button>
+            <button type="button" class="share-action share-qr" id="openArticleQR" aria-label="عرض رمز QR للمقال"><span class="share-action-icon">▦</span><span>رمز QR</span></button>
+            <button type="button" class="share-action share-native" id="nativeArticleShare" aria-label="مشاركة المقال من جهازك" style="display:none"><span class="share-action-icon">↗</span><span>مشاركة أخرى</span></button>
+          </div>
+          <div class="share-feedback" id="shareFeedback" role="status" aria-live="polite"></div>
+        </section>
         <div class="article-divider"></div>
         <p style="text-align:center;color:var(--txt-mute);font-size:.9rem">للمزيد من المقالات والأنشطة تابع منصة مركز شباب الأحمدية. وللانضمام لأكاديميات المركز أو حجز الملعب الخماسي، تواصل معنا عبر الأرقام الموضحة أسفل الصفحة.</p>
-      </article>`;
+      </div>
+      <div class="article-qr-modal" id="articleQRModal" aria-hidden="true">
+        <div class="article-qr-backdrop" data-close-qr></div>
+        <section class="article-qr-dialog" role="dialog" aria-modal="true" aria-labelledby="articleQRTitle">
+          <button type="button" class="article-qr-close" data-close-qr aria-label="إغلاق">×</button>
+          <span class="qr-mark">▦</span>
+          <h3 id="articleQRTitle">امسح الرمز لفتح المقال</h3>
+          <p>وجّه كاميرا هاتفك إلى رمز QR للوصول المباشر إلى هذا المقال.</p>
+          <div class="article-qr-image-wrap"><img src="${qrUrl}" alt="رمز QR لفتح مقال: ${esc(a.title)}" loading="lazy"></div>
+          <div class="article-qr-title">${esc(a.title)}</div>
+          <a class="btn btn-gold article-qr-download" href="${qrUrl}" target="_blank" rel="noopener" download="article-qr.png">فتح صورة رمز QR</a>
+          <button type="button" class="article-qr-copy" id="copyQRLink">نسخ رابط المقال</button>
+        </section>
+      </div>`;
+
+    const feedback = $("#shareFeedback");
+    const copyLink = async () => {
+      try {
+        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(shareUrl);
+        else {
+          const field = document.createElement("textarea");
+          field.value = shareUrl; field.style.position = "fixed"; field.style.opacity = "0";
+          document.body.appendChild(field); field.select();
+          const copied = document.execCommand("copy"); field.remove();
+          if (!copied) throw new Error("copy unavailable");
+        }
+        feedback.textContent = "تم نسخ رابط المقال بنجاح";
+      } catch (error) {
+        feedback.textContent = "تعذر النسخ تلقائيًا. انسخ الرابط من شريط العنوان.";
+      }
+    };
+    $("#copyArticleLink").addEventListener("click", copyLink);
+    $("#copyQRLink").addEventListener("click", copyLink);
+    const modal = $("#articleQRModal");
+    const closeQR = () => { modal.classList.remove("open"); modal.setAttribute("aria-hidden", "true"); };
+    $("#openArticleQR").addEventListener("click", () => { modal.classList.add("open"); modal.setAttribute("aria-hidden", "false"); });
+    modal.querySelectorAll("[data-close-qr]").forEach(el => el.addEventListener("click", closeQR));
+    document.addEventListener("keydown", event => { if (event.key === "Escape") closeQR(); });
+    const nativeButton = $("#nativeArticleShare");
+    if (navigator.share) {
+      nativeButton.style.display = "inline-flex";
+      nativeButton.addEventListener("click", async () => {
+        try { await navigator.share({ title: a.title, text: a.excerpt || a.title, url: shareUrl }); }
+        catch (error) { if (error && error.name !== "AbortError") feedback.textContent = "تعذرت المشاركة من الجهاز."; }
+      });
+    }
   }
 
   function renderRelated(current) {
