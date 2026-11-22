@@ -197,7 +197,7 @@
       </div>
       <div class="admin-card">
         <h3>💻 المطور والأمان</h3>
-        <p class="sub">اسم ورابط المطور وكلمة مرور لوحة التحكم</p>
+        <p class="sub">اسم ورابط المطور وإعدادات الأمان</p>
         <div class="grid-2">
           ${field("اسم المطور", "meta.devName", m.devName)}
           ${field("رابط المطور", "meta.devLink", m.devLink, { hint: "رابط واتساب أو موقع المطور" })}
