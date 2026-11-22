@@ -517,18 +517,46 @@
   }
 
   async function loadPlayersGallery() {
+    const manifestUrl = 'assets/images/players/players-manifest.json';
     try {
-      const response = await fetch('assets/images/players/players-manifest.json', { cache: 'no-store' });
-      if (!response.ok) throw new Error('تعذر تحميل فهرس صور اللاعبين');
-      const manifest = await response.json();
-      renderPlayers(manifest.images || []);
+      const response = await fetch(manifestUrl, { cache: 'no-store' });
+      if (response.ok) {
+        const manifest = await response.json();
+        if (Array.isArray(manifest.images) && manifest.images.length) {
+          renderPlayers(manifest.images);
+          return;
+        }
+      }
     } catch (error) {
-      console.warn('Karate players gallery manifest is unavailable:', error);
-      renderPlayers(PLAYERS.map(player => ({
-        src: `assets/images/${player.img}.png`,
-        caption: `${player.name} - ${player.belt}`
-      })));
+      console.warn('Players manifest unavailable; scanning numbered images.', error);
     }
+
+    // Discover player-01.jpg, player-02.jpg ... in assets/images/players.
+    const extensions = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
+    const found = [];
+    const exists = async (url) => {
+      try {
+        const response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        return response.ok;
+      } catch (_) { return false; }
+    };
+
+    for (let start = 1; start <= 100; start += 10) {
+      const batch = [];
+      for (let number = start; number < Math.min(start + 10, 101); number++) {
+        const fileNumber = String(number).padStart(2, '0');
+        for (const extension of extensions) {
+          const src = `assets/images/players/player-${fileNumber}.${extension}`;
+          batch.push(exists(src).then(ok => ok ? { number, src } : null));
+        }
+      }
+      found.push(...(await Promise.all(batch)).filter(Boolean));
+    }
+    found.sort((a, b) => a.number - b.number);
+    renderPlayers(found.map(item => ({
+      src: item.src,
+      caption: `لاعب الكاراتيه رقم ${String(item.number).padStart(2, '0')}`
+    })));
   }
 
   /* ============ LIGHTBOX ============ */
