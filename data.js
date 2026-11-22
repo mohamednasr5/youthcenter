@@ -161,6 +161,11 @@
       { id: "04", cap: "تنظيم المساحات الخضراء بالمركز" },
       { id: "05", cap: "تأهيل وتجهيز الصالات الداخلية" },
       { id: "06", cap: "عمل تطوعي جماعي للأعضاء" }
+    ],
+    karateSchedule: [
+      { day: "الجمعة", date: "", fromTime: "15:00", toTime: "17:00", location: "مركز شباب الأحمدية", gender: "بنين وبنات", age: "من 5 سنوات فأكثر", active: true },
+      { day: "الإثنين", date: "", fromTime: "15:00", toTime: "17:00", location: "مركز شباب الأحمدية", gender: "بنين وبنات", age: "من 5 سنوات فأكثر", active: true },
+      { day: "الأربعاء", date: "", fromTime: "15:00", toTime: "17:00", location: "مركز شباب الأحمدية", gender: "بنين وبنات", age: "من 5 سنوات فأكثر", active: true }
     ]
   };
 
