@@ -30,12 +30,28 @@
     $(".hero-emblem .emblem-logo").src = D.meta.logo;
   }
 
-  // ===== NEWS TICKER =====
+  // ===== NEWS TICKER: continuous, never-empty loop =====
+  const DEFAULT_TICKER_NEWS = [
+    { icon: "🏆", text: "مركز شباب الأحمدية يرحب بأبنائه وزواره ويتمنى للجميع دوام التوفيق" },
+    { icon: "⚽", text: "تابعوا أخبار الأنشطة والبطولات الرياضية وأكاديميات المركز أولاً بأول" },
+    { icon: "🥋", text: "أكاديميات المركز تستقبل البراعم والناشئين وفق المواعيد المعلنة" },
+    { icon: "🏟️", text: "يمكنكم متابعة مواعيد وحجوزات الملعب الخماسي من خلال منصة المركز" }
+  ];
+  function getTickerNews() {
+    const source = Array.isArray(D.news) ? D.news : [];
+    const valid = source.filter(n => n && typeof n.text === "string" && n.text.trim());
+    return valid.length ? valid : DEFAULT_TICKER_NEWS;
+  }
   function renderNews() {
-    const items = D.news.map(n =>
-      `<span class="t-item"><span class="ico">${esc(n.icon || "")}</span> ${esc(n.text)} <span class="sep">◆</span></span>`).join("");
     const c = $("#tContent");
-    c.innerHTML = items + items; // duplicate for seamless loop
+    if (!c) return;
+    const items = getTickerNews().map(n =>
+      `<span class="t-item"><span class="ico">${esc(n.icon || "📰")}</span><span>${esc(n.text)}</span><span class="sep">◆</span></span>`).join("");
+    // مجموعتان متطابقتان تماماً حتى يبدأ التكرار من دون فراغ أو قفزة.
+    c.innerHTML = `<span class="t-group">${items}</span><span class="t-group" aria-hidden="true">${items}</span>`;
+    c.classList.remove("ticker-running");
+    void c.offsetWidth;
+    c.classList.add("ticker-running");
   }
 
   // ===== ANNOUNCEMENT =====
@@ -685,80 +701,21 @@
     }
   }
 
-  // ===== TICKER: كمبيوتر = شريط متحرك عادي / هاتف = برق إخباري يصعد ويقف ويختفي =====
+  // ===== TICKER: نفس الشريط المتصل على الكمبيوتر والهاتف =====
   function initTicker() {
-    const t = document.querySelector(".ticker");
-    const flash = $("#tFlash");
-    if (!t || !flash) return;
-    t.style.cursor = "pointer";
-    const items = (D.news || []).map(n => ({ icon: n.icon || "📰", text: n.text || "" }));
-
-    // كليك/تَب: إيقاف مؤقت (الشريط المتحرك على الكمبيوتر + البرق على الهاتف)
-    let paused = false;
-    t.addEventListener("click", () => {
-      paused = !paused;
-      t.classList.toggle("paused", paused);
-      if (paused) flashRotator.pause(); else flashRotator.resume();
-    });
-
-    // الشريط المتحرك العادي يعمل على الكمبيوتر كما هو — لا شيء إضافي هنا
-
-    /* ---- البرق الإخباري (هواتف ≤640px) ---- */
-    const flashRotator = (function () {
-      const HOLD = 3900, OUT = 520, RESUME = 1900;
-      let idx = 0, cur = null, tHold = null, tNext = null;
-      let running = false;
-      let dotEls = [];
-      if (items.length && items.length <= 8) {
-        const dots = el("div", "f-live", items.map(() => "<i></i>").join(""));
-        flash.appendChild(dots);
-        dotEls = Array.from(dots.querySelectorAll("i"));
-      }
-      function show(i) {
-        if (!items.length) return;
-        idx = i % items.length;
-        dotEls.forEach((d, k) => d.classList.toggle("on", k === idx));
-        flash.querySelectorAll(".f-item").forEach(x => x.remove());
-        cur = el("div", "f-item",
-          `<span class="f-ico">${esc(items[idx].icon)}</span><span class="f-txt">${esc(items[idx].text)}</span>`);
-        flash.appendChild(cur);
-        void cur.offsetWidth; // فرض إعادة الحساب قبل الأنيميشن
-        cur.classList.add("show");
-        armHold(HOLD);
-      }
-      function endHold() {
-        if (!running || paused || !cur) return;
-        cur.classList.remove("show");
-        cur.classList.add("hide");
-        tNext = setTimeout(() => show(idx + 1), OUT);
-      }
-      function armHold(ms) { clearTimeout(tHold); tHold = setTimeout(endHold, ms); }
-      return {
-        start() {
-          if (running || document.hidden || !items.length) return;
-          running = true;
-          show(idx);
-        },
-        stop() {
-          running = false;
-          clearTimeout(tHold); clearTimeout(tNext);
-          if (cur) { cur.classList.remove("show"); cur.classList.add("hide"); }
-          setTimeout(() => { if (!running) flash.querySelectorAll(".f-item").forEach(x => x.remove()); }, OUT);
-        },
-        pause() { clearTimeout(tHold); },
-        resume() { if (running && !paused) armHold(RESUME); },
-        restartAt() { if (running) show(idx); }
-      };
-    })();
-
-    const mq = window.matchMedia("(max-width: 640px)");
-    const onMq = e => { if (e.matches) flashRotator.start(); else flashRotator.stop(); };
-    if (mq.addEventListener) mq.addEventListener("change", onMq); else mq.addListener(onMq);
-    if (mq.matches) flashRotator.start();
-
+    const ticker = document.querySelector(".ticker");
+    const content = $("#tContent");
+    if (!ticker || !content) return;
+    // لا نوقف الحركة عند المرور أو اللمس؛ الشريط يستمر بالدوران دائماً.
+    ticker.style.cursor = "default";
+    ticker.classList.remove("paused");
+    content.classList.add("ticker-running");
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) flashRotator.pause();
-      else if (!paused) flashRotator.restartAt();
+      if (!document.hidden) {
+        content.classList.remove("ticker-running");
+        void content.offsetWidth;
+        content.classList.add("ticker-running");
+      }
     });
   }
 
