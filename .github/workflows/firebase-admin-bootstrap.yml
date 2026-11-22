@@ -20,6 +20,7 @@ jobs:
 
       - name: Validate Firebase service account secret
         env:
+          SA_FILE: ${{ runner.temp }}/firebase-service-account.json
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
           if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
@@ -27,10 +28,7 @@ jobs:
             exit 1
           fi
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
-          node -e "const x=require(process.env.SA_FILE); if(!x.project_id || x.project_id !== 'academia-e6d7b') process.exit(1)" 
-        env:
-          SA_FILE: ${{ runner.temp }}/firebase-service-account.json
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          node -e "const x=require(process.env.SA_FILE); if(!x.project_id || x.project_id !== 'academia-e6d7b') process.exit(1)"
 
       - name: Install Firebase Admin and CLI
         run: npm install --no-save firebase-admin firebase-tools
