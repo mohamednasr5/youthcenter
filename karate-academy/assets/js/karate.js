@@ -490,24 +490,45 @@
   }
 
   /* ============ GENERATE PLAYERS GALLERY ============ */
-  function renderPlayers() {
+  function renderPlayers(images) {
     const gallery = document.getElementById('playersGallery');
     if (!gallery) return;
-    gallery.innerHTML = PLAYERS.map((p, i) => `
-      <div class="gallery-card reveal" data-img="assets/images/${p.img}.png" data-caption="${p.name} - ${p.belt}" style="--belt-color:${p.color}; transition-delay:${i * 0.04}s">
-        <img src="assets/images/${p.img}.png" alt="${p.name}" class="gallery-img" loading="lazy">
-        <div class="gallery-overlay">
-          <div class="gallery-name">${p.name}</div>
-          <div class="gallery-belt"><span class="gallery-belt-dot"></span>${p.belt}</div>
-        </div>
-      </div>
-    `).join('');
-    // ربط النقر على البطاقة بفتح الـ Lightbox
+    const items = Array.isArray(images) ? images : [];
+    if (!items.length) {
+      gallery.innerHTML = '<p class="players-empty" style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-secondary)">ستظهر صور اللاعبين هنا بمجرد رفعها إلى مجلد الصور المخصص.</p>';
+      return;
+    }
+    gallery.innerHTML = items.map((item, i) => {
+      const src = typeof item === 'string' ? item : item.src;
+      if (!src) return '';
+      const caption = (typeof item === 'object' && item.caption) ? item.caption : 'لاعب من أكاديمية الكاراتيه';
+      return `
+        <div class="gallery-card reveal" data-img="${src}" data-caption="${caption}" style="transition-delay:${i * 0.04}s">
+          <img src="${src}" alt="لاعب من أكاديمية الكاراتيه" class="gallery-img" loading="lazy" decoding="async">
+          <div class="gallery-overlay">
+            <div class="gallery-name">لاعب الأكاديمية</div>
+            <div class="gallery-belt"><span class="gallery-belt-dot"></span>صور من تدريبات الكاراتيه</div>
+          </div>
+        </div>`;
+    }).join('');
     gallery.querySelectorAll('.gallery-card').forEach(card => {
-      card.addEventListener('click', () => {
-        openLightbox(card.dataset.img, card.dataset.caption);
-      });
+      card.addEventListener('click', () => openLightbox(card.dataset.img, card.dataset.caption));
     });
+  }
+
+  async function loadPlayersGallery() {
+    try {
+      const response = await fetch('assets/images/players/players-manifest.json', { cache: 'no-store' });
+      if (!response.ok) throw new Error('تعذر تحميل فهرس صور اللاعبين');
+      const manifest = await response.json();
+      renderPlayers(manifest.images || []);
+    } catch (error) {
+      console.warn('Karate players gallery manifest is unavailable:', error);
+      renderPlayers(PLAYERS.map(player => ({
+        src: `assets/images/${player.img}.png`,
+        caption: `${player.name} - ${player.belt}`
+      })));
+    }
   }
 
   /* ============ LIGHTBOX ============ */
@@ -568,7 +589,7 @@
   function init() {
     renderMoves();
     renderBelts();
-    renderPlayers();
+    loadPlayersGallery();
     setupReveal();
     setupActiveNav();
 
