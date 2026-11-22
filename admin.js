@@ -5,7 +5,7 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const SESSION_KEY = "ahmadiah_admin_session";
+  const SESSION_KEY = "ahmadiah_admin_session_v2";
 
   let state = SiteData.load();
   let dirty = false;
