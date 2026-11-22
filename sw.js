@@ -1,6 +1,6 @@
 /* sw.js — service worker لمركز شباب الأحمدية
    caching: app-shell precache + stale-while-revalidate للأصول + network-first للتنقل */
-const CACHE = "ahmadiah-v5";
+const CACHE = "ahmadiah-v6";
 const CORE = [
   "./", "./index.html", "./article.html", "./admin.html",
   "./styles.css", "./admin.css",
