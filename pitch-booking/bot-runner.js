@@ -142,12 +142,12 @@ async function handleTelegramMessage(message) {
   // Result entry is authorized by the private-chat PIN; group chats can never start it.
   const isPrivateChat = message.chat.type === 'private';
   const stateUrl = `${FIREBASE_DB_BASE}/telegramResultSessions/${chatId}.json`;
-  const sessionResponse = await request(stateUrl);
+  const sessionResponse = isPrivateChat && RESULT_ADMIN_IDS.includes(chatId) ? await request(stateUrl) : null;
   let session = sessionResponse && typeof sessionResponse === 'object' ? sessionResponse : null;
 
   console.log(`[Telegram Update] From: ${userName} (${chatId}) | Text: ${text}`);
 
-  if (isPrivateChat && text === RESULT_ADMIN_CODE) {
+  if (isPrivateChat && RESULT_ADMIN_IDS.includes(chatId) && text === RESULT_ADMIN_CODE) {
     await request(stateUrl, { method: 'PUT' }, {
       step: 'booking',
       startedAt: Date.now(),
@@ -159,13 +159,13 @@ async function handleTelegramMessage(message) {
     return;
   }
 
-  if (isPrivateChat && session && session.adminAuthorized && text === '/cancel') {
+  if (isPrivateChat && RESULT_ADMIN_IDS.includes(chatId) && session && session.adminAuthorized && text === '/cancel') {
     await request(stateUrl, { method: 'DELETE' });
     await sendTelegramMessage(chatId, '✅ تم إلغاء تسجيل النتيجة.');
     return;
   }
 
-  if (isPrivateChat && session && session.adminAuthorized && session.adminChatId === chatId) {
+  if (isPrivateChat && RESULT_ADMIN_IDS.includes(chatId) && session && session.adminAuthorized && session.adminChatId === chatId) {
     if (Date.now() - Number(session.startedAt || 0) > 15 * 60 * 1000) {
       await request(stateUrl, { method: 'DELETE' });
       await sendTelegramMessage(chatId, 'انتهت صلاحية جلسة التسجيل. أرسل 521988 للبدء مجدداً.');
