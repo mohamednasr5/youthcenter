@@ -490,13 +490,21 @@
   }
 
   /* ============ PLAYERS CAROUSEL — football-style automatic showcase ============ */
-  function renderPlayers(images) {
+  async function renderPlayers(images) {
     const gallery = document.getElementById('playersGallery');
     if (!gallery) return;
     const items = (Array.isArray(images) ? images : []).map(item => {
       if (typeof item === 'string') return { src: item, caption: 'لاعب من أكاديمية الكاراتيه' };
       return item && item.src ? item : null;
     }).filter(Boolean);
+
+    const verifiedItems = await Promise.all(items.map(item => new Promise(resolve => {
+      const probe = new Image();
+      probe.onload = () => resolve(item);
+      probe.onerror = () => resolve(null);
+      probe.src = item.src;
+    })));
+    items.splice(0, items.length, ...verifiedItems.filter(Boolean));
 
     if (!items.length) {
       gallery.innerHTML = '<p class="players-empty" style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-secondary)">لم تُرفع صور اللاعبين بعد إلى مجلد assets/images/players.</p>';
