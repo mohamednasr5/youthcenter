@@ -724,7 +724,9 @@
       await window.SiteData.syncFromCloud();
       const data = window.SiteData.load();
       const entries = (Array.isArray(data.karateSchedule) ? data.karateSchedule : []).filter(item => item && item.active !== false);
-      if (summary) summary.innerHTML = `<div><strong>${entries.length}</strong><span>حصص أسبوعياً</span></div><div><strong>بنين وبنات</strong><span>الجنسين</span></div><div><strong>من 5</strong><span>سنوات فأكثر</span></div>`;
+      const genders = [...new Set(entries.map(item => item.gender).filter(Boolean))];
+      const ages = [...new Set(entries.map(item => item.age).filter(Boolean))];
+      if (summary) summary.innerHTML = `<div><strong>${entries.length}</strong><span>حصص أسبوعياً</span></div><div><strong>${genders.join(" / ") || "بنين وبنات"}</strong><span>الفئات</span></div><div><strong>${ages.join(" / ") || "من 5 سنوات فأكثر"}</strong><span>السن المطلوب</span></div>`;
       if (!entries.length) { grid.innerHTML = '<p class="schedule-empty">لا توجد مواعيد تدريب معلنة حاليًا.</p>'; return; }
       const dayOrder = ["السبت","الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
       entries.sort((x,y) => dayOrder.indexOf(x.day) - dayOrder.indexOf(y.day));
