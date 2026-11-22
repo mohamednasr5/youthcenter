@@ -94,8 +94,10 @@ img{max-width:100%;display:block}
 .ticker .t-label{flex-shrink:0;display:flex;align-items:center;gap:8px;padding:11px 18px;background:linear-gradient(135deg,var(--gold),#d97706);color:#1a1206;font-weight:900;font-size:.82rem;letter-spacing:.3px;position:relative;z-index:2}
 .ticker .t-label .ldot{width:8px;height:8px;border-radius:50%;background:#1a1206;animation:blink 1.2s infinite}
 .ticker .t-track{flex:1;overflow:hidden;padding-left:0;mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
-.ticker .t-content{display:inline-flex;white-space:nowrap;animation:scrollTicker 38s linear infinite;padding:0 24px;will-change:transform}
-.ticker:hover .t-content,.ticker:focus-within .t-content,.ticker.paused .t-content{animation-play-state:paused}
+.ticker .t-content{display:inline-flex;width:max-content;white-space:nowrap;animation:scrollTicker 38s linear infinite;padding:0 24px;will-change:transform}
+.ticker .t-content.ticker-running{animation-name:scrollTicker}
+.ticker .t-group{display:inline-flex;align-items:center;flex-shrink:0;width:max-content}
+
 .ticker .t-item{display:inline-flex;align-items:center;gap:8px;padding:11px 24px;font-weight:600;font-size:.86rem;color:var(--txt)}
 .ticker .t-item .sep{color:var(--gold);font-weight:900}
 .ticker .t-item .ico{color:var(--emerald-2)}
@@ -106,9 +108,9 @@ img{max-width:100%;display:block}
   .ticker .t-label{font-size:.72rem;padding:9px 12px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;letter-spacing:.5px}
   .ticker .t-label .ldot{background:#fff;box-shadow:0 0 8px rgba(255,255,255,.85)}
   .ticker .t-item{font-size:.78rem;padding:9px 16px}
-  .ticker .t-content{display:none;animation:none!important}
+  .ticker .t-content{display:inline-flex;animation:scrollTicker 32s linear infinite}
   .ticker .t-track{position:relative;height:56px}
-  .ticker .t-flash{display:block;position:relative;width:100%;height:100%}
+  .ticker .t-flash{display:none!important}
   .ticker .t-flash .f-item{position:absolute;inset:0;display:flex;align-items:center;gap:9px;padding:2px 16px;font-weight:800;font-size:.8rem;color:#fff;line-height:1.45;opacity:0;will-change:transform,opacity}
   .ticker .t-flash .f-item .f-ico{flex-shrink:0;font-size:1.1rem;filter:drop-shadow(0 0 6px rgba(245,158,11,.65))}
   .ticker .t-flash .f-item .f-txt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 1px 10px rgba(0,0,0,.55)}
