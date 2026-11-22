@@ -314,7 +314,31 @@
       <div class="aside-mini">
         <h4>⚡ روابط سريعة</h4>
         <div class="ql">${ql}</div>
-      </div>`;
+      </div>
+      <section class="leaders-card" aria-label="قيادات الدولة والقطاع الشبابي">
+        <div class="leaders-heading">
+          <span class="leaders-heading-icon">🇪🇬</span>
+          <div><h3>قيادات الدولة والشباب</h3><p>قيادات وطنية وشبابية</p></div>
+        </div>
+        <div class="leaders-list">
+          <article class="leader-item">
+            <img src="assets/leaders/president.jpg" alt="عبد الفتاح السيسي" loading="lazy" decoding="async">
+            <div class="leader-info"><h4>عبد الفتاح السيسي</h4><span>فخامة رئيس الجمهورية</span></div>
+          </article>
+          <article class="leader-item">
+            <img src="assets/leaders/prime-minister.jpg" alt="الدكتور مصطفى مدبولي" loading="lazy" decoding="async">
+            <div class="leader-info"><h4>الدكتور مصطفى مدبولي</h4><span>معالي رئيس مجلس الوزراء</span></div>
+          </article>
+          <article class="leader-item">
+            <img src="assets/leaders/youth-minister.jpg" alt="الأستاذ نبيل جوهر" loading="lazy" decoding="async">
+            <div class="leader-info"><h4>الأستاذ نبيل جوهر</h4><span>وزير الشباب والرياضة</span></div>
+          </article>
+          <article class="leader-item">
+            <img src="assets/leaders/youth-director.jpg" alt="الأستاذ محمد حامد صقر" loading="lazy" decoding="async">
+            <div class="leader-info"><h4>الأستاذ محمد حامد صقر</h4><span>مدير إدارة شباب المنزلة</span></div>
+          </article>
+        </div>
+      </section>`;
   }
 
   // ===== LAST FACEBOOK POST (قسم آخر منشور على صفحة المركز — تحت الإحصائيات المالية) =====
