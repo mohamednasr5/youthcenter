@@ -102,6 +102,7 @@
         const authorized = await SiteData.ensureCenterSession();
         if (!authorized) {
           error.textContent = "تعذر فتح لوحة الإدارة: سجّل الدخول ببريد Firebase المصرّح له بعد تفعيل صلاحية ycCenter أو ycAdmin. كلمة المرور القديمة لا تمنح صلاحية الكتابة في قاعدة البيانات.";
+          sessionStorage.removeItem(SESSION_KEY);
           await SiteData.signOut();
           return false;
         }
@@ -110,6 +111,7 @@
       } catch (e) {
         console.error("Youth center admin initialization failed:", e);
         error.textContent = (e && e.message) || "تعذر تهيئة لوحة الإدارة من Firebase.";
+        sessionStorage.removeItem(SESSION_KEY);
         await SiteData.signOut();
         return false;
       }
