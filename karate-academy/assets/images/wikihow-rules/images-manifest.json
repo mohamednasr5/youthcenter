@@ -1,0 +1,44 @@
+{
+  "images": [
+    {
+      "src": "rule-01.jpg",
+      "caption": "rule 01"
+    },
+    {
+      "src": "rule-02.jpg",
+      "caption": "rule 02"
+    },
+    {
+      "src": "rule-03.jpg",
+      "caption": "rule 03"
+    },
+    {
+      "src": "rule-04.jpg",
+      "caption": "rule 04"
+    },
+    {
+      "src": "rule-05.jpg",
+      "caption": "rule 05"
+    },
+    {
+      "src": "rule-06.jpg",
+      "caption": "rule 06"
+    },
+    {
+      "src": "rule-07.jpg",
+      "caption": "rule 07"
+    },
+    {
+      "src": "rule-08.jpg",
+      "caption": "rule 08"
+    },
+    {
+      "src": "rule-09.jpg",
+      "caption": "rule 09"
+    },
+    {
+      "src": "rule-10.jpg",
+      "caption": "rule 10"
+    }
+  ]
+}

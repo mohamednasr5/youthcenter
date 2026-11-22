@@ -1,0 +1,36 @@
+{
+  "images": [
+    {
+      "src": "001.jpg",
+      "caption": "001"
+    },
+    {
+      "src": "002.jpg",
+      "caption": "002"
+    },
+    {
+      "src": "003.jpg",
+      "caption": "003"
+    },
+    {
+      "src": "004.jpg",
+      "caption": "004"
+    },
+    {
+      "src": "005.jpg",
+      "caption": "005"
+    },
+    {
+      "src": "006.jpg",
+      "caption": "006"
+    },
+    {
+      "src": "007.jpg",
+      "caption": "007"
+    },
+    {
+      "src": "008.jpg",
+      "caption": "008"
+    }
+  ]
+}

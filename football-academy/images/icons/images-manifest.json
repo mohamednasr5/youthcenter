@@ -1,0 +1,32 @@
+{
+  "images": [
+    {
+      "src": "apple-touch-icon.png",
+      "caption": "apple touch icon"
+    },
+    {
+      "src": "favicon-16.png",
+      "caption": "favicon 16"
+    },
+    {
+      "src": "favicon-32.png",
+      "caption": "favicon 32"
+    },
+    {
+      "src": "icon-192-maskable.png",
+      "caption": "icon 192 maskable"
+    },
+    {
+      "src": "icon-192.png",
+      "caption": "icon 192"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "caption": "icon 512 maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "caption": "icon 512"
+    }
+  ]
+}

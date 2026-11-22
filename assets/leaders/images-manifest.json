@@ -1,0 +1,20 @@
+{
+  "images": [
+    {
+      "src": "president.jpg",
+      "caption": "president"
+    },
+    {
+      "src": "prime-minister.jpg",
+      "caption": "prime minister"
+    },
+    {
+      "src": "youth-director.jpg",
+      "caption": "youth director"
+    },
+    {
+      "src": "youth-minister.jpg",
+      "caption": "youth minister"
+    }
+  ]
+}

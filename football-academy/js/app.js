@@ -460,23 +460,62 @@ let playersCarouselPaused = false;
 let playersCarouselTouchStartX = 0;
 let playersCarouselBound = false;
 
-function renderPlayers() {
+async function renderPlayers() {
   const track = document.getElementById("players-carousel-track");
   const root = document.getElementById("players-carousel");
   if (!track || !root) return;
 
-  const slides = Array.from({ length: 28 }, (_, index) => {
-    const src = `./images/players/${index}.png`;
-    const isCoach = index === 0;
+  let images = [];
+  try {
+    const response = await fetch("./images/players/players-manifest.json", { cache: "no-store" });
+    if (!response.ok) throw new Error("Players image manifest unavailable");
+    const manifest = await response.json();
+    images = Array.isArray(manifest.images) ? manifest.images : [];
+  } catch (error) {
+    console.warn("[Academia] Players manifest unavailable; checking numbered files.", error);
+    const extensions = ["png", "jpg", "jpeg", "webp", "avif"];
+    const checks = [];
+    for (let index = 0; index <= 100; index++) {
+      for (const ext of extensions) {
+        const src = `./images/players/${index}.${ext}`;
+        checks.push(new Promise(resolve => {
+          const probe = new Image();
+          probe.onload = () => resolve({ src, index });
+          probe.onerror = () => resolve(null);
+          probe.src = src;
+        }));
+      }
+    }
+    images = (await Promise.all(checks)).filter(Boolean)
+      .sort((a,b) => a.index - b.index)
+      .map(item => ({ src: item.src, index: item.index }));
+  }
+
+  // Confirm files load successfully, then omit missing files from the carousel.
+  images = (await Promise.all(images.map((item, order) => new Promise(resolve => {
+    const image = new Image();
+    image.onload = () => resolve({ ...item, _order: order });
+    image.onerror = () => resolve(null);
+    image.src = item.src;
+  })))).filter(Boolean);
+
+  if (!images.length) {
+    track.innerHTML = '<p class="players-empty">لا توجد صور لاعبين مرفوعة في مجلد images/players حتى الآن.</p>';
+    return;
+  }
+
+  const slides = images.map((item, index) => {
+    const numeric = Number.isInteger(item.index) ? item.index : Number((item.src.match(/(\\d+)(?=\\.[^.]+$)/) || [])[1]);
+    const isCoach = numeric === 0;
+    const label = isCoach ? "المدرب الفني" : `اللاعب رقم ${String(Number.isFinite(numeric) ? numeric : index).padStart(2, "0")}`;
     return `
       <button class="players-carousel-slide" type="button"
-        data-slide-index="${index}" aria-label="${isCoach ? "المدرب الفني" : `اللاعب رقم ${index}`}" tabindex="-1">
+        data-slide-index="${index}" aria-label="${label}" tabindex="-1">
         <span class="players-carousel-image-frame">
-          <img src="${src}" alt="${isCoach ? "المدربة" : `اللاعب رقم ${index}`}"
-            loading="${index === 0 || index === 1 || index === 27 ? "eager" : "lazy"}" decoding="async" draggable="false"
-            onerror="this.closest('.players-carousel-slide').classList.add('image-missing')">
+          <img src="${item.src}" alt="${label}"
+            loading="${index < 3 ? "eager" : "lazy"}" decoding="async" draggable="false">
         </span>
-        <span class="players-carousel-slide-number">${isCoach ? "المدرب الفني" : String(index).padStart(2, "0")}</span>
+        <span class="players-carousel-slide-number">${label}</span>
       </button>`;
   });
   track.innerHTML = slides.join("");

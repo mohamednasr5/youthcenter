@@ -449,6 +449,7 @@
         </div>
         <div class="move-stage">
           <img src="assets/images/wikihow-gifs/${move.gif}.gif" alt="${move.name} - ${move.tag}" class="move-gif">
+          <span class="center-watermark" aria-label="مركز شباب الأحمدية">مركز شباب الأحمدية</span>
           <button class="replay-btn" data-replay="${move.id}" aria-label="إعادة">↻ إعادة</button>
         </div>
         <p>${move.desc}</p>
@@ -489,46 +490,166 @@
     `).join('');
   }
 
-  /* ============ GENERATE PLAYERS GALLERY ============ */
-  function renderPlayers(images) {
+  /* ============ PLAYERS CAROUSEL — football-style automatic showcase ============ */
+  async function renderPlayers(images) {
     const gallery = document.getElementById('playersGallery');
     if (!gallery) return;
-    const items = Array.isArray(images) ? images : [];
+    const items = (Array.isArray(images) ? images : []).map(item => {
+      if (typeof item === 'string') return { src: item, caption: 'لاعب من أكاديمية الكاراتيه' };
+      return item && item.src ? item : null;
+    }).filter(Boolean);
+
+    const verifiedItems = await Promise.all(items.map(item => new Promise(resolve => {
+      const probe = new Image();
+      probe.onload = () => resolve(item);
+      probe.onerror = () => resolve(null);
+      probe.src = item.src;
+    })));
+    items.splice(0, items.length, ...verifiedItems.filter(Boolean));
+
     if (!items.length) {
-      gallery.innerHTML = '<p class="players-empty" style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-secondary)">ستظهر صور اللاعبين هنا بمجرد رفعها إلى مجلد الصور المخصص.</p>';
+      gallery.innerHTML = '<p class="players-empty" style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-secondary)">لم تُرفع صور اللاعبين بعد إلى مجلد assets/images/players.</p>';
       return;
     }
-    gallery.innerHTML = items.map((item, i) => {
-      const src = typeof item === 'string' ? item : item.src;
-      if (!src) return '';
-      const caption = (typeof item === 'object' && item.caption) ? item.caption : 'لاعب من أكاديمية الكاراتيه';
-      return `
-        <div class="gallery-card reveal" data-img="${src}" data-caption="${caption}" style="transition-delay:${i * 0.04}s">
-          <img src="${src}" alt="لاعب من أكاديمية الكاراتيه" class="gallery-img" loading="lazy" decoding="async">
-          <div class="gallery-overlay">
-            <div class="gallery-name">لاعب الأكاديمية</div>
-            <div class="gallery-belt"><span class="gallery-belt-dot"></span>صور من تدريبات الكاراتيه</div>
+
+    gallery.classList.add('players-carousel');
+    gallery.innerHTML = `
+      <div class="players-carousel-stage" id="playersCarouselStage">
+        <div class="players-carousel-track" id="playersCarouselTrack">
+          ${items.map((item, index) => `
+            <button class="players-carousel-slide" type="button" data-player-index="${index}"
+              aria-label="عرض اللاعب رقم ${index + 1}" tabindex="-1">
+              <span class="players-carousel-image">
+                <img src="${item.src}" alt="${item.caption || 'لاعب من أكاديمية الكاراتيه'}"
+                  loading="${index < 3 ? 'eager' : 'lazy'}" decoding="async" draggable="false">
+              </span>
+              <span class="players-carousel-caption">${item.caption || 'لاعب من أكاديمية الكاراتيه'}</span>
+            </button>`).join('')}
+        </div>
+        <button class="players-carousel-arrow players-carousel-prev" type="button" aria-label="اللاعب السابق">‹</button>
+        <button class="players-carousel-arrow players-carousel-next" type="button" aria-label="اللاعب التالي">›</button>
+        <div class="players-carousel-controls">
+          <span class="players-carousel-counter" id="playersCarouselCounter">01 / ${String(items.length).padStart(2,'0')}</span>
+          <div class="players-carousel-dots" id="playersCarouselDots" aria-label="اختيار لاعب">
+            ${items.map((_,index)=>`<button class="players-carousel-dot" type="button" data-go-player="${index}" aria-label="اللاعب ${index+1}"></button>`).join('')}
           </div>
-        </div>`;
-    }).join('');
-    gallery.querySelectorAll('.gallery-card').forEach(card => {
-      card.addEventListener('click', () => openLightbox(card.dataset.img, card.dataset.caption));
+          <button class="players-carousel-pause" id="playersCarouselPause" type="button" aria-pressed="false">Ⅱ إيقاف</button>
+        </div>
+      </div>`;
+
+    let active = 0, timer = null, paused = false;
+    const slides = [...gallery.querySelectorAll('.players-carousel-slide')];
+    const dots = [...gallery.querySelectorAll('.players-carousel-dot')];
+    const counter = gallery.querySelector('#playersCarouselCounter');
+    const pauseButton = gallery.querySelector('#playersCarouselPause');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function update() {
+      const total = slides.length;
+      slides.forEach((slide,index) => {
+        let offset = index - active;
+        if (offset > total / 2) offset -= total;
+        if (offset < -total / 2) offset += total;
+        slide.className = 'players-carousel-slide';
+        slide.dataset.position = String(offset);
+        slide.setAttribute('aria-hidden', offset === 0 ? 'false' : 'true');
+        slide.tabIndex = offset === 0 ? 0 : -1;
+        if (offset === 0) slide.classList.add('is-active');
+        else if (Math.abs(offset) === 1) slide.classList.add(offset < 0 ? 'is-prev' : 'is-next');
+        else if (Math.abs(offset) === 2) slide.classList.add('is-far');
+        else slide.classList.add('is-hidden');
+      });
+      if (counter) counter.textContent = `${String(active+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}`;
+      dots.forEach((dot,index) => {
+        dot.classList.toggle('active', index === active);
+        dot.setAttribute('aria-current', index === active ? 'true' : 'false');
+      });
+    }
+    function move(step) {
+      active = (active + step + slides.length) % slides.length;
+      update();
+    }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    function play() {
+      stop();
+      if (paused || reducedMotion || slides.length < 2) return;
+      timer = setInterval(() => move(1), 4000);
+    }
+
+    gallery.querySelector('.players-carousel-prev').addEventListener('click', () => { move(-1); play(); });
+    gallery.querySelector('.players-carousel-next').addEventListener('click', () => { move(1); play(); });
+    dots.forEach(dot => dot.addEventListener('click', () => {
+      active = Number(dot.dataset.goPlayer) || 0;
+      update(); play();
+    }));
+    pauseButton.addEventListener('click', () => {
+      paused = !paused;
+      pauseButton.setAttribute('aria-pressed', String(paused));
+      pauseButton.textContent = paused ? '▶ تشغيل' : 'Ⅱ إيقاف';
+      paused ? stop() : play();
     });
+    gallery.addEventListener('mouseenter', stop);
+    gallery.addEventListener('mouseleave', play);
+    gallery.addEventListener('focusin', stop);
+    gallery.addEventListener('focusout', () => setTimeout(() => {
+      if (!gallery.contains(document.activeElement)) play();
+    }, 0));
+    let touchX = 0;
+    gallery.addEventListener('touchstart', event => {
+      touchX = event.changedTouches[0].clientX;
+      stop();
+    }, { passive: true });
+    gallery.addEventListener('touchend', event => {
+      const delta = event.changedTouches[0].clientX - touchX;
+      if (Math.abs(delta) > 45) move(delta < 0 ? 1 : -1);
+      play();
+    }, { passive: true });
+    slides.forEach(slide => slide.addEventListener('click', () => {
+      const item = items[Number(slide.dataset.playerIndex)];
+      if (item && item.src) openLightbox(item.src, item.caption || 'لاعب من أكاديمية الكاراتيه');
+    }));
+    update();
+    play();
   }
 
   async function loadPlayersGallery() {
     try {
       const response = await fetch('assets/images/players/players-manifest.json', { cache: 'no-store' });
-      if (!response.ok) throw new Error('تعذر تحميل فهرس صور اللاعبين');
-      const manifest = await response.json();
-      renderPlayers(manifest.images || []);
+      if (response.ok) {
+        const manifest = await response.json();
+        if (Array.isArray(manifest.images) && manifest.images.length) {
+          renderPlayers(manifest.images);
+          return;
+        }
+      }
     } catch (error) {
-      console.warn('Karate players gallery manifest is unavailable:', error);
-      renderPlayers(PLAYERS.map(player => ({
-        src: `assets/images/${player.img}.png`,
-        caption: `${player.name} - ${player.belt}`
-      })));
+      console.warn('Players manifest unavailable; scanning numbered image files.', error);
     }
+
+    const extensions = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'];
+    const found = [];
+    const exists = async url => {
+      try {
+        const response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        return response.ok;
+      } catch (_) { return false; }
+    };
+    for (let start = 1; start <= 100; start += 10) {
+      const batch = [];
+      for (let number = start; number < Math.min(start + 10, 101); number++) {
+        const fileNumber = String(number).padStart(2, '0');
+        for (const extension of extensions) {
+          const src = `assets/images/players/player-${fileNumber}.${extension}`;
+          batch.push(exists(src).then(ok => ok ? { number, src } : null));
+        }
+      }
+      found.push(...(await Promise.all(batch)).filter(Boolean));
+    }
+    found.sort((a,b) => a.number - b.number);
+    renderPlayers(found.map(item => ({
+      src: item.src,
+      caption: `لاعب الكاراتيه رقم ${String(item.number).padStart(2,'0')}`
+    })));
   }
 
   /* ============ LIGHTBOX ============ */

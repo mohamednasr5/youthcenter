@@ -1,0 +1,40 @@
+{
+  "images": [
+    {
+      "src": "player-01.jpg",
+      "caption": "player 01"
+    },
+    {
+      "src": "player-010.png",
+      "caption": "player 010"
+    },
+    {
+      "src": "player-02.jpg",
+      "caption": "player 02"
+    },
+    {
+      "src": "player-03.jpg",
+      "caption": "player 03"
+    },
+    {
+      "src": "player-05.jpg",
+      "caption": "player 05"
+    },
+    {
+      "src": "player-06.jpg",
+      "caption": "player 06"
+    },
+    {
+      "src": "player-07.jpg",
+      "caption": "player 07"
+    },
+    {
+      "src": "player-08.jpg",
+      "caption": "player 08"
+    },
+    {
+      "src": "player-09.png",
+      "caption": "player 09"
+    }
+  ]
+}

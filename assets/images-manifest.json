@@ -1,0 +1,20 @@
+{
+  "images": [
+    {
+      "src": "center-photo.jpg",
+      "caption": "center photo"
+    },
+    {
+      "src": "favicon.png",
+      "caption": "favicon"
+    },
+    {
+      "src": "logo.png",
+      "caption": "logo"
+    },
+    {
+      "src": "og-image.jpg",
+      "caption": "og image"
+    }
+  ]
+}

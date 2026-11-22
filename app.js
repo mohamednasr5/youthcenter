@@ -151,10 +151,18 @@
     images = images.filter(item => {
       const src = typeof item === "string" ? item : item?.src;
       return typeof src === "string" &&
-        /^gallery\/[a-zA-Z0-9._-]+\.(?:jpe?g|png|webp|avif)$/i.test(src);
+        /^gallery\/[a-zA-Z0-9._-]+\.(?:jpe?g|png|webp|avif|gif)$/i.test(src);
     }).map(item => typeof item === "string"
       ? { src: item, caption: "من أنشطة وفعاليات مركز شباب الأحمدية" }
       : item);
+
+    // Verify real image files before building the carousel; never render broken-image cards.
+    images = (await Promise.all(images.map(item => new Promise(resolve => {
+      const probe = new Image();
+      probe.onload = () => resolve(item);
+      probe.onerror = () => resolve(null);
+      probe.src = item.src;
+    })))).filter(Boolean);
 
     if (!images.length) {
       if (section) section.style.display = "none";
