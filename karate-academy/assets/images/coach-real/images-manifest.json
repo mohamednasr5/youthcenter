@@ -1,8 +1,12 @@
 {
   "images": [
     {
-      "src": "coach-fatma.jpg",
+      "src": "coach-fatma.png",
       "caption": "coach fatma"
+    },
+    {
+      "src": "farida.png",
+      "caption": "farida"
     }
   ]
 }
