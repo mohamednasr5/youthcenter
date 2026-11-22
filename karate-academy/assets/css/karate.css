@@ -540,3 +540,41 @@ body {
   .move-gif { object-fit: contain; }
   .replay-btn { left: 8px; bottom: 8px; z-index: 6; }
 }
+
+/* ============ PLAYERS AUTO CAROUSEL — same visual language as football gallery ============ */
+.players-carousel { display:block; width:100%; margin-top:18px; }
+.players-carousel-stage { position:relative; width:100%; min-height:clamp(300px,48vw,540px); overflow:hidden; border-radius:22px; border:1px solid rgba(244,63,94,.22); background:radial-gradient(circle at 50% 45%,rgba(244,63,94,.12),transparent 55%),#09060d; isolation:isolate; }
+.players-carousel-track { position:relative; width:100%; min-height:inherit; height:clamp(300px,48vw,540px); }
+.players-carousel-slide { position:absolute; top:50%; left:50%; width:min(58%,560px); height:88%; padding:0; border:1px solid rgba(255,255,255,.12); border-radius:20px; overflow:hidden; background:#100a13; color:#fff; cursor:pointer; transform:translate(-50%,-50%) scale(.72); opacity:0; pointer-events:none; transition:transform .65s cubic-bezier(.2,.75,.2,1),opacity .65s,filter .65s; box-shadow:0 22px 55px rgba(0,0,0,.45); }
+.players-carousel-slide.is-active { transform:translate(-50%,-50%) scale(1); opacity:1; z-index:4; pointer-events:auto; }
+.players-carousel-slide.is-prev { transform:translate(calc(-50% - 38%),-50%) scale(.78); opacity:.48; z-index:3; pointer-events:auto; }
+.players-carousel-slide.is-next { transform:translate(calc(-50% + 38%),-50%) scale(.78); opacity:.48; z-index:3; pointer-events:auto; }
+.players-carousel-slide.is-far { opacity:.12; z-index:1; }
+.players-carousel-slide.is-hidden { opacity:0; z-index:0; }
+.players-carousel-image { position:absolute; inset:0; display:grid; place-items:center; background:#09060d; }
+.players-carousel-image img { width:100%; height:100%; display:block; object-fit:contain; object-position:center; }
+.players-carousel-caption { position:absolute; inset:auto 0 0; display:block; padding:30px 18px 18px; text-align:center; color:#fff; font-weight:900; font-size:1rem; background:linear-gradient(transparent,rgba(0,0,0,.82)); }
+.players-carousel-arrow { position:absolute; top:50%; z-index:8; width:44px; height:44px; display:grid; place-items:center; border:1px solid rgba(255,255,255,.18); border-radius:50%; background:rgba(7,6,13,.78); color:#fff; font-size:2rem; line-height:1; cursor:pointer; transform:translateY(-50%); backdrop-filter:blur(8px); }
+.players-carousel-prev { right:14px; }
+.players-carousel-next { left:14px; }
+.players-carousel-controls { position:absolute; z-index:9; bottom:12px; left:12px; right:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; pointer-events:none; }
+.players-carousel-counter,.players-carousel-pause,.players-carousel-dot { pointer-events:auto; }
+.players-carousel-counter { padding:6px 10px; border-radius:30px; background:rgba(0,0,0,.68); color:#fff; font-size:.75rem; font-weight:800; direction:ltr; }
+.players-carousel-dots { display:flex; justify-content:center; align-items:center; gap:6px; max-width:55%; overflow:hidden; }
+.players-carousel-dot { width:7px; height:7px; flex:0 0 7px; padding:0; border:0; border-radius:50%; background:rgba(255,255,255,.38); cursor:pointer; }
+.players-carousel-dot.active { width:20px; flex-basis:20px; border-radius:10px; background:var(--accent-red); }
+.players-carousel-pause { padding:6px 11px; border:1px solid rgba(244,63,94,.35); border-radius:30px; background:rgba(7,6,13,.75); color:#fff; font:700 .75rem inherit; cursor:pointer; }
+@media(max-width:768px) {
+ .players-carousel-stage,.players-carousel-track { height:clamp(280px,88vw,440px); min-height:280px; }
+ .players-carousel-slide { width:78%; height:84%; }
+ .players-carousel-slide.is-prev { transform:translate(calc(-50% - 30%),-50%) scale(.78); }
+ .players-carousel-slide.is-next { transform:translate(calc(-50% + 30%),-50%) scale(.78); }
+ .players-carousel-arrow { width:36px; height:36px; font-size:1.6rem; }
+ .players-carousel-prev { right:8px; }
+ .players-carousel-next { left:8px; }
+ .players-carousel-caption { font-size:.88rem; padding:24px 12px 14px; }
+ .players-carousel-dots { max-width:42%; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .players-carousel-slide { transition:none; }
+}
