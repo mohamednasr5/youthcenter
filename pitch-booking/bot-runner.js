@@ -138,7 +138,7 @@ async function handleTelegramMessage(message) {
 
   const chatId = String(message.chat.id);
   const text = message.text.trim();
-  const userName = message.from.first_name || 'كابتن';
+  const userName = escapeTelegram(message.from.first_name || 'كابتن');
   // Result entry is authorized by the private-chat PIN; group chats can never start it.
   const isPrivateChat = message.chat.type === 'private';
   const stateUrl = `${FIREBASE_DB_BASE}/telegramResultSessions/${chatId}.json`;
