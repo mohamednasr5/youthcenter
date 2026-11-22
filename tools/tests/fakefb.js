@@ -29,7 +29,11 @@ module.exports = function makeFirebase(opts = {}) {
     }
   });
   const users = opts.users || {};
-  let current = null; const authCbs = [];
+  let current = opts.autoAuth ? {
+    email: 'center@test.local',
+    getIdTokenResult: async () => ({ claims: { ycCenter: true } })
+  } : null;
+  const authCbs = [];
   const auth = {
     get currentUser() { return current; },
     async signInWithEmailAndPassword(email, pw) {
