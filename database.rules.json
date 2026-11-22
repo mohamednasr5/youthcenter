@@ -115,13 +115,46 @@
         ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true"
       },
       "bookings": {
-        ".read": true,
+        ".read": "auth.token.ycAdmin === true || auth.token.ycPitch === true",
         "$date": {
           "$bookingId": {
             ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true || (!data.exists() && newData.child('status').val() === 'pending')",
             ".validate": "newData.hasChildren(['customerName', 'startTime', 'endTime', 'durationMinutes', 'totalPrice', 'status'])",
             "status": {
               ".validate": "newData.val() === 'pending' || newData.val() === 'confirmed' || newData.val() === 'cancelled'"
+            },
+            "durationMinutes": {
+              ".validate": "newData.isNumber() && newData.val() >= 30 && newData.val() <= 720 && newData.val() % 30 === 0"
+            },
+            "totalPrice": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+            },
+            "customerName": {
+              ".validate": "newData.isString() && newData.val().length <= 120"
+            },
+            "customerPhone": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "teamOneName": {
+              ".validate": "newData.isString() && newData.val().length <= 80"
+            },
+            "teamTwoName": {
+              ".validate": "newData.isString() && newData.val().length <= 80"
+            }
+          }
+        }
+      },
+      "availability": {
+        ".read": true,
+        "$date": {
+          "$bookingId": {
+            ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true || (!data.exists() && newData.child('status').val() === 'pending')",
+            ".validate": "newData.hasChildren(['startTime', 'endTime', 'durationMinutes', 'status']) && !newData.hasChildren(['customerPhone', 'phone', 'notes', 'totalPrice', 'paidAmount', 'remainingAmount'])",
+            "status": {
+              ".validate": "newData.val() === 'pending' || newData.val() === 'confirmed' || newData.val() === 'cancelled'"
+            },
+            "customerName": {
+              ".validate": "newData.isString() && newData.val().length <= 120"
             },
             "teamOneName": {
               ".validate": "newData.isString() && newData.val().length <= 80"

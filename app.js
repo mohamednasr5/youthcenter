@@ -8,6 +8,7 @@
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmtNum = (n) => Number(n).toLocaleString("en-US");
+  const SVG_MSG = '<svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.14 2 11.25c0 2.92 1.44 5.53 3.69 7.23V22l3.4-1.87c.9.25 1.87.39 2.91.39 5.5 0 10-4.14 10-9.25S17.5 2 12 2zm.93 12.4l-2.55-2.72-4.98 2.72L10.88 9l2.55 2.72 4.98-2.72L12.93 14.4z"/></svg>';
   const SVG_FB = '<svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.5 9.9v-7H8v-2.9h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6v1.9h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg>';
   const AVATAR_FALLBACK = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%230b1224%22/%3E%3Ccircle cx=%2250%22 cy=%2238%22 r=%2218%22 fill=%22%23f3f5fb%22/%3E%3Cpath d=%22M22,92 a28,28 0 0 1 56,0%22 fill=%22%23f3f5fb%22/%3E%3C/svg%3E";
 
@@ -456,6 +457,7 @@
             <p class="fdesc">صرح شبابي متكامل يخدم أبناء المنزلة بالدقهلية عبر أكاديميات رياضية متخصصة، وأنشطة دينية وثقافية وترفيهية، تحت إشراف مجلس إدارة منتخب. رسالتنا صناعة جيل متكامل بدنياً وذهنياً وروحياً.</p>
             <div class="fsoc">
               <a href="${esc(m.fbLink)}" target="_blank" rel="noopener" aria-label="صفحة المركز على فيسبوك">${SVG_FB}</a>
+              ${m.messengerLink ? `<a href="${esc(m.messengerLink)}" target="_blank" rel="noopener" aria-label="مراسلة المركز على ماسنجر">${SVG_MSG}</a>` : ""}
             </div>
           </div>
           <div>
@@ -481,7 +483,8 @@
             <h4 class="ft">تواصل معنا</h4>
             <div class="ci"><span class="ci-ico">📍</span><a href="${esc(m.mapLink || "#")}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(m.location)}</a></div>
             <div class="ci"><span class="ci-ico">📞</span><a href="tel:${esc(String(m.phone || "").replace(/[^\d+]/g, ""))}" style="color:inherit;text-decoration:none" dir="ltr">${esc(m.phone)}</a></div>
-            <div class="ci"><span class="ci-ico">✉️</span><span>${esc(m.email)}</span></div>
+            ${m.email ? `<div class="ci"><span class="ci-ico">✉️</span><span>${esc(m.email)}</span></div>` : ""}
+            ${m.messengerLink ? `<div class="ci"><span class="ci-ico">💬</span><a href="${esc(m.messengerLink)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">تواصل معنا عبر ماسنجر</a></div>` : ""}
             <div class="ci"><span class="ci-ico">🕒</span><span>${esc(m.hours)}</span></div>
           </div>
         </div>
@@ -759,23 +762,39 @@
     });
   }
 
-  // ===== BOOT =====
-  async function boot() {
-    try {
-      await window.SiteData.syncFromCloud();
-      D = window.SiteData.load();
-    } catch (error) {
-      console.warn("[Youth Center] Shared database unavailable; showing cached content.", error);
-    }
+  function renderContent() {
     renderTopBar(); renderBrand(); renderNews(); renderAnnouncement();
     renderBoard(); renderAcademies(); renderArticles(); renderActivities();
     renderGallery(); renderFinance(); renderFooter();
+  }
+
+  // ===== BOOT =====
+  // نعرض المحتوى المحفوظ/الافتراضي فوراً ثم نحدّث من القاعدة في الخلفية —
+  // الزائر لا ينتظر Firebase ليرى الصفحة.
+  async function boot() {
+    renderContent();
     initClock(); initHeaderNav(); initReveal(); initCounters(); initTilt(); initHeroParallax(); initPWA();
     initLightbox(); initBottomNav(); initTicker();
     // قسم آخر منشور على صفحة المركز على فيسبوك (تحت الإحصائيات المالية)
     initFbPost();
     document.dispatchEvent(new Event("app:ready"));
     startRealtime();
+    try {
+      await window.SiteData.syncFromCloud();
+      const fresh = window.SiteData.load();
+      if (JSON.stringify(fresh) !== JSON.stringify(D)) {
+        D = fresh;
+        renderContent();
+        initReveal(); initCounters(); initTilt();
+        initFbPost();
+        document.querySelectorAll(".reveal:not(.in)").forEach(e => {
+          const r = e.getBoundingClientRect();
+          if (r.top < window.innerHeight && r.bottom > 0) e.classList.add("in");
+        });
+      }
+    } catch (error) {
+      console.warn("[Youth Center] Shared database unavailable; showing cached content.", error);
+    }
   }
 
   // ===== REALTIME: أي تعديل من لوحة الإدارة يصل لكل الزوار دون إعادة تحميل =====

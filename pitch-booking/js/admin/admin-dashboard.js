@@ -14,6 +14,7 @@ import {
   get,
   runTransaction
 } from '../firebase-config.js';
+import { syncAvailability } from '../availability.js';
 import { 
   isAdminAuthenticated, 
   loginAdmin, 
@@ -303,6 +304,7 @@ async function createLiveBooking(mode) {
       showToast(latestConflict ? describeBookingConflict(latestConflict) : 'لم يتم اعتماد الحجز. حاول مرة أخرى.', 'error');
       return;
     }
+    await syncAvailability(dateKey, newRef.key, bookingData);
 
     document.getElementById('liveBookingModal')?.classList.remove('active');
     if (dateKey === selectedDateKey) updateDashboardUI();
@@ -571,7 +573,7 @@ function initModals() {
         const endTimestamp = startTimestamp + (durationMinutes * 60 * 1000);
 
         const newRef = push(dbRefs.bookings(selectedDateKey));
-        await set(newRef, {
+        const manualBooking = {
           bookingId: newRef.key,
           customerName: name,
           customerPhone: phone || 'غير مسجل',
@@ -589,7 +591,9 @@ function initModals() {
           notes,
           createdAt: Date.now(),
           updatedAt: Date.now()
-        });
+        };
+        await set(newRef, manualBooking);
+        await syncAvailability(selectedDateKey, newRef.key, manualBooking);
 
         recordAuditLog('إنشاء حجز يدوي', `قام المسؤول بإنشاء حجز للعميل ${name} بمبلغ ${customPrice} ج.م لمدة ${durationMinutes} دقيقة`);
         manualModal.classList.remove('active');
@@ -669,6 +673,7 @@ window.handleApproveBooking = async function(bookingId) {
       confirmedAt: Date.now(),
       updatedAt: Date.now()
     });
+    await syncAvailability(selectedDateKey, bookingId, { ...booking, status: 'confirmed' });
 
     recordAuditLog('تأكيد حجز', `تمت الموافقة على حجز ${booking.customerName} الساعة ${booking.startTime}`);
     showToast(`تم تأكيد حجز ${booking.customerName} وتحويله إلى اللون الأحمر بنجاح!`, 'success');
@@ -687,6 +692,7 @@ window.handleCancelBooking = async function(bookingId) {
       status: 'cancelled',
       updatedAt: Date.now()
     });
+    await syncAvailability(selectedDateKey, bookingId, booking ? { ...booking, status: 'cancelled' } : null);
 
     recordAuditLog('إلغاء حجز', `تم إلغاء حجز ${booking ? booking.customerName : bookingId}`);
     showToast('تم إلغاء الحجز وإتاحة الموعد للآخرين.', 'success');
@@ -701,6 +707,7 @@ window.handleDeleteBooking = async function(bookingId) {
 
   try {
     await remove(dbRefs.bookingItem(selectedDateKey, bookingId));
+    await syncAvailability(selectedDateKey, bookingId, null);
     recordAuditLog('حذف حجز نهائي', `تم حذف الحجز ${bookingId} نهائياً`);
     showToast('تم حذف الحجز نهائياً بنجاح', 'success');
   } catch (err) {
@@ -781,6 +788,12 @@ async function saveBookingEdit(event) {
       status, teamOneName, teamTwoName, teamOneCaptain, teamTwoCaptain,
       matchType: teamOneCaptain && teamTwoCaptain ? 'two-teams' : 'standard',
       notes, updatedAt: Date.now()
+    });
+    await syncAvailability(selectedDateKey, bookingId, {
+      ...booking, customerName, startTime, endTime, durationMinutes,
+      startTimestamp, endTimestamp, status,
+      teamOneName, teamTwoName, teamOneCaptain, teamTwoCaptain,
+      matchType: teamOneCaptain && teamTwoCaptain ? 'two-teams' : 'standard'
     });
     recordAuditLog('تعديل كامل للحجز', 'تم تعديل حجز ' + booking.customerName + ' إلى ' + customerName + ' • ' + durationMinutes + ' دقيقة • ' + totalPrice + ' ج.م');
     document.getElementById('editBookingModal').classList.remove('active');

@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin.html
 
-Sitemap: https://ahmadiah-youth.gov.eg/sitemap.xml
+Sitemap: https://mohamednasr5.github.io/youthcenter/sitemap.xml
