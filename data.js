@@ -17,6 +17,7 @@
       devLink: "#",
       fbLink: "https://www.facebook.com/Markz.shabab.elahmadya",
       fbPageId: "Markz.shabab.elahmadya",
+      messengerLink: "https://m.me/Markz.shabab.elahmadya",
       fbToken: "",
       fbEmbedCode: "https://www.facebook.com/plugins/post.php?href=https%3A%2F%2Fwww.facebook.com%2FMarkz.shabab.elahmadya%2Fposts%2Fpfbid0ZNyhk6wRi9o2aJDePhXgmLonckrCZMdM8viPqrLLiFp5az21Hdb3RhbHUN5cMyPCl&show_text=true&width=500",
       centerPhoto: "assets/center-photo.jpg",
