@@ -1,0 +1,93 @@
+name: Auto-index all project images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.jpg"
+      - "**/*.jpeg"
+      - "**/*.png"
+      - "**/*.webp"
+      - "**/*.avif"
+      - "**/*.gif"
+      - ".github/workflows/auto-image-index.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  index-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Build image manifests for every image folder
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path(".")
+          allowed = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif"}
+          ignored = {".git", "node_modules", ".github", ".vercel"}
+          image_dirs = set()
+          for path in root.rglob("*"):
+              if not path.is_file() or path.suffix.lower() not in allowed:
+                  continue
+              if any(part in ignored for part in path.parts):
+                  continue
+              image_dirs.add(path.parent)
+
+          for folder in sorted(image_dirs):
+              files = sorted(
+                  (p for p in folder.iterdir()
+                   if p.is_file() and p.suffix.lower() in allowed),
+                  key=lambda p: p.name.casefold()
+              )
+              payload = {
+                  "images": [
+                      {
+                          "src": p.name,
+                          "caption": p.stem.replace("-", " ").replace("_", " ")
+                      } for p in files
+                  ]
+              }
+              (folder / "images-manifest.json").write_text(
+                  json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                  encoding="utf-8"
+              )
+
+          # Keep the established URLs consumed by existing pages.
+          aliases = [
+              ("gallery", "images-manifest.json", "gallery-manifest.json", "gallery/"),
+              ("karate-academy/assets/images/players", "images-manifest.json", "players-manifest.json", "assets/images/players/"),
+              ("football-academy/images/players", "images-manifest.json", "players-manifest.json", "./images/players/")
+          ]
+          for folder, source_name, target_name, prefix in aliases:
+              directory = root / folder
+              if not directory.exists():
+                  continue
+              source = directory / source_name
+              if source.exists():
+                  data = json.loads(source.read_text(encoding="utf-8"))
+                  for item in data.get("images", []):
+                      item["src"] = prefix + item["src"]
+                  (directory / target_name).write_text(
+                      json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+                      encoding="utf-8"
+                  )
+          print(f"Generated image manifests in {len(image_dirs)} image directories.")
+          PY
+      - name: Commit manifests
+        run: |
+          if git diff --quiet -- '**/images-manifest.json' 'gallery/gallery-manifest.json' 'karate-academy/assets/images/players/players-manifest.json' 'football-academy/images/players/players-manifest.json'; then
+            echo "All image manifests are up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add '**/images-manifest.json' 'gallery/gallery-manifest.json' 'karate-academy/assets/images/players/players-manifest.json' 'football-academy/images/players/players-manifest.json'
+          git commit -m "chore: auto-index all project images"
+          git push
