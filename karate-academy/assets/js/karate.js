@@ -572,7 +572,7 @@
     function play() {
       stop();
       if (paused || reducedMotion || slides.length < 2) return;
-      timer = setInterval(() => move(1), 4000);
+      timer = setInterval(() => move(1), 2000);
     }
 
     gallery.querySelector('.players-carousel-prev').addEventListener('click', () => { move(-1); play(); });

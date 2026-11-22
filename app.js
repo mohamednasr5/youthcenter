@@ -234,7 +234,7 @@
     function start(){
       stop();
       if(paused || reducedMotion || slides.length < 2) return;
-      timer = setInterval(()=>move(1),5000);
+      timer = setInterval(()=>move(1),2000);
     }
     function restart(){start();}
 

@@ -584,7 +584,7 @@ function movePlayersCarousel(direction) {
 function startPlayersCarousel() {
   stopPlayersCarousel();
   if (playersCarouselPaused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  playersCarouselTimer = window.setInterval(() => movePlayersCarousel(1), 5000);
+  playersCarouselTimer = window.setInterval(() => movePlayersCarousel(1), 2000);
 }
 
 function stopPlayersCarousel() {
