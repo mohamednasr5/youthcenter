@@ -231,6 +231,20 @@
       </div>
     </section>
 
+    <!-- ==================== FOOTBALL TRAINING SCHEDULE ==================== -->
+    <section id="schedule" class="schedule-section">
+      <div class="container">
+        <div class="section-title-wrap reveal">
+          <span class="gold-badge">FOOTBALL • SCHEDULE</span>
+          <h2 class="section-title">مواعيد <span class="gold-text">تدريب الأكاديمية</span></h2>
+          <p class="section-desc">مواعيد حصص التدريب والفئات العمرية في أكاديمية كرة القدم بمركز شباب الأحمدية</p>
+        </div>
+        <div class="football-schedule-grid" id="footballScheduleGrid">
+          <div class="skeleton-card" style="min-height:180px;"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ==================== MATCHES & RESULTS ==================== -->
     <section id="matches" class="matches-section">
       <div class="container">
@@ -450,6 +464,10 @@
 
   <!-- Confetti library -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js" defer></script>
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+  <script src="../data.js"></script>
 
   <!-- Main app logic -->
   <script type="module" src="./js/app.js"></script>
