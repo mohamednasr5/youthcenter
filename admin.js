@@ -102,6 +102,7 @@
     activities: { title: "النشاطات القادمة", sub: "جدول الفعاليات" },
     finance: { title: "الإحصائيات المالية", sub: "إيرادات ومصروفات الشهر" },
     academies: { title: "الأكاديميات والحجز", sub: "كرة القدم، الكاراتيه، الملعب" },
+    "karate-schedule": { title: "مواعيد أكاديمية الكاراتيه", sub: "إدارة أيام التدريب والتواريخ والساعات" },
     backup: { title: "نسخ احتياطي", sub: "تصدير واستيراد البيانات" }
   };
   function switchSection(name) {
@@ -341,6 +342,33 @@
       </div>`;
   }
 
+  /* ---------- RENDER: KARATE SCHEDULE ---------- */
+  function renderKarateSchedule() {
+    const days = ["السبت","الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"].map(day => ({ v: day, l: day }));
+    const rows = (state.karateSchedule || []).map((x, i) => collItem(
+      `موعد ${i + 1}: ${x.day || "يوم تدريب"}`,
+      `<div class="grid-3">
+        ${field("اليوم", `karateSchedule.${i}.day`, x.day, { type: "select", options: days })}
+        ${field("التاريخ (اختياري)", `karateSchedule.${i}.date`, x.date || "", { type: "date" })}
+        ${field("الحالة", `karateSchedule.${i}.active`, x.active !== false, { type: "select", options: [{v:"true",l:"موعد نشط"},{v:"false",l:"إيقاف الموعد"}] })}
+      </div>
+      <div class="grid-3">
+        ${field("من الساعة", `karateSchedule.${i}.fromTime`, x.fromTime || "15:00", { type: "time" })}
+        ${field("إلى الساعة", `karateSchedule.${i}.toTime`, x.toTime || "17:00", { type: "time" })}
+        ${field("المكان", `karateSchedule.${i}.location`, x.location || "مركز شباب الأحمدية")}
+      </div>
+      <div class="grid-2">
+        ${field("الفئة", `karateSchedule.${i}.gender`, x.gender || "بنين وبنات")}
+        ${field("السن المطلوب", `karateSchedule.${i}.age`, x.age || "من 5 سنوات فأكثر")}
+      </div>`, i, "karateSchedule")).join("");
+    $("#karateScheduleForm").innerHTML = `<div class="admin-card">
+      <h3>🥋 مواعيد أكاديمية الكاراتيه</h3>
+      <p class="sub">غيّر اليوم والتاريخ ووقت بداية ونهاية التدريب، ثم اضغط «حفظ التغييرات». ستظهر التعديلات مباشرة في صفحة الأكاديمية بعد تحديثها.</p>
+      ${rows}
+      ${addBtn("karateSchedule", "إضافة موعد تدريب")}
+    </div>`;
+  }
+
   /* ---------- RENDER: BACKUP ---------- */
   function renderBackup() {
     $("#backupForm").innerHTML = `<div class="admin-card">
@@ -361,7 +389,7 @@
 
   function renderAll() {
     renderOverview(); renderSettings(); renderNews(); renderAnnounce();
-    renderBoard(); renderArticles(); renderActivities(); renderFinance(); renderAcademies(); renderBackup();
+    renderBoard(); renderArticles(); renderActivities(); renderFinance(); renderAcademies(); renderKarateSchedule(); renderBackup();
   }
 
   /* ---------- input binding ---------- */
@@ -393,7 +421,8 @@
       return { id: maxId + 1, icon: "📝", category: "تصنيف", readTime: "3 دقائق قراءة", title: "مقال جديد", excerpt: "مقتطف المقال", body: ["اكتب المقال هنا..."] };
     },
     activities: () => ({ name: "نشاط جديد", type: "sport", typeLabel: "رياضي", day: "الجمعة", date: "01", month: "يناير", time: "6:00 م" }),
-    "finance.rows": () => ({ label: "بند جديد", value: 0, color: "gold", pct: 50, negative: false })
+    "finance.rows": () => ({ label: "بند جديد", value: 0, color: "gold", pct: 50, negative: false }),
+    karateSchedule: () => ({ day: "الجمعة", date: "", fromTime: "15:00", toTime: "17:00", location: "مركز شباب الأحمدية", gender: "بنين وبنات", age: "من 5 سنوات فأكثر", active: true })
   };
   function getColl(key) {
     if (key.includes(".")) return getPath(state, key);
@@ -414,6 +443,7 @@
     else if (key === "articles") renderArticles();
     else if (key === "activities") renderActivities();
     else if (key === "finance.rows") renderFinance();
+    else if (key === "karateSchedule") renderKarateSchedule();
   }
 
   /* ---------- اختبار جلب آخر منشور من صفحة المركز على فيسبوك ---------- */
