@@ -1,7 +1,7 @@
 /* article.js — صفحة المقال الخاصة بكل مقال عبر ?id= */
 (function () {
   "use strict";
-  const D = window.SiteData.load();
+  let D = window.SiteData.load();
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const SVG_FB = '<svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.5 9.9v-7H8v-2.9h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6v1.9h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg>';
@@ -136,9 +136,16 @@
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 
-  function boot() {
+  async function boot() {
+    try {
+      await window.SiteData.syncFromCloud();
+      D = window.SiteData.load();
+    } catch (error) {
+      console.warn("[Youth Center] Shared database unavailable; showing cached article content.", error);
+    }
+    const currentArticle = (D.articles || []).find(a => a.id === id);
     renderShell(); renderClock(); renderFooter(); initUI();
-    if (article) { renderArticle(article); renderRelated(article); }
+    if (currentArticle) { renderArticle(currentArticle); renderRelated(currentArticle); }
     else renderNotFound();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
