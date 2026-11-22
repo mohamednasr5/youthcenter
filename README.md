@@ -53,6 +53,10 @@
 
 ---
 
+## 🥋 صور لاعبي أكاديمية الكاراتيه
+
+ضع أي عدد من الصور داخل المجلد `karate-academy/assets/images/players/` بالامتدادات JPG أو JPEG أو PNG أو WEBP أو AVIF. بعد رفع الصور إلى فرع `main`، ينشئ GitHub Actions فهرس الصور تلقائياً، وتظهر جميع الصور في قسم «لاعبونا» دون تعديل ملفات JavaScript.
+
 ## 📸 آخر صور المركز
 
 ضع أي عدد من الصور داخل المجلد `gallery/`، بأي أسماء ملفات، وبالامتدادات: JPG أو JPEG أو PNG أو WEBP أو AVIF. سيُنشئ GitHub Actions ملف `gallery/gallery-manifest.json` تلقائياً بعد رفع الصور إلى فرع `main`، ويعرض الموقع الصور تلقائياً دون تعديل `data.js` أو `app.js`.
