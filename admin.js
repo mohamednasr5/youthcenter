@@ -103,6 +103,7 @@
     finance: { title: "الإحصائيات المالية", sub: "إيرادات ومصروفات الشهر" },
     academies: { title: "الأكاديميات والحجز", sub: "كرة القدم، الكاراتيه، الملعب" },
     "karate-schedule": { title: "مواعيد أكاديمية الكاراتيه", sub: "إدارة أيام التدريب والتواريخ والساعات" },
+    "football-schedule": { title: "مواعيد أكاديمية كرة القدم", sub: "إدارة أيام التدريب والتواريخ والساعات والفئات" },
     backup: { title: "نسخ احتياطي", sub: "تصدير واستيراد البيانات" }
   };
   function switchSection(name) {
@@ -369,6 +370,33 @@
     </div>`;
   }
 
+  /* ---------- RENDER: FOOTBALL SCHEDULE ---------- */
+  function renderFootballSchedule() {
+    const days = ["السبت","الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"].map(day => ({ v: day, l: day }));
+    const rows = (state.footballSchedule || []).map((x, i) => collItem(
+      `موعد ${i + 1}: ${x.day || "يوم تدريب"} — ${x.category || "فئة"}`,
+      `<div class="grid-3">
+        ${field("اليوم", `footballSchedule.${i}.day`, x.day, { type: "select", options: days })}
+        ${field("التاريخ (اختياري)", `footballSchedule.${i}.date`, x.date || "", { type: "date" })}
+        ${field("الحالة", `footballSchedule.${i}.active`, x.active !== false, { type: "select", options: [{v:"true",l:"موعد نشط"},{v:"false",l:"إيقاف الموعد"}] })}
+      </div>
+      <div class="grid-3">
+        ${field("ساعة البداية", `footballSchedule.${i}.fromTime`, x.fromTime || "16:00", { type: "time" })}
+        ${field("ساعة النهاية", `footballSchedule.${i}.toTime`, x.toTime || "17:30", { type: "time" })}
+        ${field("الفئة العمرية", `footballSchedule.${i}.category`, x.category || "براعم")}
+      </div>
+      <div class="grid-2">
+        ${field("الملعب", `footballSchedule.${i}.location`, x.location || "ملعب مركز شباب الأحمدية")}
+        ${field("المدرب", `footballSchedule.${i}.coach`, x.coach || "")}
+      </div>`, i, "footballSchedule")).join("");
+    $("#footballScheduleForm").innerHTML = `<div class="admin-card">
+      <h3>⚽ مواعيد أكاديمية كرة القدم</h3>
+      <p class="sub">أضف أو عدّل اليوم والتاريخ وساعة البداية والنهاية والفئة العمرية والملعب والمدرب. يتم الحفظ إلى قاعدة Firebase المشتركة ويظهر على صفحة الأكاديمية.</p>
+      ${rows}
+      ${addBtn("footballSchedule", "إضافة موعد تدريب")}
+    </div>`;
+  }
+
   /* ---------- RENDER: BACKUP ---------- */
   function renderBackup() {
     $("#backupForm").innerHTML = `<div class="admin-card">
@@ -389,7 +417,7 @@
 
   function renderAll() {
     renderOverview(); renderSettings(); renderNews(); renderAnnounce();
-    renderBoard(); renderArticles(); renderActivities(); renderFinance(); renderAcademies(); renderKarateSchedule(); renderBackup();
+    renderBoard(); renderArticles(); renderActivities(); renderFinance(); renderAcademies(); renderKarateSchedule(); renderFootballSchedule(); renderBackup();
   }
 
   /* ---------- input binding ---------- */
@@ -422,7 +450,8 @@
     },
     activities: () => ({ name: "نشاط جديد", type: "sport", typeLabel: "رياضي", day: "الجمعة", date: "01", month: "يناير", time: "6:00 م" }),
     "finance.rows": () => ({ label: "بند جديد", value: 0, color: "gold", pct: 50, negative: false }),
-    karateSchedule: () => ({ day: "الجمعة", date: "", fromTime: "15:00", toTime: "17:00", location: "مركز شباب الأحمدية", gender: "بنين وبنات", age: "من 5 سنوات فأكثر", active: true })
+    karateSchedule: () => ({ day: "الجمعة", date: "", fromTime: "15:00", toTime: "17:00", location: "مركز شباب الأحمدية", gender: "بنين وبنات", age: "من 5 سنوات فأكثر", active: true }),
+    footballSchedule: () => ({ day: "السبت", date: "", fromTime: "16:00", toTime: "17:30", location: "ملعب مركز شباب الأحمدية", category: "براعم", coach: "", active: true })
   };
   function getColl(key) {
     if (key.includes(".")) return getPath(state, key);
@@ -444,6 +473,7 @@
     else if (key === "activities") renderActivities();
     else if (key === "finance.rows") renderFinance();
     else if (key === "karateSchedule") renderKarateSchedule();
+    else if (key === "footballSchedule") renderFootballSchedule();
   }
 
   /* ---------- اختبار جلب آخر منشور من صفحة المركز على فيسبوك ---------- */
