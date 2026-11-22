@@ -1,5 +1,5 @@
 /* data.js — البيانات الافتراضية لمركز شباب الأحمدية + واجهة SiteData
-   كل المحتوى هنا قابل للتعديل من لوحة التحكم (admin.html) ويُحفظ في localStorage.
+   كل المحتوى قابل للتعديل من لوحة التحكم ويُحفظ في Firebase Realtime Database، مع LocalStorage كنسخة مؤقتة.
    index.html / article.html / admin.html كلها تقرأ من نفس المصدر. */
 (function (global) {
   "use strict";
