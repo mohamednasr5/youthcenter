@@ -563,6 +563,9 @@
     }
   }
   async function reset() {
+    const p = prompt("🔒 أدخل كلمة سر استعادة الافتراضي:");
+    if (p === null) return;
+    if (!(await SiteData.verifyResetPassword(p))) { toast("كلمة السر غير صحيحة", true); return; }
     if (!confirm("⚠️ سيتم استعادة كل المحتوى إلى الحالة الافتراضية وحذف كل تعديلاتك. هل أنت متأكد؟")) return;
     try {
       state = await SiteData.reset();

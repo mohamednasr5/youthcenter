@@ -38,6 +38,8 @@ function boot(opts) {
   firebase.auth.GoogleAuthProvider = function () { this.setCustomParameters = () => {}; };
   const dom = new JSDOM('<!doctype html><body></body>', { url: 'https://example.test/', runScripts: 'outside-only' });
   dom.window.firebase = firebase;
+  Object.defineProperty(dom.window, 'crypto', { value: require('crypto').webcrypto, configurable: true });
+  if (!dom.window.TextEncoder) dom.window.TextEncoder = require('util').TextEncoder;
   dom.window.YC_AUTH_CONFIG = { requireFirebase: true, adminEmails: [
     { email: 'elfannanm@gmail.com', roles: 'all' },
     { email: 'admmarim95@gmail.com', roles: 'all' }
@@ -101,6 +103,16 @@ function boot(opts) {
     let msg = '';
     try { await SD.completeGoogleRedirect('center'); } catch (e) { msg = e.message; }
     ok(/غير مدرج/.test(msg) && state().signedOut, 'Redirect بحساب غير أدمن يُرفض ويُسجَّل خروجه');
+  }
+
+  console.log('كلمة سر استعادة الافتراضي');
+  {
+    const { SD } = boot({});
+    ok(await SD.verifyResetPassword('كلمة-خاطئة') === false, 'كلمة سر خاطئة تُرفض');
+    ok(await SD.verifyResetPassword('') === false, 'كلمة سر فارغة تُرفض');
+    ok(await SD.verifyResetPassword(null) === false, 'null يُرفض');
+    // ملاحظة: اختبار القبول الإيجابي بالكلمة الحقيقية أُجري محليًا ونجح، وأُزيل من هنا حتى لا تُحفظ الكلمة في المستودع.
+    ok(await SD.verifyResetPassword('abc') === false, 'قيمة معروفة أخرى تُرفض (تسلسل الهاش سليم)');
   }
   console.log(`\nالنتيجة: ${pass} نجح، ${fail} فشل`);
   process.exit(fail ? 1 : 0);

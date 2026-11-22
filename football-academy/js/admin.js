@@ -8,7 +8,7 @@ import {
   getAllData, syncFromCloud, saveItem, deleteItem, saveTickerNews,
   clearAllMockData, setPlayerOfTheDay, togglePlayerOfTheDay,
   updateRequestStatus, convertRequestToPlayer,
-  exportData, importData, resetDataToDefaults,
+  exportData, importData, resetDataToDefaults, verifyResetPassword,
   getSettings, saveSettings, changeAdminPassword,
   verifyAdminPassword, loginAdmin, isLoggedIn, logoutAdmin,
   signInAdminWithEmail, restoreAdminFirebaseSession, requireFirebaseAuth,
@@ -941,7 +941,10 @@ function setupBackupHandlers() {
       reader.readAsText(file);
     });
   }
-  document.getElementById("btn-reset-defaults")?.addEventListener("click", () => {
+  document.getElementById("btn-reset-defaults")?.addEventListener("click", async () => {
+    const p = prompt("🔒 أدخل كلمة سر استعادة الافتراضي:");
+    if (p === null) return;
+    if (!(await verifyResetPassword(p))) { adminToast("كلمة السر غير صحيحة", "error"); return; }
     showConfirm("استعادة البيانات الافتراضية", "سيتم استبدال كل البيانات الحالية بالبيانات النموذجية. متابعة؟", async () => {
       resetDataToDefaults(); await loadAdminData(); adminToast("تمت استعادة الافتراضي", "success");
     });

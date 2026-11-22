@@ -686,6 +686,14 @@ export async function signOutAdminFirebase() {
   if (fb?.auth) { try { await fb.signOut(fb.auth); } catch { /* ignore */ } }
 }
 
+/* بصمة SHA-256 لكلمة سر زر «استعادة الافتراضي» (لا تُحفظ الكلمة نصًا في الكود) */
+const RESET_PASSWORD_HASH = "898f4e2ee802f6943d253550067a1272538c9dbaf789cfbf4bbcfebad37915e4";
+export async function verifyResetPassword(input) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(input ?? "").trim()));
+  const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  return hex === RESET_PASSWORD_HASH;
+}
+
 export function loginAdmin() {
   const session = { at: Date.now(), exp: Date.now() + SESSION_TTL };
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));

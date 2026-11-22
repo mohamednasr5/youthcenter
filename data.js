@@ -280,9 +280,20 @@
     return toBase64Url(new Uint8Array(bits));
   }
 
+  /* بصمة SHA-256 لكلمة سر زر «استعادة الافتراضي» (لا تُحفظ الكلمة نصًا في الكود) */
+  const RESET_PASSWORD_HASH = "898f4e2ee802f6943d253550067a1272538c9dbaf789cfbf4bbcfebad37915e4";
+  async function sha256Hex(text) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(text)));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
   const SiteData = {
     KEY,
     defaults: DEFAULT_DATA,
+    /* التحقق من كلمة سر زر «استعادة الافتراضي» قبل تنفيذه (حاجز متصفح، ليس حماية خادم) */
+    async verifyResetPassword(input) {
+      return (await sha256Hex(String(input ?? "").trim())) === RESET_PASSWORD_HASH;
+    },
     load() {
       try {
         const raw = localStorage.getItem(KEY);
