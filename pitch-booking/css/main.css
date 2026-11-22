@@ -1614,3 +1614,8 @@ body {
 .app-header .header-container{gap:10px}
 @media(max-width:640px){.center-home-link{padding:7px 9px;font-size:.72rem;gap:4px}.app-header .header-container{gap:7px}}
  
+/* Prevent WhatsApp contact text overflow and keep links internal to the button. */
+.booking-manager-whatsapp,.chairman-whatsapp-action{display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;overflow:hidden;white-space:nowrap;box-sizing:border-box}
+.booking-manager-whatsapp-label,.chairman-whatsapp-label{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:900}
+.telegram-premium-button{min-width:0;overflow:hidden;box-sizing:border-box}
+.telegram-premium-button>small{display:none}
