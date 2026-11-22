@@ -59,6 +59,11 @@
     const strict = SiteData.requireFirebaseAuth();
     if (strict) $("#loginPass").placeholder = "كلمة المرور";
     if (!error.textContent) {
+      // رجوع من دخول Google عبر Redirect؟
+      try {
+        const guser = await SiteData.completeGoogleRedirect("center");
+        if (guser) { await afterLogin(); return; }
+      } catch (e) { error.textContent = (e && e.message) || "تعذر تسجيل الدخول عبر Google."; }
       // جلسة Firebase قائمة؟ (الأمان الحقيقي) — الجلسة القديمة في sessionStorage لا تُقبل في الوضع الصارم
       if (await SiteData.restoreSession("center")) { await afterLogin(); return; }
       if (!strict && sessionStorage.getItem(SESSION_KEY) === "1") { await afterLogin(); return; }
@@ -100,6 +105,20 @@
     }
     btn.addEventListener("click", tryLogin);
     pass.addEventListener("keydown", e => { if (e.key === "Enter") tryLogin(); });
+    const gbtn = $("#googleLoginBtn");
+    if (gbtn) gbtn.addEventListener("click", async () => {
+      if (gbtn.disabled) return;
+      gbtn.disabled = true;
+      error.textContent = "";
+      try {
+        const user = await SiteData.signInWithGoogle("center");
+        if (user) await afterLogin();
+        else gbtn.disabled = false; // تحوّل إلى Redirect — تُستكمل الجلسة بعد إعادة التحميل
+      } catch (e) {
+        error.textContent = (e && e.message) || "تعذر تسجيل الدخول عبر Google.";
+        gbtn.disabled = false;
+      }
+    });
   }
   function openDashboard() {
     $("#loginWrap").style.display = "none";

@@ -7,7 +7,8 @@ import {
   getDatabase, ref, get, set, update, remove, onValue
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
 import {
-  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  getAuth, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect,
+  getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -45,5 +46,6 @@ const META_DOC = "academy_meta";
 export {
   app, db, auth, isFirebaseOnline, DATA_COLLECTIONS, META_DOC,
   ref, get, set, update, remove, onValue,
-  signInWithEmailAndPassword, signOut, onAuthStateChanged
+  signInWithEmailAndPassword, signInWithPopup, signInWithRedirect,
+  getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged
 };

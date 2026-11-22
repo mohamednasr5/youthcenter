@@ -12,6 +12,7 @@ import {
   getSettings, saveSettings, changeAdminPassword,
   verifyAdminPassword, loginAdmin, isLoggedIn, logoutAdmin,
   signInAdminWithEmail, restoreAdminFirebaseSession, requireFirebaseAuth,
+  signInAdminWithGoogle, completeAdminGoogleRedirect,
   addActivity, getRecentActivity, processImageUpload
 } from "./data-service.js";
 
@@ -37,6 +38,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupChangePasswordForm();
   setupBackupHandlers();
   setupQuickActions();
+
+  // رجوع من دخول Google عبر Redirect؟
+  try {
+    const guser = await completeAdminGoogleRedirect();
+    if (guser) {
+      showDashboard();
+      await syncFromCloud().catch(error => console.warn('[Academia] Admin cloud refresh failed:', error));
+      await loadAdminData();
+      return;
+    }
+  } catch (error) {
+    const errEl = document.getElementById("login-error");
+    if (errEl) errEl.textContent = (error && error.message) || "تعذر تسجيل الدخول عبر Google.";
+  }
 
   // الوضع الصارم: لا تُقبل جلسة قديمة ما لم توجد جلسة Firebase صالحة بصلاحية القسم
   let sessionOk = isLoggedIn();
@@ -81,6 +96,23 @@ function setupAuth() {
         await loadAdminData();
       } catch (err) {
         errEl.textContent = (err && err.code && /auth\//.test(err.code)) ? "بيانات الدخول غير صحيحة." : (err.message || "تعذر تسجيل الدخول.");
+      }
+    });
+  }
+  const googleBtn = document.getElementById("google-login-btn");
+  if (googleBtn) {
+    googleBtn.addEventListener("click", async () => {
+      if (googleBtn.disabled) return;
+      googleBtn.disabled = true;
+      const errEl = document.getElementById("login-error");
+      errEl.textContent = "";
+      try {
+        const user = await signInAdminWithGoogle();
+        if (user) { showDashboard(); await loadAdminData(); }
+        else googleBtn.disabled = false; // تحوّل إلى Redirect — تُستكمل الجلسة بعد إعادة التحميل
+      } catch (err) {
+        errEl.textContent = (err && err.message) || "تعذر تسجيل الدخول عبر Google.";
+        googleBtn.disabled = false;
       }
     });
   }

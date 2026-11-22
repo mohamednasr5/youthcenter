@@ -419,6 +419,61 @@
       }
       return cred.user;
     },
+    /* ===== الدخول بحساب Google (Firebase Authentication) ===== */
+    _googleProvider() {
+      const provider = new global.firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      return provider;
+    },
+    _googleAuthError(e) {
+      const code = (e && e.code) || "";
+      if (code === "auth/popup-closed-by-user") return new Error("تم إغلاق نافذة تسجيل الدخول قبل إتمامها.");
+      if (code === "auth/unauthorized-domain") return new Error("هذا النطاق غير مصرّح له في Firebase (Authentication ← Settings ← Authorized domains).");
+      if (code === "auth/operation-not-allowed") return new Error("تسجيل الدخول عبر Google غير مفعّل بعد (Authentication ← Sign-in method ← Google).");
+      if (code === "auth/account-exists-with-different-credential") return new Error("يوجد حساب بنفس البريد بطريقة دخول أخرى. جرّب البريد وكلمة المرور.");
+      return (e instanceof Error) ? e : new Error("تعذر تسجيل الدخول عبر Google.");
+    },
+    async _checkGoogleUser(user, role) {
+      const a = this._auth();
+      const email = String((user && user.email) || "").trim().toLowerCase();
+      const allow = this.allowedAdminEmails();
+      if (allow.length && !allow.includes(email)) {
+        await a.signOut();
+        throw new Error("هذا البريد غير مدرج في قائمة إيميلات الإدارة.");
+      }
+      const tok = await user.getIdTokenResult(true);
+      if (!this.hasRole(tok.claims, role)) {
+        await a.signOut();
+        throw new Error("هذا الحساب لا يملك صلاحية إدارة هذا القسم.");
+      }
+      return user;
+    },
+    async signInWithGoogle(role) {
+      if (!this.authEnabled()) throw new Error("خدمة المصادقة غير محمّلة (firebase-auth-compat.js).");
+      const a = this._auth();
+      const provider = this._googleProvider();
+      try {
+        const cred = await a.signInWithPopup(provider);
+        return await this._checkGoogleUser(cred.user, role);
+      } catch (e) {
+        const code = (e && e.code) || "";
+        if (code === "auth/popup-blocked" || code === "auth/cancelled-popup-request" || code === "auth/operation-not-supported-in-this-environment") {
+          await a.signInWithRedirect(provider); // يعيد تحميل الصفحة بعد الدخول — انظر completeGoogleRedirect
+          return null;
+        }
+        throw this._googleAuthError(e);
+      }
+    },
+    /* إكمال دخول Google بعد الرجوع من Redirect (تُستدعى عند فتح صفحة الدخول) */
+    async completeGoogleRedirect(role) {
+      if (!this.authEnabled()) return null;
+      const a = this._auth();
+      let cred;
+      try { cred = await a.getRedirectResult(); }
+      catch (e) { throw this._googleAuthError(e); }
+      if (!cred || !cred.user) return null;
+      return this._checkGoogleUser(cred.user, role);
+    },
     /* استعادة جلسة قائمة بعد إعادة تحميل الصفحة */
     restoreSession(role) {
       if (!this.authEnabled()) return Promise.resolve(false);

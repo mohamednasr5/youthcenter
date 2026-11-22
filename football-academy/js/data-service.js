@@ -619,6 +619,56 @@ export async function signInAdminWithEmail(email, password) {
   return cred.user;
 }
 
+function googleAuthError(error) {
+  const code = (error && error.code) || "";
+  if (code === "auth/popup-closed-by-user") return new Error("تم إغلاق نافذة تسجيل الدخول قبل إتمامها.");
+  if (code === "auth/unauthorized-domain") return new Error("هذا النطاق غير مصرّح له في Firebase (Authentication ← Settings ← Authorized domains).");
+  if (code === "auth/operation-not-allowed") return new Error("تسجيل الدخول عبر Google غير مفعّل بعد (Authentication ← Sign-in method ← Google).");
+  if (code === "auth/account-exists-with-different-credential") return new Error("يوجد حساب بنفس البريد بطريقة دخول أخرى. جرّب البريد وكلمة المرور.");
+  return (error instanceof Error) ? error : new Error("تعذر تسجيل الدخول عبر Google.");
+}
+
+async function finishGoogleSignIn(cred) {
+  const fb = await getFirebase();
+  const tok = await cred.user.getIdTokenResult(true);
+  if (!hasFootballRole(tok.claims)) {
+    await fb.signOut(fb.auth);
+    throw new Error("هذا الحساب لا يملك صلاحية إدارة أكاديمية كرة القدم.");
+  }
+  loginAdmin();
+  return cred.user;
+}
+
+/* الدخول بحساب Google — يقبل فقط الحسابات الحاملة لصلاحية ycAdmin/ycFootball (Custom Claims) */
+export async function signInAdminWithGoogle() {
+  const fb = await getFirebase();
+  if (!fb?.auth) throw new Error("خدمة المصادقة غير متاحة. تحقق من الاتصال ثم أعد المحاولة.");
+  const provider = new fb.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  try {
+    const cred = await fb.signInWithPopup(fb.auth, provider);
+    return await finishGoogleSignIn(cred);
+  } catch (error) {
+    const code = (error && error.code) || "";
+    if (code === "auth/popup-blocked" || code === "auth/cancelled-popup-request" || code === "auth/operation-not-supported-in-this-environment") {
+      await fb.signInWithRedirect(fb.auth, provider); // يعيد تحميل الصفحة — انظر completeAdminGoogleRedirect
+      return null;
+    }
+    throw googleAuthError(error);
+  }
+}
+
+/* إكمال دخول Google بعد الرجوع من Redirect (يُستدعى عند فتح الصفحة) */
+export async function completeAdminGoogleRedirect() {
+  const fb = await getFirebase();
+  if (!fb?.auth) return null;
+  let cred;
+  try { cred = await fb.getRedirectResult(fb.auth); }
+  catch (error) { throw googleAuthError(error); }
+  if (!cred || !cred.user) return null;
+  return finishGoogleSignIn(cred);
+}
+
 export async function restoreAdminFirebaseSession() {
   const fb = await getFirebase();
   if (!fb?.auth) return false;

@@ -1270,3 +1270,30 @@ body {
 #editBookingModal .modal-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 #editBookingModal .form-section-title,#editBookingModal .form-group:has(#editCustomerName),#editBookingModal .form-group:has(#editNotes){grid-column:1/-1}
 @media(max-width:600px){#editBookingModal .modal-body{grid-template-columns:1fr}}
+
+/* Google sign-in (admin login) */
+.auth-or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 0;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.auth-or span { flex: 1; height: 1px; background: rgba(255, 255, 255, 0.12); }
+.auth-btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #fff;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+  margin-top: 10px;
+}
+.auth-btn-google:hover {
+  background: #f3f4f6;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+.auth-btn-google:disabled { opacity: 0.6; cursor: default; transform: none; }

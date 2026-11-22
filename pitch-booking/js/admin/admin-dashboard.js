@@ -20,7 +20,9 @@ import {
   loginAdmin, 
   logoutAdmin,
   requireFirebaseAuth,
-  restoreFirebaseSession
+  restoreFirebaseSession,
+  loginWithGoogle,
+  completeGoogleRedirect
 } from './auth.js';
 import { 
   getEgyptNow, 
@@ -56,6 +58,14 @@ async function checkAuthentication() {
   const errorMsg = document.getElementById('adminLoginError');
 
   let authed = isAdminAuthenticated();
+
+  // رجوع من دخول Google عبر Redirect؟
+  try {
+    const gres = await completeGoogleRedirect();
+    if (gres.success) authed = true;
+    else if (gres.message && errorMsg) { errorMsg.textContent = gres.message; errorMsg.style.display = 'block'; }
+  } catch { /* تجاهل — تظهر شاشة الدخول عادة */ }
+
   if (requireFirebaseAuth()) {
     authed = await restoreFirebaseSession();          // الوضع الصارم: لا تُقبل جلسة قديمة
     if (!authed) sessionStorage.removeItem('ahmadiah_admin_session_auth');
@@ -66,6 +76,23 @@ async function checkAuthentication() {
 
   if (!authed) {
     if (authOverlay) authOverlay.style.display = 'flex';
+
+    const gbtn = document.getElementById('googleLoginBtn');
+    if (gbtn && !gbtn.dataset.bound) {
+      gbtn.dataset.bound = 'true';
+      gbtn.addEventListener('click', async () => {
+        if (errorMsg) { errorMsg.textContent = ''; errorMsg.style.display = 'none'; }
+        gbtn.disabled = true;
+        const res = await loginWithGoogle();
+        if (res.success) {
+          if (authOverlay) authOverlay.style.display = 'none';
+          initializeApp();
+        } else if (!res.redirect) {
+          if (errorMsg) { errorMsg.textContent = res.message || 'تعذر تسجيل الدخول عبر Google.'; errorMsg.style.display = 'block'; }
+          gbtn.disabled = false;
+        }
+      });
+    }
 
     if (loginForm && !loginForm.dataset.bound) {
       loginForm.dataset.bound = 'true';

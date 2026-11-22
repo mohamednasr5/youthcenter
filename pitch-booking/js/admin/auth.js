@@ -5,7 +5,7 @@
  * Default initial password '521988' is verified against database hash or initialized securely.
  */
 
-import { dbRefs, get, set, update, auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from '../firebase-config.js';
+import { dbRefs, get, set, update, auth, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged } from '../firebase-config.js';
 import { showToast } from '../utils.js';
 
 // SHA-256 hash of initial password '521988'
@@ -63,6 +63,61 @@ async function loginWithEmail(email, password) {
     console.error('Firebase admin login error:', error);
     return { success: false, message: 'بيانات الدخول غير صحيحة' };
   }
+}
+
+function googleAuthError(error) {
+  const code = (error && error.code) || '';
+  if (code === 'auth/popup-closed-by-user') return new Error('تم إغلاق نافذة تسجيل الدخول قبل إتمامها.');
+  if (code === 'auth/unauthorized-domain') return new Error('هذا النطاق غير مصرّح له في Firebase (Authentication ← Settings ← Authorized domains).');
+  if (code === 'auth/operation-not-allowed') return new Error('تسجيل الدخول عبر Google غير مفعّل بعد (Authentication ← Sign-in method ← Google).');
+  if (code === 'auth/account-exists-with-different-credential') return new Error('يوجد حساب بنفس البريد بطريقة دخول أخرى. جرّب البريد وكلمة المرور.');
+  return (error instanceof Error) ? error : new Error('تعذر تسجيل الدخول عبر Google.');
+}
+
+async function finishGoogleCredential(cred) {
+  const tok = await cred.user.getIdTokenResult(true);
+  if (!hasPitchRole(tok.claims)) {
+    await signOut(auth);
+    return { success: false, message: 'هذا الحساب لا يملك صلاحية إدارة الملعب' };
+  }
+  sessionStorage.setItem(SESSION_STORAGE_KEY, 'authenticated');
+  sessionStorage.setItem('ahmadiah_admin_login_time', Date.now().toString());
+  return { success: true };
+}
+
+/**
+ * الدخول بحساب Google — يقبل فقط الحسابات الحاملة لصلاحية ycAdmin/ycPitch (Custom Claims)
+ */
+export async function loginWithGoogle() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  try {
+    const cred = await signInWithPopup(auth, provider);
+    return await finishGoogleCredential(cred);
+  } catch (error) {
+    const code = (error && error.code) || '';
+    if (code === 'auth/popup-blocked' || code === 'auth/cancelled-popup-request' || code === 'auth/operation-not-supported-in-this-environment') {
+      await signInWithRedirect(auth, provider); // يعيد تحميل الصفحة — انظر completeGoogleRedirect
+      return { success: false, redirect: true, message: '' };
+    }
+    const mapped = googleAuthError(error);
+    return { success: false, message: mapped.message };
+  }
+}
+
+/**
+ * إكمال دخول Google بعد الرجوع من Redirect (يُستدعى عند فتح صفحة الإدارة)
+ */
+export async function completeGoogleRedirect() {
+  let cred;
+  try {
+    cred = await getRedirectResult(auth);
+  } catch (error) {
+    const mapped = googleAuthError(error);
+    return { success: false, message: mapped.message };
+  }
+  if (!cred || !cred.user) return { success: false, message: '' };
+  return finishGoogleCredential(cred);
 }
 
 /**

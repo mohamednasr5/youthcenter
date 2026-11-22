@@ -101,3 +101,10 @@
 /* ============ مثال صيغة منشور التقرير المالي (الجلب التلقائي من فيسبوك) ============ */
 pre.fmt-example{background:rgba(3,6,12,.7);border:1px solid var(--border-strong);border-radius:12px;padding:14px 16px;font-family:var(--font);font-size:.8rem;line-height:1.9;color:var(--txt-2);white-space:pre-wrap;margin-bottom:14px}
 .admin-card code{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);border-radius:5px;padding:1px 6px;font-size:.8rem;color:var(--gold-2);direction:ltr;display:inline-block}
+
+/* Google sign-in (admin login) */
+.login-or{display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--txt-mute);font-size:.75rem;font-weight:700}
+.login-or span{flex:1;height:1px;background:rgba(255,255,255,.12)}
+.btn-google{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#fff;color:#1f2937;border:1px solid #d1d5db;font-family:inherit;font-weight:800;font-size:.9rem;padding:10px 16px;border-radius:10px;cursor:pointer;margin-top:10px;transition:.2s}
+.btn-google:hover{background:#f3f4f6}
+.btn-google:disabled{opacity:.6;cursor:default}
