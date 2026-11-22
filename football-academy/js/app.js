@@ -4,7 +4,7 @@
 // with search/filter, player detail modal, scroll reveals, skeletons,
 // real-time sync from admin, settings-driven branding.
 // =====================================================================
-import { getAllData, syncFromCloud, submitRegistrationRequest } from "./data-service.js";
+import { startRealtimeSync, getAllData, syncFromCloud, submitRegistrationRequest } from "./data-service.js";
 
 let academyData = null;
 let countdownInterval = null;
@@ -36,6 +36,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
   syncFromCloud().catch(error => console.warn("[Academia] Background refresh failed:", error));
+  // تحديث لحظي: أي تعديل في المباريات/النتائج/اللاعبين/الجداول يظهر بدون إعادة تحميل
+  startRealtimeSync().then(off => window.addEventListener("pagehide", off)).catch(() => {});
 });
 
 // ============================================================
@@ -54,6 +56,7 @@ async function loadAndRenderAll() {
     renderMatches(academyData.upcomingMatches || [], academyData.matchResults || []);
     renderPlayers(academyData.players || []);
     renderNews(academyData.news || []);
+    document.dispatchEvent(new CustomEvent("academy:data", { detail: academyData }));
   } catch (err) {
     console.error("[Academia] load error:", err);
     showToast("تعذّر تحميل بعض البيانات، يتم العمل في وضع عدم الاتصال.", "error");

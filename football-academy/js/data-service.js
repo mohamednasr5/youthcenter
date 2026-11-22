@@ -210,6 +210,31 @@ export async function syncFromCloud() {
   }
 }
 
+// ============================================================
+// Realtime: مستمعو Firebase لكل مجموعة عامة؛ أي تعديل من لوحة الإدارة يصل للزائر خلال ~1 ثانية.
+// (registrationRequests خاصة بالإدارة فلا يُستمع إليها). يُرجع دالة إلغاء الاشتراك.
+// ============================================================
+export async function startRealtimeSync() {
+  const fb = await getFirebase();
+  if (!fb?.isFirebaseOnline || !fb.db || typeof fb.onValue !== "function") return () => {};
+  const PUBLIC = fb.DATA_COLLECTIONS.filter(n => n !== "registrationRequests");
+  const unsubs = [];
+  let timer = null, primed = 0;
+  const total = PUBLIC.length + 1;
+  const schedule = () => { clearTimeout(timer); timer = setTimeout(() => { syncFromCloud().catch(() => {}); }, 900); };
+  const attach = (path) => {
+    let first = true;
+    const off = fb.onValue(fb.ref(fb.db, path), () => {
+      if (first) { first = false; primed++; return; }   // النداء الأول = الحالة الحالية (تُحمَّل أصلاً)
+      schedule();
+    }, () => {});
+    unsubs.push(off);
+  };
+  PUBLIC.forEach(attach);
+  attach(`${fb.META_DOC}/state`);
+  return () => { clearTimeout(timer); unsubs.forEach(u => { try { u(); } catch { /* ignore */ } }); };
+}
+
 export async function initDataService() {
   checkPlayerOfTheDayExpiration();
   // Kick off non-blocking cloud pull so admin edits appear on the public site
@@ -539,6 +564,7 @@ async function sha256(text) {
 }
 
 export async function verifyAdminPassword(input) {
+  if (requireFirebaseAuth()) return false; // الوضع الصارم: الدخول بالبريد/Firebase Auth فقط
   const settings = getSettings();
   const expected = settings.adminPasswordHash;
   if (!expected) return false;
@@ -571,6 +597,45 @@ export async function changeAdminPassword(newPassword) {
   return true;
 }
 
+
+// ============================================================
+// Firebase Authentication (الأمان الحقيقي) — الأدوار عبر Custom Claims: ycAdmin أو ycFootball
+// ============================================================
+export function requireFirebaseAuth() {
+  return !!(window.YC_AUTH_CONFIG && window.YC_AUTH_CONFIG.requireFirebase);
+}
+function hasFootballRole(claims) { return !!claims && (claims.ycAdmin === true || claims.ycFootball === true); }
+
+export async function signInAdminWithEmail(email, password) {
+  const fb = await getFirebase();
+  if (!fb?.auth) throw new Error("خدمة المصادقة غير متاحة. تحقق من الاتصال ثم أعد المحاولة.");
+  const cred = await fb.signInWithEmailAndPassword(fb.auth, String(email).trim(), String(password));
+  const tok = await cred.user.getIdTokenResult(true);
+  if (!hasFootballRole(tok.claims)) {
+    await fb.signOut(fb.auth);
+    throw new Error("هذا الحساب لا يملك صلاحية إدارة أكاديمية كرة القدم.");
+  }
+  loginAdmin();
+  return cred.user;
+}
+
+export async function restoreAdminFirebaseSession() {
+  const fb = await getFirebase();
+  if (!fb?.auth) return false;
+  return new Promise(resolve => {
+    const off = fb.onAuthStateChanged(fb.auth, async user => {
+      off();
+      if (!user) return resolve(false);
+      try { resolve(hasFootballRole((await user.getIdTokenResult()).claims)); } catch { resolve(false); }
+    });
+  });
+}
+
+export async function signOutAdminFirebase() {
+  const fb = await getFirebase();
+  if (fb?.auth) { try { await fb.signOut(fb.auth); } catch { /* ignore */ } }
+}
+
 export function loginAdmin() {
   const session = { at: Date.now(), exp: Date.now() + SESSION_TTL };
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -588,6 +653,7 @@ export function isLoggedIn() {
 
 export function logoutAdmin() {
   sessionStorage.removeItem(SESSION_KEY);
+  signOutAdminFirebase();
 }
 
 // ============================================================

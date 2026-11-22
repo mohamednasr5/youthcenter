@@ -22,6 +22,7 @@
       <p class="login-sub">يرجى إدخال رمز المرور الإداري للمتابعة</p>
       <form id="admin-login-form" autocomplete="off">
         <div class="admin-form-group">
+          <input type="email" id="admin-email" class="admin-input" placeholder="البريد الإلكتروني (الحسابات الجديدة)" autocomplete="username" style="text-align:center;margin-bottom:8px">
           <input type="password" id="admin-password" class="admin-input" placeholder="رمز المرور الإداري" required style="text-align:center;font-size:1.1rem;letter-spacing:2px;" autocomplete="current-password">
         </div>
         <button type="submit" class="btn-admin-action" style="width:100%;background:var(--gold-gradient);color:#07110f;font-weight:800;padding:13px;border:none;margin-top:6px;">
@@ -464,6 +465,7 @@
   <!-- Toast -->
   <div class="admin-toast" id="admin-toast"></div>
 
+  <script src="../yc-auth-config.js"></script>
   <script type="module" src="./js/admin.js"></script>
 </body>
 </html>

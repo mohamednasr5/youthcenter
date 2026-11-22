@@ -17,7 +17,7 @@ async function checkBookingExpirations() {
     day: '2-digit'
   }).format(new Date());
 
-  const bookingsRef = admin.database().ref(`bookings/${todayKey}`);
+  const bookingsRef = admin.database().ref(`pitch_booking/bookings/${todayKey}`);
   const snap = await bookingsRef.once('value');
   const bookings = snap.val() || {};
 
@@ -26,7 +26,7 @@ async function checkBookingExpirations() {
       console.log(`Booking expired for ${b.customerName} on ${todayKey} (${bookingId})`);
 
       // Mark expired in database atomically
-      await admin.database().ref(`bookings/${todayKey}/${bookingId}`).update({
+      await admin.database().ref(`pitch_booking/bookings/${todayKey}/${bookingId}`).update({
         expiredNotified: true,
         expiredAt: now,
         updatedAt: now
@@ -36,7 +36,7 @@ async function checkBookingExpirations() {
       await notifyBookingExpired(b);
 
       // Audit Log
-      await admin.database().ref('auditLogs').push({
+      await admin.database().ref('pitch_booking/auditLogs').push({
         action: 'انتهاء وقت حجز تلقائياً',
         detail: `انتهى وقت حجز ${b.customerName} للفترة ${b.startTime} - ${b.endTime}`,
         timestamp: now

@@ -1,10 +1,10 @@
 /* sw.js — service worker لمركز شباب الأحمدية
    caching: app-shell precache + stale-while-revalidate للأصول + network-first للتنقل */
-const CACHE = "ahmadiah-v7";
+const CACHE = "ahmadiah-v9";
 const CORE = [
   "./", "./index.html", "./article.html", "./admin.html",
   "./styles.css", "./admin.css",
-  "./data.js", "./fb-post.js", "./app.js", "./article.js", "./admin.js",
+  "./data.js", "./fb-post.js", "./app.js", "./live.js", "./live.css", "./platform-nav.js", "./fx.js", "./fx.css", "./yc-auth-config.js", "./article.js", "./admin.js",
   "./manifest.json", "./robots.txt", "./sitemap.xml", "./llms.txt",
   "./assets/logo.png", "./assets/favicon.png", "./assets/center-photo.jpg", "./assets/og-image.jpg",
   "./assets/icons/icon-192.png", "./assets/icons/icon-512.png",

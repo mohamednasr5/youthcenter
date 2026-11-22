@@ -3,7 +3,7 @@
  * Manages pitch metadata, day/night prices, hours, Telegram integration, and admin password changes.
  */
 
-import { dbRefs, get, update } from '../firebase-config.js';
+import { dbRefs, get, set, update } from '../firebase-config.js';
 import { changeAdminPassword } from './auth.js';
 import { showToast } from '../utils.js';
 
@@ -27,7 +27,9 @@ export async function initSettingsModule() {
       bookingEnabledCheckbox.checked = data.bookingEnabled !== false;
     }
 
-    setInputValue('settingTelegramBotToken', data.telegramBotToken ? '••••••••••••••••••••' : '');
+    let hasToken = !!data.telegramBotToken;           // احتياط: الموضع القديم قبل نقل الأسرار
+    try { hasToken = hasToken || !!(await get(dbRefs.secret('telegramBotToken'))).val(); } catch (e) { /* قد يُرفض بدون صلاحية */ }
+    setInputValue('settingTelegramBotToken', hasToken ? '••••••••••••••••••••' : '');
     setInputValue('settingTelegramChannel', data.telegramChannel || '@AhmadiahPitchBot');
 
   } catch (err) {
@@ -63,11 +65,10 @@ export async function initSettingsModule() {
         };
 
         const rawToken = document.getElementById('settingTelegramBotToken').value.trim();
-        if (rawToken && !rawToken.includes('•••')) {
-          updates.telegramBotToken = rawToken;
-        }
-
         await update(dbRefs.settings(), updates);
+        if (rawToken && !rawToken.includes('•••')) {
+          await set(dbRefs.secret('telegramBotToken'), rawToken);   // مسار خاص — ليس داخل settings العامة
+        }
         showToast('تم حفظ كافة إعدادات الملعب بنجاح!', 'success');
       } catch (err) {
         console.error('Error updating settings:', err);

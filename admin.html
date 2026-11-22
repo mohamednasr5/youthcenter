@@ -19,6 +19,7 @@
     <h2>لوحة تحكم المركز</h2>
     <p>أدخل كلمة المرور للوصول إلى لوحة الإدارة</p>
     <div class="field" style="text-align:right">
+      <input type="email" id="loginEmail" placeholder="البريد الإلكتروني (للحسابات الجديدة)" autocomplete="username" style="text-align:center;margin-bottom:8px">
       <input type="password" id="loginPass" placeholder="كلمة المرور" autocomplete="current-password" style="text-align:center">
     </div>
     <div class="err" id="loginErr"></div>
@@ -128,6 +129,8 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="yc-auth-config.js"></script>
 <script src="data.js"></script>
 <script src="fb-post.js"></script>
 <script src="admin.js"></script>

@@ -38,7 +38,7 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
  * Automatically notifies subscribers when a booking status changes to 'confirmed' or 'cancelled'
  */
 exports.onBookingUpdated = functions.database
-  .ref('/bookings/{date}/{bookingId}')
+  .ref('/pitch_booking/bookings/{date}/{bookingId}')
   .onWrite(async (change, context) => {
     const before = change.before.val();
     const after = change.after.val();

@@ -1,0 +1,94 @@
+/* redesign.css — إعادة تصميم أعمق لصفحة أكاديمية كرة القدم (طبقة إضافية فوق style.css، لا تغيّر الوظائف)
+   مسرح هيرو ثلاثي الأبعاد • بطاقة المواجهة القادمة • لوحات نتائج • شريط تنقل جانبي • ترقيم أقسام • بطاقات زجاجية. */
+
+/* ---------- Hero stage ---------- */
+.hero-section{isolation:isolate}
+.hero-section>.container{position:relative;z-index:2}
+.fb-stage{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.fb-pitch{position:absolute;inset-inline:-25%;bottom:-14%;height:78%;transform:perspective(760px) rotateX(64deg);transform-origin:50% 100%;opacity:.5;
+  -webkit-mask-image:linear-gradient(to top,#000 20%,transparent 92%);mask-image:linear-gradient(to top,#000 20%,transparent 92%)}
+.fb-pitch .grass{position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(111,181,46,.16) 0 9.09%,rgba(77,138,31,.07) 9.09% 18.18%);animation:fb-mow 26s linear infinite}
+.fb-pitch svg{position:absolute;inset:0;width:100%;height:100%}
+.fb-pitch svg *{fill:none;stroke:rgba(215,255,138,.55);stroke-width:2.2;vector-effect:non-scaling-stroke}
+@keyframes fb-mow{to{background-position:-90px 0}}
+.fb-beam{position:absolute;top:-12%;width:34%;height:92%;filter:blur(26px);opacity:.0;mix-blend-mode:screen;
+  background:linear-gradient(180deg,rgba(215,255,138,.55),rgba(183,243,74,.12) 55%,transparent 82%);
+  clip-path:polygon(46% 0,54% 0,100% 100%,0 100%);animation:fb-beam 7s ease-in-out infinite}
+.fb-beam.l{inset-inline-start:2%;transform:rotate(14deg)} .fb-beam.r{inset-inline-end:2%;transform:rotate(-14deg);animation-delay:-3.5s}
+@keyframes fb-beam{0%,100%{opacity:.10}50%{opacity:.26}}
+.fb-ball{position:absolute;inset-inline-end:7%;top:18%;width:clamp(54px,7vw,92px);filter:drop-shadow(0 18px 18px rgba(0,0,0,.55));animation:fb-bob 5.2s ease-in-out infinite}
+@keyframes fb-bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-22px) rotate(180deg)}}
+.fb-dots i{position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(215,255,138,.7);box-shadow:0 0 10px rgba(183,243,74,.8);animation:fb-rise linear infinite}
+@keyframes fb-rise{from{transform:translateY(0);opacity:0}15%{opacity:1}to{transform:translateY(-62vh);opacity:0}}
+
+/* عنوان بلمعة متحركة */
+.hero-content h2 .gold-text{background:linear-gradient(100deg,#b7f34a 0%,#f1ffc4 40%,#b7f34a 60%,#6fb52e 100%);background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:fb-shine 6s linear infinite}
+@keyframes fb-shine{to{background-position:-220% 0}}
+
+/* شعار ثلاثي الأبعاد مع حلقة دوّارة */
+.hero-logo-frame{position:relative;transform-style:preserve-3d;transform:perspective(900px) rotateX(var(--hx,0deg)) rotateY(var(--hy,0deg));transition:transform .25s ease-out}
+.hero-logo-frame::before{content:"";position:absolute;inset:-14px;border-radius:50%;z-index:-1;
+  background:conic-gradient(from 0deg,transparent,rgba(183,243,74,.75),transparent 40%,rgba(232,185,74,.55),transparent 80%);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));animation:fb-spin 12s linear infinite}
+.hero-logo-frame::after{content:"";position:absolute;inset:8% -6% -14%;z-index:-2;background:radial-gradient(closest-side,rgba(183,243,74,.28),transparent);filter:blur(18px)}
+@keyframes fb-spin{to{transform:rotate(360deg)}}
+.hero-chip{animation:fb-float 6s ease-in-out infinite}.hero-chip.chip-2{animation-delay:-3s}
+@keyframes fb-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+/* ---------- المواجهة القادمة داخل الهيرو ---------- */
+.fb-next{margin-top:26px;padding:16px 18px;border-radius:20px;position:relative;overflow:hidden;
+  background:linear-gradient(145deg,rgba(17,39,29,.85),rgba(7,17,15,.9));border:1px solid var(--border-gold);box-shadow:0 18px 40px -22px #000,var(--gold-glow);backdrop-filter:blur(8px)}
+.fb-next::before{content:"";position:absolute;inset-inline:0;top:0;height:3px;background:var(--gold-gradient)}
+.fb-next[hidden]{display:none}
+.fb-next-h{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.8rem;color:var(--text-muted);font-weight:700;margin-bottom:10px}
+.fb-next-h b{color:var(--gold-light);display:inline-flex;align-items:center;gap:6px}
+.fb-live-dot{width:8px;height:8px;border-radius:50%;background:var(--gold-primary);box-shadow:0 0 0 0 rgba(183,243,74,.7);animation:fb-ping 1.6s infinite}
+@keyframes fb-ping{to{box-shadow:0 0 0 10px rgba(183,243,74,0)}}
+.fb-next-vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;text-align:center;font-weight:800}
+.fb-next-vs .t{font-size:.98rem;line-height:1.3}.fb-next-vs .v{font-size:.75rem;color:var(--text-dim);letter-spacing:2px;padding:4px 9px;border:1px solid var(--border-soft);border-radius:999px}
+.fb-next-meta{margin-top:8px;font-size:.8rem;color:var(--text-muted);text-align:center}
+.fb-cd{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.fb-cd div{background:rgba(255,255,255,.05);border:1px solid var(--border-subtle);border-radius:12px;padding:8px 4px;text-align:center}
+.fb-cd b{display:block;font-size:1.35rem;font-variant-numeric:tabular-nums;color:var(--gold-light);line-height:1.1}
+.fb-cd span{font-size:.68rem;color:var(--text-muted)}
+.fb-next-last{margin-top:12px;padding-top:10px;border-top:1px dashed var(--border-soft);display:flex;justify-content:space-between;gap:8px;font-size:.8rem;color:var(--text-muted)}
+.fb-next-last strong{color:var(--text-white);font-variant-numeric:tabular-nums}
+
+/* ---------- ترقيم الأقسام + فواصل ---------- */
+.section-title-wrap[data-n]::before{content:attr(data-n);display:block;font-weight:900;font-size:.82rem;letter-spacing:4px;color:var(--gold-primary);opacity:.8;margin-bottom:8px}
+.fb-sec{position:relative}
+.fb-sec::before{content:"";position:absolute;inset-inline:0;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--border-gold-strong),transparent);opacity:.5}
+.fb-sec:nth-of-type(even)::after{content:"";position:absolute;inset-inline-end:-120px;top:40px;width:340px;height:340px;border-radius:50%;pointer-events:none;
+  border:1px solid rgba(183,243,74,.08);box-shadow:0 0 0 40px rgba(183,243,74,.015)}
+
+/* ---------- بطاقات زجاجية بتوهج يتبع المؤشر ---------- */
+.coach-card,.trophy-card,.player-card,.schedule-card,.match-card{position:relative;backdrop-filter:blur(6px)}
+.coach-card::after,.trophy-card::after,.player-card::after,.schedule-card::after,.match-card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(320px circle at var(--mx,50%) var(--my,50%),rgba(183,243,74,.14),transparent 60%)}
+.coach-card:hover::after,.trophy-card:hover::after,.player-card:hover::after,.schedule-card:hover::after,.match-card:hover::after{opacity:1}
+.match-card{border-top:3px solid var(--gold-primary)}
+.match-score-badge{font-variant-numeric:tabular-nums;font-weight:900;letter-spacing:3px;padding:10px 20px;border-radius:14px;
+  background:linear-gradient(180deg,#02070a,#0b1915);border:1px solid var(--border-gold-strong);color:var(--gold-light);
+  text-shadow:0 0 14px rgba(183,243,74,.75);box-shadow:inset 0 0 18px rgba(0,0,0,.7),0 0 22px rgba(183,243,74,.18)}
+.team-crest{box-shadow:0 0 0 3px rgba(183,243,74,.12),0 10px 20px -10px #000;transition:transform .35s}
+.match-card:hover .team-crest{transform:scale(1.08) rotate(-4deg)}
+
+/* ---------- شريط التنقل الجانبي ---------- */
+.fb-rail{position:fixed;inset-inline-start:14px;top:50%;transform:translateY(-50%);z-index:40;display:none;flex-direction:column;gap:10px}
+@media (min-width:1200px){.fb-rail{display:flex}}
+.fb-rail a{position:relative;width:11px;height:11px;border-radius:50%;border:2px solid rgba(215,255,138,.45);background:transparent;transition:.25s}
+.fb-rail a span{position:absolute;inset-inline-start:22px;top:50%;transform:translateY(-50%) translateX(-6px);white-space:nowrap;font-size:.74rem;font-weight:700;padding:4px 10px;border-radius:999px;
+  background:rgba(7,17,15,.92);border:1px solid var(--border-gold);color:var(--gold-light);opacity:0;pointer-events:none;transition:.25s}
+.fb-rail a:hover span,.fb-rail a.on span{opacity:1;transform:translateY(-50%)}
+.fb-rail a.on{background:var(--gold-primary);box-shadow:0 0 14px var(--gold-primary);transform:scale(1.25)}
+
+/* ---------- موبايل / أجهزة ضعيفة / تقليل الحركة ---------- */
+@media (max-width:720px){.fb-pitch{opacity:.32;height:60%}.fb-ball,.fb-beam.r{display:none}.fb-next{padding:14px}.fb-cd b{font-size:1.1rem}}
+html.fx-lite .fb-beam,html.fx-lite .fb-ball,html.fx-lite .fb-dots,html.fx-lite .hero-chip,html.fx-lite .fb-pitch .grass,
+html.fx-lite .hero-logo-frame::before,html.fx-lite .hero-content h2 .gold-text{animation:none}
+html.fx-lite .fb-beam,html.fx-lite .fb-dots{display:none}
+@media (prefers-reduced-motion:reduce){
+  .fb-pitch .grass,.fb-beam,.fb-ball,.fb-dots i,.hero-chip,.hero-logo-frame::before,.hero-content h2 .gold-text,.fb-live-dot{animation:none!important}
+  .hero-logo-frame{transition:none}
+}

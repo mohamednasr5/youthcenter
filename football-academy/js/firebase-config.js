@@ -6,6 +6,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/fireba
 import {
   getDatabase, ref, get, set, update, remove, onValue
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDJYIKnZNBMZuXhVAhP4irqjLuzP4jQ16g",
@@ -21,10 +24,12 @@ const firebaseConfig = {
 let app = null;
 let db = null;
 let isFirebaseOnline = false;
+let auth = null;
 
 try {
   app = initializeApp(firebaseConfig);
   db = getDatabase(app);
+  try { auth = getAuth(app); } catch (e) { console.warn("[Academia] Firebase Auth unavailable:", e); }
   isFirebaseOnline = true;
   console.log("[Academia] Firebase Realtime Database initialized — cloud sync active.");
 } catch (error) {
@@ -38,6 +43,7 @@ const DATA_COLLECTIONS = [
 const META_DOC = "academy_meta";
 
 export {
-  app, db, isFirebaseOnline, DATA_COLLECTIONS, META_DOC,
-  ref, get, set, update, remove, onValue
+  app, db, auth, isFirebaseOnline, DATA_COLLECTIONS, META_DOC,
+  ref, get, set, update, remove, onValue,
+  signInWithEmailAndPassword, signOut, onAuthStateChanged
 };

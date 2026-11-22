@@ -553,6 +553,7 @@
   function initTilt() {
     if (window.matchMedia("(hover:none)").matches) return;
     document.querySelectorAll(".tilt").forEach(t => {
+      if (t.dataset.tiltBound) return; t.dataset.tiltBound = "1";
       t.addEventListener("mousemove", e => {
         const r = t.getBoundingClientRect();
         const x = (e.clientX - r.left) / r.width - 0.5;
@@ -774,6 +775,33 @@
     // قسم آخر منشور على صفحة المركز على فيسبوك (تحت الإحصائيات المالية)
     initFbPost();
     document.dispatchEvent(new Event("app:ready"));
+    startRealtime();
+  }
+
+  // ===== REALTIME: أي تعديل من لوحة الإدارة يصل لكل الزوار دون إعادة تحميل =====
+  // نعيد رسم الأقسام المعتمدة على البيانات فقط (دون إعادة ربط مستمعي الأحداث الثابتة كالشريط والتنقل).
+  function startRealtime() {
+    if (!window.SiteData || typeof window.SiteData.subscribe !== "function") return;
+    let first = true, unsub = null;
+    const apply = data => {
+      // أول نداء يعيد حالة محملة بالفعل؛ نتجاهله إن لم يتغير شيء
+      if (first) { first = false; if (JSON.stringify(data) === JSON.stringify(D)) return; }
+      D = data;
+      const safe = fn => { try { fn(); } catch (e) { console.warn("[Youth Center] realtime render failed:", fn.name, e); } };
+      [renderTopBar, renderBrand, renderNews, renderAnnouncement, renderBoard, renderAcademies,
+       renderArticles, renderActivities, renderFinance, renderFooter].forEach(safe);
+      safe(initReveal); safe(initCounters); safe(initTilt);
+      // عناصر .reveal المُعاد رسمها يجب ألا تبقى مخفية إن كانت داخل الشاشة
+      document.querySelectorAll(".reveal:not(.in)").forEach(e => {
+        const r = e.getBoundingClientRect();
+        if (r.top < window.innerHeight && r.bottom > 0) e.classList.add("in");
+      });
+      document.dispatchEvent(new CustomEvent("app:data-updated", { detail: data }));
+    };
+    const connect = () => { try { unsub = window.SiteData.subscribe(apply); } catch (e) { console.warn("[Youth Center] realtime unavailable:", e); } };
+    connect();
+    // إلغاء الاشتراكات عند مغادرة الصفحة (تجنب تسرب الذاكرة)
+    window.addEventListener("pagehide", () => { if (unsub) { unsub(); unsub = null; } });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();

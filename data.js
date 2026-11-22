@@ -171,8 +171,24 @@
 
 
   const KEY = "ahmadiah_site_data_v2";
-  const CLOUD_PATH = "youthcenter/state";
+  const LEGACY_PATH = "youthcenter/state";          // المسار القديم: يُقرأ فقط كاحتياط حتى اكتمال الترحيل
   const AUTH_PATH = "youthcenter/adminAuth";
+  const KARATE_SCHEDULE_PATH = "karate_academy/schedules";
+  const PRIVATE_FB_PATH = "center_private/facebook";  // لا يُقرأ علناً (انظر database.rules.json)
+  /* خريطة: مفتاح الحالة داخل التطبيق ← مسار مستقل في القاعدة الموحدة */
+  const PATHS = {
+    meta: "center_settings",
+    news: "center_news",
+    announcement: "center_announcements",
+    board: "center_board",
+    activities: "center_activities",
+    articles: "center_articles",
+    finance: "center_finance",
+    academies: "center_academies",
+    quickLinks: "center_quickLinks",
+    gallery: "center_gallery"
+  };
+  const PUBLIC_KEYS = Object.keys(PATHS);
   const firebaseConfig = {
     apiKey: "AIzaSyDJYIKnZNBMZuXhVAhP4irqjLuzP4jQ16g",
     authDomain: "academia-e6d7b.firebaseapp.com",
@@ -204,6 +220,34 @@
     // Never keep legacy plaintext credentials in browser cache or content exports.
     if (merged.meta) delete merged.meta.adminPassword;
     return merged;
+  }
+
+  /* فصل الحقول الخاصة (توكن فيسبوك) عن الحقول العامة */
+  function splitPrivate(data) {
+    const pub = clone(data);
+    const priv = {};
+    if (pub.meta && pub.meta.fbToken) { priv.fbToken = pub.meta.fbToken; }
+    if (pub.meta) pub.meta.fbToken = "";
+    return { pub, priv };
+  }
+  function scheduleToArray(v) {
+    if (!v) return [];
+    const list = Array.isArray(v) ? v : Object.entries(v).map(([id, x]) => Object.assign({ id }, x));
+    return list.filter(Boolean).sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+  /* كتابة كل جزء في مساره المستقل بعملية update واحدة (ذرّية) */
+  async function writeParts(db, data) {
+    const { pub, priv } = splitPrivate(data);
+    const updates = {};
+    PUBLIC_KEYS.forEach(k => { updates[PATHS[k]] = pub[k] === undefined ? null : pub[k]; });
+    if (priv.fbToken !== undefined) updates[PRIVATE_FB_PATH + "/token"] = priv.fbToken;
+    await db.ref().update(updates);
+    // جدول الكاراتيه: مصدره الحقيقي karate_academy/schedules (يُدار من لوحة الكاراتيه أو من لوحة المنصة)
+    if (Array.isArray(data.karateSchedule)) {
+      const sched = {};
+      data.karateSchedule.forEach((x, i) => { sched[x.id || ("s" + String(i + 1).padStart(3, "0"))] = Object.assign({}, x, { order: i }); });
+      await db.ref(KARATE_SCHEDULE_PATH).set(sched);
+    }
   }
 
   let cloudDb = null;
@@ -247,26 +291,78 @@
         return clone(DEFAULT_DATA);
       }
     },
+    /* قراءة مرة واحدة من المسارات المستقلة (مع احتياط للمسار القديم قبل الترحيل) */
     async syncFromCloud(options) {
       const db = getCloudDb();
-      const ref = db.ref(CLOUD_PATH);
-      const snapshot = await ref.once("value");
+      const keys = PUBLIC_KEYS;
+      const [snaps, schedSnap] = await Promise.all([
+        Promise.all(keys.map(k => db.ref(PATHS[k]).once("value"))),
+        db.ref(KARATE_SCHEDULE_PATH).once("value").catch(() => null)
+      ]);
+      const parts = {};
+      let found = false;
+      keys.forEach((k, i) => { if (snaps[i].exists()) { parts[k] = snaps[i].val(); found = true; } });
+      if (!found) {
+        // لم يتم الترحيل بعد: اقرأ المسار القديم ليظل الموقع يعمل
+        const legacy = await db.ref(LEGACY_PATH).once("value").catch(() => null);
+        if (legacy && legacy.exists()) {
+          Object.assign(parts, legacy.val());
+          found = true;
+          this._legacyMode = true;
+        }
+      }
+      if (schedSnap && schedSnap.exists()) parts.karateSchedule = scheduleToArray(schedSnap.val());
       let data;
-      if (snapshot.exists()) {
-        data = mergeData(snapshot.val());
+      if (found) {
+        data = mergeData(parts);
       } else {
         data = this.load();
-        if (options && options.seedIfMissing) {
-          await ref.set(data);
-        }
+        if (options && options.seedIfMissing) await writeParts(db, data);
       }
       localStorage.setItem(KEY, JSON.stringify(data));
       return data;
     },
+    /* اشتراك لحظي: يستمع لكل مسار على حدة ويستدعي cb(data) عند أي تغيير. يُرجع دالة إلغاء الاشتراك. */
+    subscribe(cb) {
+      const db = getCloudDb();
+      const parts = {};
+      const unsubs = [];
+      let timer = null;
+      const fire = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          const data = mergeData(Object.assign({}, parts));
+          try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* cache only */ }
+          cb(data);
+        }, 60);
+      };
+      PUBLIC_KEYS.forEach(k => {
+        const ref = db.ref(PATHS[k]);
+        const fn = ref.on("value", s => { if (s.exists()) parts[k] = s.val(); else delete parts[k]; fire(); }, () => {});
+        unsubs.push(() => ref.off("value", fn));
+      });
+      const sref = db.ref(KARATE_SCHEDULE_PATH);
+      const sfn = sref.on("value", s => { if (s.exists()) parts.karateSchedule = scheduleToArray(s.val()); else delete parts.karateSchedule; fire(); }, () => {});
+      unsubs.push(() => sref.off("value", sfn));
+      return () => { clearTimeout(timer); unsubs.forEach(u => u()); };
+    },
+    /* جدول الكاراتيه فقط (بدون قراءة بقية البيانات). احتياط: المسار القديم قبل الترحيل. */
+    subscribeKarateSchedule(cb, onError) {
+      const db = getCloudDb();
+      const ref = db.ref(KARATE_SCHEDULE_PATH);
+      const fn = ref.on("value", async s => {
+        if (s.exists()) return cb(scheduleToArray(s.val()));
+        try {
+          const legacy = await db.ref(LEGACY_PATH + "/karateSchedule").once("value");
+          cb(legacy.exists() ? scheduleToArray(legacy.val()) : clone(DEFAULT_DATA.karateSchedule));
+        } catch (e) { cb(clone(DEFAULT_DATA.karateSchedule)); }
+      }, err => { if (onError) onError(err); });
+      return () => ref.off("value", fn);
+    },
     async save(data) {
       const safe = mergeData(data);
-      // Cloud write is authoritative: do not report success or update cache before confirmation.
-      await getCloudDb().ref(CLOUD_PATH).set(safe);
+      // الكتابة السحابية هي المرجع: لا نُبلغ بالنجاح ولا نحدّث الكاش قبل التأكيد.
+      await writeParts(getCloudDb(), safe);
       localStorage.setItem(KEY, JSON.stringify(safe));
       return true;
     },
@@ -275,6 +371,7 @@
       await this.save(fresh);
       return this.load();
     },
+    db() { return getCloudDb(); },
     hasSaved() {
       try { return !!localStorage.getItem(KEY); } catch { return false; }
     },
@@ -286,7 +383,52 @@
       await this.save(obj);
       return obj;
     },
+    /* ===== Firebase Authentication (الأمان الحقيقي من جهة الخادم) ===== */
+    authEnabled() { return !!(global.firebase && global.firebase.auth); },
+    requireFirebaseAuth() { return !!(global.YC_AUTH_CONFIG && global.YC_AUTH_CONFIG.requireFirebase); },
+    _auth() {
+      getCloudDb();
+      const app = global.firebase.apps.find(item => item.name === "youthcenter");
+      return app.auth();
+    },
+    /* role: center | karate | football | pitch — يُتحقق منه عبر Custom Claims (ycAdmin أو ycCenter ...) */
+    hasRole(claims, role) {
+      if (!claims) return false;
+      if (claims.ycAdmin === true) return true;
+      return claims["yc" + role.charAt(0).toUpperCase() + role.slice(1)] === true;
+    },
+    async signIn(email, password, role) {
+      if (!this.authEnabled()) throw new Error("خدمة المصادقة غير محمّلة (firebase-auth-compat.js).");
+      const a = this._auth();
+      const cred = await a.signInWithEmailAndPassword(String(email).trim(), String(password));
+      const tok = await cred.user.getIdTokenResult(true);
+      if (!this.hasRole(tok.claims, role)) {
+        await a.signOut();
+        throw new Error("هذا الحساب لا يملك صلاحية إدارة هذا القسم.");
+      }
+      return cred.user;
+    },
+    /* استعادة جلسة قائمة بعد إعادة تحميل الصفحة */
+    restoreSession(role) {
+      if (!this.authEnabled()) return Promise.resolve(false);
+      const a = this._auth();
+      return new Promise(resolve => {
+        const off = a.onAuthStateChanged(async user => {
+          off();
+          if (!user) return resolve(false);
+          try { const tok = await user.getIdTokenResult(); resolve(this.hasRole(tok.claims, role)); }
+          catch (e) { resolve(false); }
+        });
+      });
+    },
+    /* توكن فيسبوك: يُقرأ فقط من حساب إداري مصادَق (لا يُنشر في المسار العام) */
+    async loadPrivate() {
+      try { const v = (await getCloudDb().ref(PRIVATE_FB_PATH + "/token").once("value")).val(); return v || ""; }
+      catch (e) { return ""; }
+    },
+    async signOut() { if (this.authEnabled()) { try { await this._auth().signOut(); } catch (e) { /* ignore */ } } },
     async verifyAdminPassword(input) {
+      if (this.requireFirebaseAuth()) throw new Error("تم تعطيل الدخول بكلمة المرور القديمة. استخدم البريد الإلكتروني وكلمة المرور.");
       const ref = getCloudDb().ref(AUTH_PATH);
       let snapshot = await ref.once("value");
       if (!snapshot.exists()) {

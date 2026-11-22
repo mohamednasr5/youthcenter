@@ -11,6 +11,7 @@ import {
   exportData, importData, resetDataToDefaults,
   getSettings, saveSettings, changeAdminPassword,
   verifyAdminPassword, loginAdmin, isLoggedIn, logoutAdmin,
+  signInAdminWithEmail, restoreAdminFirebaseSession, requireFirebaseAuth,
   addActivity, getRecentActivity, processImageUpload
 } from "./data-service.js";
 
@@ -37,7 +38,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupBackupHandlers();
   setupQuickActions();
 
-  if (isLoggedIn()) {
+  // الوضع الصارم: لا تُقبل جلسة قديمة ما لم توجد جلسة Firebase صالحة بصلاحية القسم
+  let sessionOk = isLoggedIn();
+  if (requireFirebaseAuth()) {
+    sessionOk = await restoreAdminFirebaseSession();
+    if (!sessionOk) logoutAdmin();
+  } else if (!sessionOk && await restoreAdminFirebaseSession()) {
+    loginAdmin(); sessionOk = true;
+  }
+  if (sessionOk) {
     showDashboard();
     await syncFromCloud().catch(error => console.warn('[Academia] Admin cloud refresh failed:', error));
     await loadAdminData();
@@ -53,15 +62,25 @@ function setupAuth() {
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const pass = document.getElementById("admin-password").value;
+      const emailEl = document.getElementById("admin-email");
+      const email = emailEl ? emailEl.value.trim() : "";
       const errEl = document.getElementById("login-error");
       errEl.textContent = "";
-      const ok = await verifyAdminPassword(pass);
-      if (ok) {
-        loginAdmin();
+      try {
+        if (email) {
+          await signInAdminWithEmail(email, pass);   // Firebase Auth + التحقق من صلاحية القسم
+        } else if (requireFirebaseAuth()) {
+          errEl.textContent = "أدخل البريد الإلكتروني وكلمة المرور.";
+          return;
+        } else {
+          const ok = await verifyAdminPassword(pass);
+          if (!ok) { errEl.textContent = "رمز المرور غير صحيح! حاول مرة أخرى."; return; }
+          loginAdmin();
+        }
         showDashboard();
         await loadAdminData();
-      } else {
-        errEl.textContent = "رمز المرور غير صحيح! حاول مرة أخرى.";
+      } catch (err) {
+        errEl.textContent = (err && err.code && /auth\//.test(err.code)) ? "بيانات الدخول غير صحيحة." : (err.message || "تعذر تسجيل الدخول.");
       }
     });
   }

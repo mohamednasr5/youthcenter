@@ -30,7 +30,10 @@ async function getBotToken() {
   if (process.env.TELEGRAM_BOT_TOKEN) {
     return process.env.TELEGRAM_BOT_TOKEN;
   }
-  const snap = await admin.database().ref('settings/telegramBotToken').once('value');
+  // المسار الخاص أولاً، ثم الموضع القديم كاحتياط حتى يكتمل نقل الأسرار
+  const priv = await admin.database().ref('pitch_private/telegramBotToken').once('value');
+  if (priv.val()) return priv.val();
+  const snap = await admin.database().ref('pitch_booking/settings/telegramBotToken').once('value');
   return snap.val();
 }
 
@@ -62,7 +65,7 @@ async function sendMessage(chatId, text, parseMode = 'HTML') {
  * Broadcasts a notification to all active Telegram subscribers
  */
 async function broadcastToSubscribers(text) {
-  const subscribersSnap = await admin.database().ref('telegramSubscribers').once('value');
+  const subscribersSnap = await admin.database().ref('pitch_booking/telegramSubscribers').once('value');
   const subscribers = subscribersSnap.val() || {};
 
   const sendPromises = Object.keys(subscribers).map((chatId) => {
@@ -100,7 +103,7 @@ async function handleTelegramUpdate(update) {
     await sendMessage(chatId, welcome);
 
   } else if (text.startsWith('/subscribe')) {
-    await admin.database().ref(`telegramSubscribers/${chatId}`).set({
+    await admin.database().ref(`pitch_booking/telegramSubscribers/${chatId}`).set({
       chatId,
       name: `${message.from.first_name || ''} ${message.from.last_name || ''}`.trim(),
       username: message.from.username || null,
@@ -114,13 +117,13 @@ async function handleTelegramUpdate(update) {
     await sendMessage(chatId, reply);
 
   } else if (text.startsWith('/unsubscribe')) {
-    await admin.database().ref(`telegramSubscribers/${chatId}`).remove();
+    await admin.database().ref(`pitch_booking/telegramSubscribers/${chatId}`).remove();
     await sendMessage(chatId, '❌ تم إلغاء اشتراكك من الإشعارات. يمكنك العودة والاشتراك بأي وقت عبر /subscribe.');
 
   } else if (text.startsWith('/today')) {
     const now = new Date();
     const todayKey = now.toISOString().slice(0, 10);
-    const snap = await admin.database().ref(`bookings/${todayKey}`).once('value');
+    const snap = await admin.database().ref(`pitch_booking/bookings/${todayKey}`).once('value');
     const bookings = snap.val() || {};
 
     let scheduleText = `📅 <b>جدول مباريات اليوم (${todayKey}):</b>\n\n`;

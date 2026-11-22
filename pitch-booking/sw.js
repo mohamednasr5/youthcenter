@@ -4,7 +4,7 @@
  * Realtime booking data is ALWAYS handled network-first with offline alert.
  */
 
-const CACHE_NAME = 'ahmadiah-pitch-cache-v4';
+const CACHE_NAME = 'ahmadiah-pitch-cache-v5';
 const STATIC_ASSETS = [
   './',
   './index.html',

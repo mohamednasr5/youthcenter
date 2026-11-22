@@ -35,6 +35,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="live.css">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
 {"@type":"SportsActivityLocation","@id":"https://ahmadiah-youth.gov.eg/#center","name":"مركز شباب الأحمدية","alternateName":"Ahmadiah Youth Center","description":"مركز شباب متكامل بقرية الأحمدية - مركز المنزلة - محافظة الدقهلية يقدم أكاديميات رياضية (كرة قدم وكاراتيه) وحجز ملعب خماسي وأنشطة دينية وثقافية.","image":"https://ahmadiah-youth.gov.eg/assets/og-image.jpg","url":"https://ahmadiah-youth.gov.eg/","telephone":"+201222257977","address":{"@type":"PostalAddress","addressCountry":"EG","addressRegion":"الدقهلية","addressLocality":"مركز المنزلة","streetAddress":"قرية الأحمدية"},"geo":{"@type":"GeoCoordinates","latitude":31.16,"longitude":31.38},"openingHoursSpecification":{"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday","Sunday","Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"09:00","closes":"23:00"},"sameAs":["https://www.facebook.com/Markz.shabab.elahmadya"]},
@@ -42,6 +43,7 @@
 {"@type":"WebSite","@id":"https://ahmadiah-youth.gov.eg/#website","url":"https://ahmadiah-youth.gov.eg/","name":"مركز شباب الأحمدية","inLanguage":"ar-EG","publisher":{"@id":"https://ahmadiah-youth.gov.eg/#org"}}
 ]}
 </script>
+<link rel="stylesheet" href="fx.css">
 </head>
 <body>
 <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
@@ -121,6 +123,15 @@
 
 <!-- ANNOUNCEMENT -->
 <section class="announce reveal" id="announceSlot"></section>
+
+<!-- LIVE DASHBOARD: مباشر من المركز (بيانات حية من Firebase الموحدة) -->
+<section class="wrap section live-dash" id="live" aria-label="مباشر من المركز">
+  <div class="lv-head">
+    <div class="shead"><div class="sico">📡</div><div><div class="kicker">LIVE FROM THE CENTER</div><h2>مباشر من المركز</h2><div class="sub">الملعب والأكاديميات لحظة بلحظة</div></div></div>
+    <span class="lv-conn on" id="liveConn" role="status">جارٍ الاتصال…</span>
+  </div>
+  <div id="liveRoot"></div>
+</section>
 
 <!-- MAIN GRID -->
 <main class="wrap">
@@ -243,7 +254,7 @@
 <!-- Center gallery lightbox -->
 <div class="lb" id="galleryLightbox" data-gallery-lightbox role="dialog" aria-modal="true" aria-hidden="true">
   <button class="lb-close" type="button" aria-label="إغلاق">✕</button>
-  <img alt="صورة من أنشطة مركز شباب الأحمدية">
+  <img alt="صورة من أنشطة مركز شباب الأحمدية" loading="lazy" decoding="async">
   <div class="lb-cap"></div>
 </div>
 
@@ -283,5 +294,8 @@
 <script defer src="data.js"></script>
 <script defer src="fb-post.js"></script>
 <script defer src="app.js"></script>
+<script defer src="live.js"></script>
+<script defer src="platform-nav.js" data-section="home"></script>
+<script defer src="fx.js" data-section="home"></script>
 </body>
 </html>

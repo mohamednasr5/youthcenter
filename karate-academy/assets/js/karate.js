@@ -715,15 +715,30 @@
     const suffix = hour < 12 ? "ص" : "م";
     return `${hour % 12 || 12}:${minute} ${suffix}`;
   }
-  async function loadKarateSchedule() {
+  function loadKarateSchedule() {
+    const grid = document.getElementById("karateScheduleGrid");
+    if (!grid) return;
+    const start = () => {
+      try {
+        if (!window.SiteData) throw new Error("بيانات المواعيد غير متاحة");
+        // اشتراك لحظي في karate_academy/schedules فقط — أي تعديل من لوحة الإدارة يظهر دون إعادة تحميل
+        window.SiteData.subscribeKarateSchedule(renderKarateSchedule, err => {
+          console.error("Karate schedule load failed:", err);
+          grid.innerHTML = '<p class="schedule-empty">تعذر تحميل المواعيد الآن. يرجى تحديث الصفحة لاحقًا.</p>';
+        });
+      } catch (error) {
+        console.error("Karate schedule load failed:", error);
+        grid.innerHTML = '<p class="schedule-empty">تعذر تحميل المواعيد الآن. يرجى تحديث الصفحة لاحقًا.</p>';
+      }
+    };
+    if (window.firebase && window.firebase.database) start(); else window.addEventListener("load", start);
+  }
+  function renderKarateSchedule(all) {
     const grid = document.getElementById("karateScheduleGrid");
     const summary = document.getElementById("karateScheduleSummary");
     if (!grid) return;
     try {
-      if (!window.SiteData) throw new Error("بيانات المواعيد غير متاحة");
-      await window.SiteData.syncFromCloud();
-      const data = window.SiteData.load();
-      const entries = (Array.isArray(data.karateSchedule) ? data.karateSchedule : []).filter(item => item && item.active !== false);
+      const entries = (Array.isArray(all) ? all : []).filter(item => item && item.active !== false);
       const genders = [...new Set(entries.map(item => item.gender).filter(Boolean))];
       const ages = [...new Set(entries.map(item => item.age).filter(Boolean))];
       if (summary) summary.innerHTML = `<div><strong>${entries.length}</strong><span>حصص أسبوعياً</span></div><div><strong>${genders.join(" / ") || "بنين وبنات"}</strong><span>الفئات</span></div><div><strong>${ages.join(" / ") || "من 5 سنوات فأكثر"}</strong><span>السن المطلوب</span></div>`;

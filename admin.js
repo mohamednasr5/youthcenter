@@ -50,32 +50,54 @@
     const pass = $("#loginPass");
     const error = $("#loginErr");
     try {
-      await SiteData.syncFromCloud({ seedIfMissing: true });
+      await SiteData.syncFromCloud();
       state = SiteData.load();
     } catch (e) {
       error.textContent = "تعذر الاتصال بقاعدة بيانات الأكاديمية. تحقق من إعدادات Firebase ثم أعد المحاولة.";
       console.error("Youth center cloud initialization failed:", e);
     }
-    if (sessionStorage.getItem(SESSION_KEY) === "1" && !error.textContent) { openDashboard(); return; }
+    const strict = SiteData.requireFirebaseAuth();
+    if (strict) $("#loginPass").placeholder = "كلمة المرور";
+    if (!error.textContent) {
+      // جلسة Firebase قائمة؟ (الأمان الحقيقي) — الجلسة القديمة في sessionStorage لا تُقبل في الوضع الصارم
+      if (await SiteData.restoreSession("center")) { await afterLogin(); return; }
+      if (!strict && sessionStorage.getItem(SESSION_KEY) === "1") { await afterLogin(); return; }
+    }
+    const emailEl = $("#loginEmail");
     const tryLogin = async () => {
       if (btn.disabled) return;
       btn.disabled = true;
       error.textContent = "";
       try {
-        const ok = await SiteData.verifyAdminPassword(pass.value);
-        if (ok) {
-          sessionStorage.setItem(SESSION_KEY, "1");
-          openDashboard();
+        const email = emailEl ? emailEl.value.trim() : "";
+        if (email) {
+          await SiteData.signIn(email, pass.value, "center");
+          await afterLogin();
+        } else if (strict) {
+          error.textContent = "أدخل البريد الإلكتروني وكلمة المرور.";
         } else {
-          error.textContent = "كلمة المرور غير صحيحة";
-          pass.value = "";
+          const ok = await SiteData.verifyAdminPassword(pass.value);
+          if (ok) {
+            sessionStorage.setItem(SESSION_KEY, "1");
+            await afterLogin();
+          } else {
+            error.textContent = "كلمة المرور غير صحيحة";
+            pass.value = "";
+          }
         }
       } catch (e) {
-        error.textContent = e.message || "تعذر التحقق من كلمة المرور عبر قاعدة البيانات.";
+        error.textContent = (e && e.code && /auth\//.test(e.code)) ? "بيانات الدخول غير صحيحة." : (e.message || "تعذر التحقق من بيانات الدخول.");
       } finally {
         btn.disabled = false;
       }
     };
+    async function afterLogin() {
+      // البذر الأولي (إن كانت القاعدة فارغة) يتم بعد المصادقة فقط
+      try { await SiteData.syncFromCloud({ seedIfMissing: true }); state = SiteData.load(); } catch (e) { console.warn("seed/sync after login failed:", e); }
+      // توكن فيسبوك محفوظ في مسار خاص؛ نقرأه فقط بعد المصادقة حتى لا يُمسح عند الحفظ
+      try { const t = await SiteData.loadPrivate(); if (t && !state.meta.fbToken) state.meta.fbToken = t; } catch (e) { /* optional */ }
+      openDashboard();
+    }
     btn.addEventListener("click", tryLogin);
     pass.addEventListener("keydown", e => { if (e.key === "Enter") tryLogin(); });
   }
@@ -86,8 +108,9 @@
     renderAll();
     initInteractions();
   }
-  function logout() {
+  async function logout() {
     sessionStorage.removeItem(SESSION_KEY);
+    await SiteData.signOut();
     location.reload();
   }
 

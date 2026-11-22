@@ -21,3 +21,8 @@ __pycache__/
 
 # ملف التسليم المضغوط (نسخة معبأة من المستودع نفسه)
 ahmadiah-youth-center.zip
+
+# مفاتيح الخدمة — لا تُرفع
+*service-account*.json
+*-adminsdk-*.json
+node_modules/

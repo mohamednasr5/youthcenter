@@ -17,7 +17,8 @@ const RESULT_ADMIN_IDS = String(process.env.TELEGRAM_ADMIN_CHAT_IDS || '').split
 const RESULT_TTL_MS = 24 * 60 * 60 * 1000;
 
 const runStartedAt = Date.now();
-const FIREBASE_DB_BASE = 'https://hagz-a49fa-default-rtdb.firebaseio.com';
+// القاعدة الموحدة — بيانات الملعب تحت pitch_booking
+const FIREBASE_DB_BASE = 'https://academia-e6d7b-default-rtdb.firebaseio.com/pitch_booking';
 
 let lastUpdateId = 0;
 // Track notified bookings: key = `${id}_${status}` to re-notify on status change

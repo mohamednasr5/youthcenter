@@ -17,7 +17,9 @@ import {
 import { 
   isAdminAuthenticated, 
   loginAdmin, 
-  logoutAdmin 
+  logoutAdmin,
+  requireFirebaseAuth,
+  restoreFirebaseSession
 } from './auth.js';
 import { 
   getEgyptNow, 
@@ -47,12 +49,21 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAuthentication();
 });
 
-function checkAuthentication() {
+async function checkAuthentication() {
   const authOverlay = document.getElementById('authOverlay');
   const loginForm = document.getElementById('adminLoginForm');
   const errorMsg = document.getElementById('adminLoginError');
 
-  if (!isAdminAuthenticated()) {
+  let authed = isAdminAuthenticated();
+  if (requireFirebaseAuth()) {
+    authed = await restoreFirebaseSession();          // الوضع الصارم: لا تُقبل جلسة قديمة
+    if (!authed) sessionStorage.removeItem('ahmadiah_admin_session_auth');
+  } else if (!authed && await restoreFirebaseSession()) {
+    sessionStorage.setItem('ahmadiah_admin_session_auth', 'authenticated');
+    authed = true;
+  }
+
+  if (!authed) {
     if (authOverlay) authOverlay.style.display = 'flex';
 
     if (loginForm && !loginForm.dataset.bound) {
@@ -60,7 +71,8 @@ function checkAuthentication() {
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const pass = document.getElementById('adminPasswordInput').value;
-        const res = await loginAdmin(pass);
+        const emailEl = document.getElementById('adminEmailInput');
+        const res = await loginAdmin(pass, emailEl ? emailEl.value : '');
 
         if (res.success) {
           if (authOverlay) authOverlay.style.display = 'none';
