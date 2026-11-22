@@ -447,6 +447,13 @@
       if (claims.ycAdmin === true) return true;
       return claims["yc" + role.charAt(0).toUpperCase() + role.slice(1)] === true;
     },
+    async ensureCenterSession() {
+      if (!this.authEnabled()) return false;
+      const user = this._auth().currentUser;
+      if (!user) return false;
+      const token = await user.getIdTokenResult(true);
+      return this.hasRole(token && token.claims, "center");
+    },
     /* قائمة إيميلات الإدارة من yc-auth-config.js (قيد إضافي على المتصفح؛ الحماية الحقيقية في Custom Claims) */
     allowedAdminEmails() {
       const cfg = global.YC_AUTH_CONFIG || {};
