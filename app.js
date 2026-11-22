@@ -483,7 +483,7 @@
             <h4 class="ft">تواصل معنا</h4>
             <div class="ci"><span class="ci-ico">📍</span><a href="${esc(m.mapLink || "#")}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(m.location)}</a></div>
             <div class="ci"><span class="ci-ico">📞</span><a href="tel:${esc(String(m.phone || "").replace(/[^\d+]/g, ""))}" style="color:inherit;text-decoration:none" dir="ltr">${esc(m.phone)}</a></div>
-            ${m.email ? `<div class="ci"><span class="ci-ico">✉️</span><span>${esc(m.email)}</span></div>` : ""}
+            ${/* messenger action */ ""}<a class="messenger-contact-btn" href="${esc(m.messengerLink || "https://m.me/Markz.shabab.elahmadya")}" target="_blank" rel="noopener noreferrer" aria-label="التواصل المباشر مع مركز شباب الأحمدية عبر ماسنجر">${SVG_MSG}<span>راسلنا عبر ماسنجر</span><span class="messenger-btn-arrow" aria-hidden="true">←</span></a>
             ${m.messengerLink ? `<div class="ci"><span class="ci-ico">💬</span><a href="${esc(m.messengerLink)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">تواصل معنا عبر ماسنجر</a></div>` : ""}
             <div class="ci"><span class="ci-ico">🕒</span><span>${esc(m.hours)}</span></div>
           </div>
