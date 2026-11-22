@@ -449,7 +449,6 @@
         </div>
         <div class="move-stage">
           <img src="assets/images/wikihow-gifs/${move.gif}.gif" alt="${move.name} - ${move.tag}" class="move-gif">
-          <span class="center-watermark" aria-label="مركز شباب الأحمدية">مركز شباب الأحمدية</span>
           <button class="replay-btn" data-replay="${move.id}" aria-label="إعادة">↻ إعادة</button>
         </div>
         <p>${move.desc}</p>
