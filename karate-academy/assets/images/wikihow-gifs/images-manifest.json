@@ -1,0 +1,52 @@
+{
+  "images": [
+    {
+      "src": "step-01.gif",
+      "caption": "step 01"
+    },
+    {
+      "src": "step-02.gif",
+      "caption": "step 02"
+    },
+    {
+      "src": "step-03.gif",
+      "caption": "step 03"
+    },
+    {
+      "src": "step-04.gif",
+      "caption": "step 04"
+    },
+    {
+      "src": "step-05.gif",
+      "caption": "step 05"
+    },
+    {
+      "src": "step-06.gif",
+      "caption": "step 06"
+    },
+    {
+      "src": "step-07.gif",
+      "caption": "step 07"
+    },
+    {
+      "src": "step-08.gif",
+      "caption": "step 08"
+    },
+    {
+      "src": "step-09.gif",
+      "caption": "step 09"
+    },
+    {
+      "src": "step-10.gif",
+      "caption": "step 10"
+    },
+    {
+      "src": "step-11.gif",
+      "caption": "step 11"
+    },
+    {
+      "src": "step-12.gif",
+      "caption": "step 12"
+    }
+  ]
+}

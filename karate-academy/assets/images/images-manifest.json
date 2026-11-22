@@ -1,0 +1,12 @@
+{
+  "images": [
+    {
+      "src": "hero-dojo.png",
+      "caption": "hero dojo"
+    },
+    {
+      "src": "logo.png",
+      "caption": "logo"
+    }
+  ]
+}

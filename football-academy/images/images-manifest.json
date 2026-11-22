@@ -1,0 +1,12 @@
+{
+  "images": [
+    {
+      "src": "1.jpg",
+      "caption": "1"
+    },
+    {
+      "src": "logo.jpg",
+      "caption": "logo"
+    }
+  ]
+}
