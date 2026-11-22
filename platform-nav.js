@@ -18,12 +18,7 @@
   const ACCENT = { home: "#f59e0b", football: "#10b981", karate: "#f43f5e", pitch: "#fbbf24" };
   const acc = ACCENT[section] || ACCENT.home;
 
-  const hidePlatformHome = section === "football";
   const css = `
-  /* أكاديمية كرة القدم: إخفاء رابط موقع المركز والرئيسية في شريط المنصة فقط */
-  .pf-bar .pf-brand{display:none!important}
-  .pf-bar a.pf-l[href$="index.html"]{display:none!important}
-  
   .pf-bar,.pf-foot{font-family:'Cairo','Tajawal',system-ui,sans-serif;direction:rtl;--pf:${acc}}
   .pf-bar{position:relative;z-index:50;background:#070b16;border-bottom:2px solid var(--pf);color:#f3f5fb}
   .pf-bar .pf-in{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:6px;padding:6px 12px;overflow-x:auto;scrollbar-width:none}
@@ -39,7 +34,7 @@
   @media(prefers-reduced-motion:reduce){.pf-bar a.pf-l{transition:none}}`;
   const style = document.createElement("style"); style.textContent = css; document.head.appendChild(style);
 
-  const links = (cls) => ITEMS.map(([k, label, href, ico]) =>
+  const links = (cls) => ITEMS.filter(([k]) => !(section === "football" && (k === "home" || k === "football"))).map(([k, label, href, ico]) =>
     `<a class="${cls}${k === section ? " on" : ""}" href="${base}${href}"${k === section ? ' aria-current="page"' : ""}>${ico} ${label}</a>`).join("");
 
   function mount() {
