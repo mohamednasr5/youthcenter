@@ -1,0 +1,50 @@
+name: Provision Firebase admins and deploy database rules
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provision-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate Firebase service account secret
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::Add FIREBASE_SERVICE_ACCOUNT_JSON in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
+          node -e "const x=require(process.env.SA_FILE); if(!x.project_id || x.project_id !== 'academia-e6d7b') process.exit(1)" 
+        env:
+          SA_FILE: ${{ runner.temp }}/firebase-service-account.json
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+
+      - name: Install Firebase Admin and CLI
+        run: npm install --no-save firebase-admin firebase-tools
+
+      - name: Provision admin accounts and Custom Claims
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: node tools/setup-admins.mjs --key "$GOOGLE_APPLICATION_CREDENTIALS" --from-config
+
+      - name: Deploy Realtime Database security rules
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: npx firebase deploy --only database --project academia-e6d7b --non-interactive
+
+      - name: Remove temporary credential
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-service-account.json"
