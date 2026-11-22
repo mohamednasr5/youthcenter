@@ -7,7 +7,7 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓', m); } else { fail++
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 function boot(opts) {
-  const fb = makeFirebase(opts);
+  const fb = makeFirebase(Object.assign({ autoAuth: true }, opts));
   const dom = new JSDOM('<!doctype html><body></body>', { url: 'https://example.test/', runScripts: 'outside-only' });
   dom.window.firebase = fb.firebase;
   dom.window.eval(fs.readFileSync(root + 'data.js', 'utf8'));
