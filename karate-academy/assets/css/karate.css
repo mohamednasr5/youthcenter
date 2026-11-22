@@ -228,13 +228,17 @@ body {
 .move-card h4 { font-size: 1.05rem; font-weight: 900; color: #fff; }
 .move-card .jp-name { font-family: var(--font-jp); color: var(--accent-gold); font-size: 0.82rem; font-weight: 700; }
 .move-stage {
-  width: 100%; aspect-ratio: 16 / 9; max-height: 220px; border-radius: 14px; overflow: hidden;
+  width: 100%; min-width: 0; aspect-ratio: 16 / 9; max-height: none;
+  border-radius: 14px; overflow: hidden;
   background: radial-gradient(circle at 50% 60%, rgba(244,63,94,0.08), transparent 60%), linear-gradient(180deg, #1a0d20, #0a050d);
   border: 1px solid rgba(255,255,255,0.08);
   position: relative; margin: 10px 0;
 }
 .move-stage svg { width: 100%; height: 100%; display: block; }
-.move-gif { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center; }
+.move-gif { width: 100%; height: 100%; display: block; object-fit: contain; object-position: center; }
+.moves-section, .moves-grid, .move-card { min-width: 0; max-width: 100%; }
+.moves-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.replay-btn { left: 10px; bottom: 10px; max-width: calc(100% - 20px); white-space: nowrap; }
 .move-card p { color: var(--text-secondary); font-size: 0.86rem; line-height: 1.85; margin-top: 6px; }
 .move-tag { display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 700; background: rgba(245,158,11,0.15); color: var(--accent-gold); border: 1px solid rgba(245,158,11,0.3); }
 
@@ -420,9 +424,15 @@ body {
 
 /* ============ RESPONSIVE ============ */
 @media (max-width: 768px) {
-  .about-grid, .moves-grid, .coaches-grid, .certs-grid { grid-template-columns: 1fr; }
+  .about-grid, .moves-grid, .coaches-grid, .certs-grid { grid-template-columns: minmax(0,1fr); }
+  .moves-section { padding: 18px 12px; }
+  .move-card { padding: 14px; width: 100%; }
+  .move-card-head { flex-wrap: wrap; }
+  .move-stage { aspect-ratio: 16 / 9; max-height: none; }
+  .move-gif { object-fit: contain; }
+  .replay-btn { left: 10px; bottom: 10px; }
   .gallery-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .info-section, .moves-section, .belts-section, .contact-section { padding: 20px 16px; }
+  .info-section, .belts-section, .contact-section { padding: 20px 16px; }
   .hero-content { padding: 26px 18px; }
   .hero-jp { top: 16px; left: 18px; }
 }
@@ -516,3 +526,17 @@ body {
 .app-header .header-container{gap:10px}
 @media(max-width:640px){.center-home-link{padding:7px 9px;font-size:.72rem;gap:4px}.app-header .header-container{gap:7px}}
  
+
+/* Mobile overflow and complete karate GIF framing */
+@media (max-width: 480px) {
+  html, body { width: 100%; max-width: 100%; overflow-x: clip; }
+  .main-wrapper { width: 100%; max-width: 100%; padding-left: 10px; padding-right: 10px; }
+  .moves-section { width: 100%; padding-left: 10px; padding-right: 10px; }
+  .moves-grid { width: 100%; grid-template-columns: minmax(0, 1fr); }
+  .move-card { width: 100%; padding: 12px; }
+  .move-card-head h4 { min-width: 0; overflow-wrap: anywhere; }
+  .move-card .jp-name { max-width: 45%; overflow-wrap: anywhere; text-align: left; }
+  .move-stage { width: 100%; aspect-ratio: 16 / 9; max-height: none; }
+  .move-gif { object-fit: contain; }
+  .replay-btn { left: 8px; bottom: 8px; z-index: 6; }
+}
