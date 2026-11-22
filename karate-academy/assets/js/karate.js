@@ -688,7 +688,7 @@
   /* ============ ACTIVE NAV ============ */
   function setupActiveNav() {
     const navItems = document.querySelectorAll('.bottom-nav-item[data-target]');
-    const sections = ['section-home','section-moves','section-learn','section-rules','section-belts','section-coaches','section-certs','section-players','section-contact'].map(id => document.getElementById(id)).filter(Boolean);
+    const sections = ['section-home','section-moves','section-learn','section-rules','section-belts','section-coaches','section-certs','section-players','section-schedule','section-contact'].map(id => document.getElementById(id)).filter(Boolean);
     if (!sections.length) return;
 
     function update() {
@@ -706,10 +706,50 @@
     update();
   }
 
+  /* ============ LIVE TRAINING SCHEDULE ============ */
+  function formatTime(value) {
+    if (!value) return "";
+    const parts = value.split(":").map(Number);
+    if (parts.length !== 2 || !Number.isFinite(parts[0]) || !Number.isFinite(parts[1])) return value;
+    const hour = parts[0], minute = String(parts[1]).padStart(2, "0");
+    const suffix = hour < 12 ? "ص" : "م";
+    return `${hour % 12 || 12}:${minute} ${suffix}`;
+  }
+  async function loadKarateSchedule() {
+    const grid = document.getElementById("karateScheduleGrid");
+    const summary = document.getElementById("karateScheduleSummary");
+    if (!grid) return;
+    try {
+      if (!window.SiteData) throw new Error("بيانات المواعيد غير متاحة");
+      await window.SiteData.syncFromCloud();
+      const data = window.SiteData.load();
+      const entries = (Array.isArray(data.karateSchedule) ? data.karateSchedule : []).filter(item => item && item.active !== false);
+      if (summary) summary.innerHTML = `<div><strong>${entries.length}</strong><span>حصص أسبوعياً</span></div><div><strong>بنين وبنات</strong><span>الجنسين</span></div><div><strong>من 5</strong><span>سنوات فأكثر</span></div>`;
+      if (!entries.length) { grid.innerHTML = '<p class="schedule-empty">لا توجد مواعيد تدريب معلنة حاليًا.</p>'; return; }
+      const dayOrder = ["السبت","الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
+      entries.sort((x,y) => dayOrder.indexOf(x.day) - dayOrder.indexOf(y.day));
+      grid.innerHTML = entries.map((item,index) => `
+        <article class="schedule-card schedule-color-${index % 3}">
+          <div class="schedule-card-head"><h3>${item.day || "موعد تدريب"}</h3><span class="schedule-day-icon" aria-hidden="true">${["金","月","水"][index % 3]}</span></div>
+          <div class="schedule-card-body">
+            <div class="schedule-detail"><span class="schedule-detail-icon">◷</span><div><small>التوقيت</small><strong>من ${formatTime(item.fromTime)} إلى ${formatTime(item.toTime)}</strong></div></div>
+            ${item.date ? `<div class="schedule-detail"><span class="schedule-detail-icon">📅</span><div><small>التاريخ</small><strong>${item.date}</strong></div></div>` : ""}
+            <div class="schedule-detail"><span class="schedule-detail-icon">⌖</span><div><small>المكان</small><strong>${item.location || "مركز شباب الأحمدية"}</strong></div></div>
+            <div class="schedule-detail"><span class="schedule-detail-icon">♧</span><div><small>الجنس</small><strong>${item.gender || "بنين وبنات"}</strong></div></div>
+            <div class="schedule-detail"><span class="schedule-detail-icon">♙</span><div><small>السن المطلوب</small><strong>${item.age || "من 5 سنوات فأكثر"}</strong></div></div>
+          </div>
+        </article>`).join("");
+    } catch (error) {
+      console.error("Karate schedule load failed:", error);
+      grid.innerHTML = '<p class="schedule-empty">تعذر تحميل المواعيد الآن. يرجى تحديث الصفحة لاحقًا.</p>';
+    }
+  }
+
   /* ============ INIT ============ */
   function init() {
     renderMoves();
     renderBelts();
+    loadKarateSchedule();
     loadPlayersGallery();
     setupReveal();
     setupActiveNav();
