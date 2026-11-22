@@ -11,7 +11,7 @@
       location: "قرية الأحمدية - مركز المنزلة - الدقهلية",
       mapLink: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("قرية الأحمدية مركز المنزلة الدقهلية مركز شباب"),
       phone: "01222257977",
-      email: "info@ahmadiah-youth.gov.eg",
+      email: "",
       hours: "يومياً من 9:00 ص حتى 11:00 م",
       devName: "المهندس محمد حماد",
       devLink: "#",
