@@ -429,7 +429,15 @@ img{max-width:100%;display:block}
 /* ============ REDUCED MOTION (إمكانية الوصول والسلاسة) ============ */
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
-  .ticker .t-content{animation:none!important}
+  /* شريط الأخبار استثناء مقصود: يجب أن يظل متحركاً ومتكرراً بلا نهاية */
+  .ticker .t-content,
+  .ticker .t-content.ticker-running{
+    animation-name:scrollTicker!important;
+    animation-duration:38s!important;
+    animation-timing-function:linear!important;
+    animation-iteration-count:infinite!important;
+    animation-fill-mode:both!important;
+  }
   .hero-emblem .ring,.hero-emblem .od1,.hero-emblem .od2,.hero-emblem .emblem-logo{animation:none!important}
 }
 
