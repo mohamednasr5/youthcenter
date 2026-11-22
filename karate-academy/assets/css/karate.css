@@ -619,3 +619,28 @@ body {
     font-size: 10px;
   }
 }
+
+
+/* ============ KARATE TRAINING SCHEDULE ============ */
+.schedule-summary{width:min(790px,100%);margin:26px auto 28px;padding:18px 22px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;border:1px solid rgba(255,255,255,.1);border-radius:24px;background:rgba(38,18,42,.62);text-align:center}
+.schedule-summary>div{display:flex;flex-direction:column;gap:3px}
+.schedule-summary>div+div{border-right:1px solid rgba(255,255,255,.12)}
+.schedule-summary strong{color:var(--accent-red);font-size:clamp(1.25rem,3vw,2rem);font-weight:950}
+.schedule-summary span{color:var(--text-secondary);font-size:.82rem;font-weight:700}
+.karate-schedule-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.schedule-card{position:relative;min-width:0;overflow:hidden;border:1px solid rgba(255,255,255,.1);border-radius:24px;background:linear-gradient(145deg,rgba(26,16,32,.98),rgba(14,9,20,.98));box-shadow:0 14px 32px rgba(0,0,0,.22)}
+.schedule-card:before{content:"";display:block;height:5px;background:var(--schedule-color,#f43f5e)}
+.schedule-color-0{--schedule-color:#f43f5e}.schedule-color-1{--schedule-color:#f59e0b}.schedule-color-2{--schedule-color:#a855f7}
+.schedule-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:20px 22px;border-bottom:1px solid rgba(255,255,255,.08)}
+.schedule-card-head h3{color:#fff;font-size:1.25rem;font-weight:950}
+.schedule-day-icon{color:var(--schedule-color);font-size:1.7rem;font-weight:900}
+.schedule-card-body{display:grid;gap:14px;padding:18px 22px 22px}
+.schedule-detail{display:flex;align-items:center;gap:12px;min-width:0}
+.schedule-detail-icon{width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--schedule-color) 38%,transparent);border-radius:13px;background:color-mix(in srgb,var(--schedule-color) 13%,transparent);color:var(--schedule-color);font-size:1.1rem}
+.schedule-detail>div{display:grid;gap:3px;min-width:0}
+.schedule-detail small{color:var(--text-secondary);font-size:.75rem}
+.schedule-detail strong{color:#fff;font-size:.9rem;overflow-wrap:anywhere}
+.schedule-note{width:fit-content;max-width:100%;margin:22px 0 34px auto;padding:12px 18px;border:1px solid rgba(245,158,11,.35);border-radius:30px;background:rgba(245,158,11,.08);color:#fcd889;font-size:.85rem;font-weight:800}
+.schedule-loading,.schedule-empty{grid-column:1/-1;padding:24px;text-align:center;color:var(--text-secondary)}
+@media(max-width:900px){.karate-schedule-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.schedule-summary{margin:18px auto 20px;padding:14px 8px;border-radius:18px;gap:4px}.schedule-summary span{font-size:.68rem}.karate-schedule-grid{grid-template-columns:minmax(0,1fr);gap:14px}.schedule-card-head{padding:16px 18px}.schedule-card-body{padding:16px 18px 18px;gap:12px}.schedule-note{margin:18px auto 28px;border-radius:16px;text-align:center}}
