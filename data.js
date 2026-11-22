@@ -237,17 +237,55 @@
     return list.filter(Boolean).sort((a, b) => (a.order || 0) - (b.order || 0));
   }
   /* كتابة كل جزء في مساره المستقل بعملية update واحدة (ذرّية) */
+  async function assertCenterWriteAccess(db) {
+    const auth = db && db.app && typeof db.app.auth === "function"
+      ? db.app.auth()
+      : (global.firebase && typeof global.firebase.auth === "function" ? global.firebase.auth() : null);
+    const user = auth && auth.currentUser;
+    if (!user) {
+      const error = new Error("انتهت جلسة الإدارة أو تم الدخول بالطريقة القديمة. سجّل الدخول ببريد Firebase المصرّح له ثم أعد الحفظ.");
+      error.code = "YC_AUTH_REQUIRED";
+      throw error;
+    }
+    const token = await user.getIdTokenResult(true);
+    const claims = token && token.claims ? token.claims : {};
+    if (claims.ycAdmin !== true && claims.ycCenter !== true) {
+      const error = new Error("حسابك لا يحمل صلاحية ycCenter في Firebase. يجب تهيئة صلاحيات المشرف ثم تسجيل الخروج والدخول مجددًا.");
+      error.code = "YC_CENTER_CLAIM_REQUIRED";
+      throw error;
+    }
+  }
+
+  async function writeAtPath(db, path, value) {
+    try {
+      await db.ref(path).set(value);
+    } catch (cause) {
+      const error = new Error("رفض Firebase الكتابة إلى المسار " + path + ": " + ((cause && cause.message) || "Permission denied"));
+      error.code = (cause && cause.code) || "PERMISSION_DENIED";
+      error.path = path;
+      throw error;
+    }
+  }
+
   async function writeParts(db, data) {
+    await assertCenterWriteAccess(db);
     const { pub, priv } = splitPrivate(data);
-    const updates = {};
-    PUBLIC_KEYS.forEach(k => { updates[PATHS[k]] = pub[k] === undefined ? null : pub[k]; });
-    if (priv.fbToken !== undefined) updates[PRIVATE_FB_PATH + "/token"] = priv.fbToken;
-    await db.ref().update(updates);
-    // جدول الكاراتيه: مصدره الحقيقي karate_academy/schedules (يُدار من لوحة الكاراتيه أو من لوحة المنصة)
+    // اكتب كل قسم منفصلًا لتحديد المسار المرفوض بدقة وعدم إرسال تحديث جذر مبهم.
+    for (const key of PUBLIC_KEYS) {
+      const path = PATHS[key];
+      const value = pub[key] === undefined ? null : pub[key];
+      await writeAtPath(db, path, value);
+    }
+    if (priv.fbToken !== undefined) {
+      await writeAtPath(db, PRIVATE_FB_PATH + "/token", priv.fbToken);
+    }
+    // جدول الكاراتيه يُدار من لوحة المركز أو لوحة الكاراتيه بصلاحية مخصصة للمسار.
     if (Array.isArray(data.karateSchedule)) {
       const sched = {};
-      data.karateSchedule.forEach((x, i) => { sched[x.id || ("s" + String(i + 1).padStart(3, "0"))] = Object.assign({}, x, { order: i }); });
-      await db.ref(KARATE_SCHEDULE_PATH).set(sched);
+      data.karateSchedule.forEach((x, i) => {
+        sched[x.id || ("s" + String(i + 1).padStart(3, "0"))] = Object.assign({}, x, { order: i });
+      });
+      await writeAtPath(db, KARATE_SCHEDULE_PATH, sched);
     }
   }
 
