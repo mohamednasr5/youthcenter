@@ -379,15 +379,24 @@ ${winner === 'draw' ? 'أداء رائع وروح رياضية من الفريق
   } else if (text.startsWith('/available') || text.includes('المواعيد المتاحة')) {
     const todayKey = getEgyptDateKey();
     const bookingsData = await request(`${FIREBASE_DB_BASE}/bookings/${todayKey}.json`) || {};
-    const bookedTimes = new Set();
-    Object.values(bookingsData).forEach(b => {
-      if (b.status === 'confirmed' || b.status === 'pending') bookedTimes.add(b.startTime);
-    });
-    const allSlots = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00','00:00'];
-    const available = allSlots.filter(s => !bookedTimes.has(s));
+    const occupied = Object.values(bookingsData).filter(b => b && ['confirmed', 'pending'].includes(b.status));
+    const allSlots = [];
+    for (let minute = 9 * 60; minute < 24 * 60; minute += 30) {
+      const hour = String(Math.floor(minute / 60)).padStart(2, '0');
+      const mins = String(minute % 60).padStart(2, '0');
+      allSlots.push({ label: `${hour}:${mins}`, start: minute, end: minute + 30 });
+    }
+    const available = allSlots.filter(slot => !occupied.some(booking => {
+      const [sh, sm] = String(booking.startTime || '00:00').split(':').map(Number);
+      const [eh, em] = String(booking.endTime || '00:00').split(':').map(Number);
+      let bookingStart = sh * 60 + sm;
+      let bookingEnd = eh * 60 + em;
+      if (bookingEnd <= bookingStart) bookingEnd += 24 * 60;
+      return slot.start < bookingEnd && slot.end > bookingStart;
+    }));
     const reply = available.length
-      ? `⚡ <b>المواعيد الشاغرة اليوم (${todayKey}):</b>\n${available.map(s => `🟢 ${to12H(s)}`).join('\n')}\n\nhttps://mohamednasr5.github.io/youthcenter/pitch-booking/`
-      : '🔴 جميع ساعات اليوم محجوزة.';
+      ? `⚡ <b>المواعيد المتاحة اليوم (${todayKey}):</b>\\n${available.map(slot => `🟢 ${to12H(slot.label)}`).join('\\n')}\\n\\n<a href="https://mohamednasr5.github.io/youthcenter/pitch-booking/">احجز الآن عبر الموقع</a>`
+      : '🔴 لا توجد فترات متاحة اليوم.';
     await sendTelegramMessage(chatId, reply);
 
   } else if (text.startsWith('/help') || text.includes('مساعدة')) {
