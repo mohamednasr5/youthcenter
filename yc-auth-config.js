@@ -17,5 +17,6 @@ window.YC_AUTH_CONFIG = {
     { email: "mohamednasrofficial@gmail.com", roles: "all" },
     { email: "yehai2026hh@gmail.com", roles: "all" },
     { email: "admmarim95@gmail.com", roles: "all" },
+    { email: "ee86663@gmail.com", roles: "all" },
   ]
 };
