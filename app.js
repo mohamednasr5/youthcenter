@@ -16,9 +16,16 @@
   function renderTopBar() {
     $("#topLocation").innerHTML = "📍 " + esc(D.meta.location);
     const soc = $("#topSocial");
-    soc.innerHTML = D.meta.fbLink
-      ? `<a href="${esc(D.meta.fbLink)}" class="soc" aria-label="صفحة المركز على فيسبوك" target="_blank" rel="noopener">${SVG_FB}</a>`
-      : "";
+    if (!soc) return;
+    const wa = "https://wa.me/201222257977";
+    const fb = D.meta.fbLink || "https://www.facebook.com/Markz.shabab.elahmadya";
+    const messenger = D.meta.messengerLink || "https://m.me/Markz.shabab.elahmadya";
+    soc.innerHTML = `
+      <a href="${wa}" class="soc soc-whatsapp" aria-label="تواصل عبر واتساب 01222257977" title="واتساب 01222257977" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.52 3.48A11.8 11.8 0 0 0 2 17.72L.5 23.5l5.92-1.55A11.8 11.8 0 1 0 20.52 3.48ZM12 21a9 9 0 0 1-4.58-1.25l-.33-.2-3.42.9.91-3.34-.22-.34A9 9 0 1 1 12 21Zm5-6.73c-.28-.14-1.66-.82-1.92-.91-.26-.1-.45-.14-.64.14-.19.29-.73.91-.9 1.1-.16.19-.33.22-.61.08-.29-.14-1.21-.45-2.3-1.42-.85-.76-1.42-1.7-1.59-1.98-.16-.29-.02-.44.13-.58.13-.13.29-.33.43-.5.14-.16.19-.28.29-.47.09-.19.05-.36-.02-.5-.07-.14-.64-1.54-.88-2.1-.23-.55-.47-.48-.64-.49h-.55c-.19 0-.5.07-.76.36-.26.28-1  .98-1 2.38s1.02 2.76 1.16 2.95c.14.19 2.01 3.07 4.87 4.3.68.29 1.21.46 1.63.59.68.22 1.3.19 1.79.12.55-.08 1.66-.68 1.9-1.34.23-.66.23-1.22.16-1.34-.07-.12-.26-.19-.55-.33Z"/></svg>
+      </a>
+      <a href="${esc(fb)}" class="soc soc-facebook" aria-label="صفحة المركز على فيسبوك" title="فيسبوك" target="_blank" rel="noopener noreferrer">${SVG_FB}</a>
+      <a href="${esc(messenger)}" class="soc soc-messenger" aria-label="مراسلة المركز على ماسنجر" title="ماسنجر" target="_blank" rel="noopener noreferrer">${SVG_MSG}</a>`;
   }
 
   // ===== BRAND / HERO BG =====
@@ -471,10 +478,7 @@
               <div><h3>${esc(m.siteName)}</h3><span>${esc(m.tagline)}</span></div>
             </div>
             <p class="fdesc">صرح شبابي متكامل يخدم أبناء المنزلة بالدقهلية عبر أكاديميات رياضية متخصصة، وأنشطة دينية وثقافية وترفيهية، تحت إشراف مجلس إدارة منتخب. رسالتنا صناعة جيل متكامل بدنياً وذهنياً وروحياً.</p>
-            <div class="fsoc">
-              <a href="${esc(m.fbLink)}" target="_blank" rel="noopener" aria-label="صفحة المركز على فيسبوك">${SVG_FB}</a>
-              ${m.messengerLink ? `<a href="${esc(m.messengerLink)}" target="_blank" rel="noopener" aria-label="مراسلة المركز على ماسنجر">${SVG_MSG}</a>` : ""}
-            </div>
+
           </div>
           <div>
             <h4 class="ft">روابط سريعة</h4>
@@ -499,6 +503,7 @@
             <h4 class="ft">تواصل معنا</h4>
             <div class="ci"><span class="ci-ico">📍</span><a href="${esc(m.mapLink || "#")}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(m.location)}</a></div>
             <div class="ci"><span class="ci-ico">📞</span><a href="tel:${esc(String(m.phone || "").replace(/[^\d+]/g, ""))}" style="color:inherit;text-decoration:none" dir="ltr">${esc(m.phone)}</a></div>
+            <div class="ci"><span class="ci-ico">🟢</span><a href="https://wa.me/201222257977" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none" dir="ltr">واتساب: 01222257977</a></div>
             <a class="messenger-contact-btn" href="${esc(m.messengerLink || "https://m.me/Markz.shabab.elahmadya")}" target="_blank" rel="noopener noreferrer" aria-label="التواصل المباشر مع مركز شباب الأحمدية عبر ماسنجر">${SVG_MSG}<span>راسلنا عبر ماسنجر</span><span class="messenger-btn-arrow" aria-hidden="true">←</span></a>
             
             <div class="ci"><span class="ci-ico">🕒</span><span>${esc(m.hours)}</span></div>
