@@ -93,15 +93,20 @@ img{max-width:100%;display:block}
 .ticker .t-inner{display:flex;align-items:center;max-width:var(--maxw);margin:0 auto}
 .ticker .t-label{flex-shrink:0;display:flex;align-items:center;gap:8px;padding:11px 18px;background:linear-gradient(135deg,var(--gold),#d97706);color:#1a1206;font-weight:900;font-size:.82rem;letter-spacing:.3px;position:relative;z-index:2}
 .ticker .t-label .ldot{width:8px;height:8px;border-radius:50%;background:#1a1206;animation:blink 1.2s infinite}
-.ticker .t-track{flex:1;overflow:hidden;padding-left:0;mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
-.ticker .t-content{display:inline-flex;width:max-content;white-space:nowrap;animation:scrollTicker 38s linear infinite;padding:0 24px;will-change:transform}
-.ticker .t-content.ticker-running{animation-name:scrollTicker}
-.ticker .t-group{display:inline-flex;align-items:center;flex-shrink:0;width:max-content}
+.ticker .t-track{flex:1 1 0%;min-width:0;overflow:hidden;padding-left:0;mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+.ticker .t-content,.ticker .t-content.ticker-running{
+  display:flex;flex:0 0 auto;width:max-content;min-width:max-content;white-space:nowrap;
+  animation:scrollTicker 30s linear infinite!important;animation-play-state:running!important;
+  animation-iteration-count:infinite!important;animation-fill-mode:both!important;
+  padding:0 24px;will-change:transform;visibility:visible;opacity:1
+}
+.ticker .t-group{display:flex;flex:0 0 auto;align-items:center;width:max-content;min-width:max-content;direction:rtl}
+.ticker .t-item{flex:0 0 auto}
 
 .ticker .t-item{display:inline-flex;align-items:center;gap:8px;padding:11px 24px;font-weight:600;font-size:.86rem;color:var(--txt)}
 .ticker .t-item .sep{color:var(--gold);font-weight:900}
 .ticker .t-item .ico{color:var(--emerald-2)}
-@keyframes scrollTicker{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
+@keyframes scrollTicker{0%{transform:translate3d(-50%,0,0)}100%{transform:translate3d(0,0,0)}}
 /* الشريط المتصل يعمل بالطريقة نفسها على الهاتف والكمبيوتر */
 @media(max-width:640px){
   .ticker .t-label{font-size:.72rem;padding:9px 12px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;letter-spacing:.5px}
@@ -432,9 +437,8 @@ img{max-width:100%;display:block}
   /* شريط الأخبار استثناء مقصود: يجب أن يظل متحركاً ومتكرراً بلا نهاية */
   .ticker .t-content,
   .ticker .t-content.ticker-running{
-    animation-name:scrollTicker!important;
-    animation-duration:38s!important;
-    animation-timing-function:linear!important;
+    animation:scrollTicker 30s linear infinite!important;
+    animation-play-state:running!important;
     animation-iteration-count:infinite!important;
     animation-fill-mode:both!important;
   }
