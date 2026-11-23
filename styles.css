@@ -550,3 +550,16 @@ img{max-width:100%;display:block}
 .messenger-contact-btn span:nth-child(2){flex:1;text-align:center}
 .messenger-btn-arrow{font-size:1.1rem;opacity:.85}
 @media(prefers-reduced-motion:reduce){.bcard::before{animation:none;opacity:.75}.bcard,.messenger-contact-btn{transition:none}}
+
+/* Three direct contact icons in the top bar */
+.topbar .tb-right{display:flex;align-items:center;gap:9px}
+.topbar .tb-right .soc{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(255,255,255,.055);border:1px solid var(--border)}
+.topbar .tb-right .soc svg{width:18px;height:18px;fill:currentColor}
+.topbar .tb-right .soc-whatsapp{color:#34d399}
+.topbar .tb-right .soc-facebook{color:#60a5fa}
+.topbar .tb-right .soc-messenger{color:#93c5fd}
+@media(max-width:640px){
+  .topbar .tb-right .soc:nth-child(n+3){display:grid}
+  .topbar .tb-right{gap:6px}
+  .topbar .tb-right .soc{width:32px;height:32px}
+}
