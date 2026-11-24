@@ -42,7 +42,9 @@
     .secondary{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff}
     .redirect-note{margin:14px auto 0;color:#cbd5e1;font-size:.88rem}.redirect-note strong{display:inline-grid;place-items:center;min-width:30px;height:30px;margin:0 4px;border-radius:50%;background:rgba(251,191,36,.16);color:var(--gold);border:1px solid rgba(251,191,36,.35);font-variant-numeric:tabular-nums}.foot{margin-top:22px;color:#7f8ba2;font-size:.76rem}
     @keyframes shoot{0%{left:9%;bottom:27px;transform:translate(0,0) scale(1) rotate(0)}38%{left:38%;bottom:150px;transform:translate(0,0) scale(.88) rotate(420deg)}70%{left:69%;bottom:112px;transform:translate(0,0) scale(.68) rotate(850deg)}86%{left:81%;bottom:86px;transform:translate(0,0) scale(.58) rotate(1050deg)}100%{left:84%;bottom:78px;transform:translate(0,0) scale(.55) rotate(1120deg)}}
-    @keyframes spin{to{transform:rotate(360deg)}}\n    @keyframes netCatch{0%{transform:perspective(420px) rotateX(0) scale(1)}45%{transform:perspective(420px) rotateX(-24deg) scale(.9,.82) translateY(9px)}100%{transform:perspective(420px) rotateX(-13deg) scale(.94,.9) translateY(5px)}}\n    @keyframes netRestore{0%{transform:perspective(420px) rotateX(-13deg) scale(.94,.9) translateY(5px)}55%{transform:perspective(420px) rotateX(7deg) scale(1.02,1.04) translateY(-2px)}100%{transform:perspective(420px) rotateX(0) scale(1) translateY(0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes netCatch{0%{transform:perspective(420px) rotateX(0) scale(1)}45%{transform:perspective(420px) rotateX(-24deg) scale(.9,.82) translateY(9px)}100%{transform:perspective(420px) rotateX(-13deg) scale(.94,.9) translateY(5px)}}
+    @keyframes netRestore{0%{transform:perspective(420px) rotateX(-13deg) scale(.94,.9) translateY(5px)}55%{transform:perspective(420px) rotateX(7deg) scale(1.02,1.04) translateY(-2px)}100%{transform:perspective(420px) rotateX(0) scale(1) translateY(0)}}
     @keyframes netShake{0%,100%{transform:perspective(500px) rotateY(-7deg) translateX(0)}25%{transform:perspective(500px) rotateY(-7deg) translateX(7px)}50%{transform:perspective(500px) rotateY(-7deg) translateX(-6px)}75%{transform:perspective(500px) rotateY(-7deg) translateX(4px)}}
     @keyframes goalPop{to{opacity:1;transform:translateX(-50%) scale(1)}}
     @media(max-width:560px){body{padding:18px}.pitch{height:220px;margin-top:14px}.goal{width:155px;height:125px;right:6%;border-width:5px}.goal-label{right:6%;width:155px}.ball{width:43px;height:43px;animation-name:shootMobile}.keeper-shadow{display:none}@keyframes shootMobile{0%{left:4%;bottom:27px;transform:scale(1) rotate(0)}45%{left:38%;bottom:125px;transform:scale(.8) rotate(500deg)}78%{left:73%;bottom:87px;transform:scale(.62) rotate(900deg)}100%{left:78%;bottom:72px;transform:scale(.55) rotate(1120deg)}}}
@@ -73,7 +75,8 @@
       <a class="btn primary" href="./">🏠 العودة إلى الرئيسية</a>
       <a class="btn secondary" href="/youthcenter/charity-wall/">🧱 حائط الخير</a>
     </nav>
-    <p class="redirect-note">سيتم إعادتك إلى الصفحة الرئيسية خلال <strong id="countdown">10</strong> ثوانٍ</p>\n    <p class="foot">مركز شباب الأحمدية — المنزلة، الدقهلية · نورتنا في أي وقت 💚</p>
+    <p class="redirect-note">سيتم إعادتك إلى الصفحة الرئيسية خلال <strong id="countdown">10</strong> ثوانٍ</p>
+    <p class="foot">مركز شباب الأحمدية — المنزلة، الدقهلية · نورتنا في أي وقت 💚</p>
   </main>
   <script>
     const goal=document.getElementById('goal');
