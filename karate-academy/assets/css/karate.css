@@ -324,17 +324,19 @@ body {
 /* Contact box inside the featured coach card */
 .coach-contact { margin-top: 18px; padding: 14px 16px; border-radius: 14px; background: linear-gradient(180deg, rgba(244,63,94,0.10), rgba(244,63,94,0.04)); border: 1px solid rgba(244,63,94,0.25); }
 .coach-contact-title { color: #fff; font-weight: 800; font-size: 0.92rem; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-.coach-contact-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.contact-btn { flex: 1 1 160px; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; text-decoration: none; font-weight: 700; transition: transform 0.2s ease, box-shadow 0.2s ease; border: 1px solid rgba(255,255,255,0.12); }
+.coach-contact-actions { display: grid; grid-template-columns: minmax(0,1fr); gap: 10px; min-width: 0; }
+.contact-btn { width: 100%; min-width: 0; display: grid; grid-template-columns: 24px auto minmax(0,1fr); align-items: center; gap: 8px; padding: 11px 12px; border-radius: 12px; text-decoration: none; font-weight: 700; transition: transform 0.2s ease, box-shadow 0.2s ease; border: 1px solid rgba(255,255,255,0.12); overflow: hidden; }
 .contact-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 .contact-call { background: linear-gradient(135deg, #0ea5e9, #0369a1); color: #fff; }
 .contact-whatsapp { background: linear-gradient(135deg, #22c55e, #15803d); color: #fff; }
-.contact-icon { font-size: 1.1rem; }
-.contact-label { font-size: 0.82rem; opacity: 0.95; }
-.contact-value { font-size: 0.86rem; font-weight: 800; margin-inline-start: auto; letter-spacing: 0.5px; }
+.contact-icon { font-size: 1.1rem; line-height: 1; }
+.contact-label { font-size: 0.82rem; opacity: 0.95; white-space: nowrap; }
+.contact-value { display: block; min-width: 0; max-width: 100%; font-size: clamp(.76rem,2.5vw,.9rem); font-weight: 900; margin-inline-start: 0; letter-spacing: 0; direction: ltr; unicode-bidi: isolate; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) {
-  .contact-btn { flex: 1 1 100%; }
-  .contact-value { font-size: 0.92rem; }
+  .coach-card.featured .coach-body { padding: 18px 14px; }
+  .coach-contact { padding: 12px 10px; }
+  .contact-btn { grid-template-columns: 22px auto minmax(0,1fr); gap: 7px; padding: 10px 9px; }
+  .contact-value { font-size: .8rem; }
 }
 
 /* ============ CERTIFICATES ============ */
