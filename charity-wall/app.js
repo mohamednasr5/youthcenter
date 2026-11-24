@@ -39,7 +39,7 @@ async function main() {
 
   const container = $('#cwViewport');
   const loader = $('#cwLoader');
-  const isLow = localStorage.getItem('cw_quality') === 'low';
+  const isLow = localStorage.getItem('cw_quality_preference') === 'low';
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ─── بناء المشهد ─── */
@@ -55,8 +55,7 @@ async function main() {
       },
       onStats: n => { $('#cwBrickCount').textContent = n.toLocaleString('ar-EG'); },
       onAutoLow: () => {
-        localStorage.setItem('cw_quality', 'low');
-        toast('تم تفعيل وضع الأداء الخفيف تلقائيًا لجهازك');
+        toast('تم تفعيل وضع الأداء الخفيف مؤقتًا لتحسين سلاسة العرض على جهازك');
         $('#cwQualityBtn').classList.add('on');
       }
     });
@@ -256,7 +255,7 @@ async function main() {
   if (isLow) qBtn.classList.add('on');
   qBtn.addEventListener('click', () => {
     const low = qBtn.classList.toggle('on');
-    localStorage.setItem('cw_quality', low ? 'low' : 'high');
+    localStorage.setItem('cw_quality_preference', low ? 'low' : 'high');
     if (wall) wall.setQuality(low ? 'low' : 'high');
     toast(low ? 'وضع الأداء الخفيف: بدون ظلال بدقة أقل' : 'وضع الجودة العالية: ظلال و تفاصيل كاملة');
   });
