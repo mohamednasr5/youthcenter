@@ -838,27 +838,46 @@ export class Wall3D {
     const ray = new THREE.Raycaster();
     const ndc = new THREE.Vector2();
     let downX = 0, downY = 0;
+    let pressed = false;
+    let hoverFrame = 0;
+    let latestPointer = null;
+    let lastHoverId = null;
 
-    dom.addEventListener('pointerdown', e => { downX = e.clientX; downY = e.clientY; });
+    /* الضغط يحدد الطوبة مرة واحدة فقط بعد انتهاء اللمسة/النقرة */
+    dom.addEventListener('pointerdown', e => {
+      downX = e.clientX;
+      downY = e.clientY;
+      pressed = true;
+      latestPointer = null;
+      if (hoverFrame) cancelAnimationFrame(hoverFrame);
+      hoverFrame = 0;
+      if (this._brickTooltip) this._brickTooltip.style.display = 'none';
+    }, { passive: true });
+
     dom.addEventListener('pointerup', e => {
+      pressed = false;
       if (Math.hypot(e.clientX - downX, e.clientY - downY) > 7) return;
       const hit = this._pick(e, ray, ndc);
       if (!hit) return;
-      sounds.pop();
       const entry = this.bricks.get(hit.recordId);
       if (!entry) return;
-      const group = this.tierGroups[entry.tierId];
+
+      /* افتح بيانات المتبرع فورًا؛ لا ننتظر انتهاء حركة الطوبة */
       const screen = this.worldToScreen(entry.position);
-      /* فرقعة: تتقدم الطوبة للأمام قليلًا ثم تعود بعد 5 ثوان */
+      this.onPick(entry.record, screen);
+      sounds.pop();
+
+      const group = this.tierGroups[entry.tierId];
       popBrick(
         m => group.getMatrixAt(entry.groupIdx, m),
         m => group.setMatrixAt(entry.groupIdx, m),
         entry.matrix
       );
-      this.onPick(entry.record, screen);
-    });
+    }, { passive: true });
 
-    /* تلميح نوع الطوبة عند الوقوف عليها */
+    dom.addEventListener('pointercancel', () => { pressed = false; }, { passive: true });
+
+    /* تلميح المرور اختياري للفأرة فقط؛ لا ننفذ Raycast مع كل حركة إصبع */
     const tip = document.createElement('div');
     tip.className = 'cw-brick-tooltip';
     Object.assign(tip.style, {
@@ -874,21 +893,38 @@ export class Wall3D {
     document.body.appendChild(tip);
     this._brickTooltip = tip;
 
-    const hideTip = () => { tip.style.display = 'none'; };
-    dom.addEventListener('pointerleave', hideTip);
+    const hideTip = () => {
+      lastHoverId = null;
+      tip.style.display = 'none';
+      dom.style.cursor = 'grab';
+    };
+    dom.addEventListener('pointerleave', hideTip, { passive: true });
     dom.addEventListener('pointermove', e => {
-      if (this._pointersBusy) { hideTip(); return; }
-      const hit = this._pick(e, ray, ndc);
-      dom.style.cursor = hit ? 'pointer' : 'grab';
-      if (!hit) { hideTip(); return; }
-      const entry = this.bricks.get(hit.recordId);
-      if (!entry) { hideTip(); return; }
-      const tier = tierById(entry.tierId, this.tiers);
-      tip.textContent = 'نوع الطوبة: ' + tier.label;
-      tip.style.left = Math.min(e.clientX, window.innerWidth - 175) + 'px';
-      tip.style.top = Math.min(e.clientY, window.innerHeight - 55) + 'px';
-      tip.style.display = 'block';
-    });
+      if (e.pointerType !== 'mouse' || pressed || this._pointersBusy) {
+        if (this._pointersBusy) hideTip();
+        return;
+      }
+      latestPointer = { clientX: e.clientX, clientY: e.clientY };
+      if (hoverFrame) return;
+      hoverFrame = requestAnimationFrame(() => {
+        hoverFrame = 0;
+        const p = latestPointer;
+        if (!p || pressed || this._pointersBusy) return;
+        const hit = this._pick(p, ray, ndc);
+        if (!hit) { hideTip(); return; }
+        const entry = this.bricks.get(hit.recordId);
+        if (!entry) { hideTip(); return; }
+        dom.style.cursor = 'pointer';
+        if (lastHoverId !== hit.recordId) {
+          const tier = tierById(entry.tierId, this.tiers);
+          tip.textContent = 'نوع الطوبة: ' + tier.label;
+          lastHoverId = hit.recordId;
+        }
+        tip.style.left = Math.min(p.clientX, window.innerWidth - 175) + 'px';
+        tip.style.top = Math.min(p.clientY, window.innerHeight - 55) + 'px';
+        tip.style.display = 'block';
+      });
+    }, { passive: true });
   }
 
   get _pointersBusy() { return this.controls._pointers.size > 0; }
