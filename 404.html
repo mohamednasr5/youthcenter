@@ -24,10 +24,10 @@
     .pitch{height:270px;max-width:760px;margin:18px auto 12px;position:relative;isolation:isolate}
     .pitch:before{content:"";position:absolute;left:5%;right:5%;bottom:24px;height:2px;background:linear-gradient(90deg,transparent,rgba(16,185,129,.65),transparent);box-shadow:0 0 22px rgba(16,185,129,.4)}
     .goal{position:absolute;right:10%;bottom:26px;width:220px;height:170px;border:7px solid #e8edf5;border-bottom:0;border-radius:7px 7px 0 0;transform:perspective(500px) rotateY(-7deg);filter:drop-shadow(0 0 18px rgba(255,255,255,.14))}
-    .goal:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 21px,rgba(220,230,245,.27) 22px 23px),repeating-linear-gradient(0deg,transparent 0 19px,rgba(220,230,245,.25) 20px 21px);transform:skewY(-3deg);transform-origin:top}
+    .goal:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 21px,rgba(220,230,245,.34) 22px 23px),repeating-linear-gradient(0deg,transparent 0 19px,rgba(220,230,245,.3) 20px 21px);transform:skewY(-3deg);transform-origin:50% 0;box-shadow:inset 0 0 22px rgba(255,255,255,.08)}
     .goal:after{content:"";position:absolute;left:-12px;right:-12px;bottom:-5px;height:6px;background:#e8edf5;border-radius:8px}
     .net{position:absolute;inset:0;transform-origin:center;opacity:.8}
-    .goal.shake{animation:netShake .55s ease-out 2}
+    .goal.shake{animation:netShake .18s ease-in-out 3}.goal.catch:before{animation:netCatch .62s cubic-bezier(.18,.75,.25,1) forwards,netRestore .9s cubic-bezier(.2,.7,.25,1) 1.1s forwards}.goal.catch{box-shadow:0 0 34px rgba(16,185,129,.45),inset 0 0 25px rgba(16,185,129,.18)}
     .keeper-shadow{position:absolute;right:calc(10% + 70px);bottom:28px;width:72px;height:116px;opacity:0;filter:drop-shadow(0 0 8px rgba(251,191,36,.35))}
     .keeper-shadow:before{content:"";position:absolute;left:22px;top:0;width:28px;height:28px;border-radius:50%;background:#fbbf24}
     .keeper-shadow:after{content:"";position:absolute;left:8px;top:29px;width:58px;height:78px;border-radius:18px 18px 7px 7px;background:linear-gradient(135deg,#f59e0b,#b45309);clip-path:polygon(25% 0,75% 0,100% 100%,0 100%)}
@@ -40,13 +40,13 @@
     .btn:hover{transform:translateY(-3px)}
     .primary{background:linear-gradient(135deg,#fbbf24,#d97706);color:#211505;box-shadow:0 10px 28px rgba(245,158,11,.22)}
     .secondary{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff}
-    .foot{margin-top:28px;color:#7f8ba2;font-size:.76rem}
+    .redirect-note{margin:14px auto 0;color:#cbd5e1;font-size:.88rem}.redirect-note strong{display:inline-grid;place-items:center;min-width:30px;height:30px;margin:0 4px;border-radius:50%;background:rgba(251,191,36,.16);color:var(--gold);border:1px solid rgba(251,191,36,.35);font-variant-numeric:tabular-nums}.foot{margin-top:22px;color:#7f8ba2;font-size:.76rem}
     @keyframes shoot{0%{left:9%;bottom:27px;transform:translate(0,0) scale(1) rotate(0)}38%{left:38%;bottom:150px;transform:translate(0,0) scale(.88) rotate(420deg)}70%{left:69%;bottom:112px;transform:translate(0,0) scale(.68) rotate(850deg)}86%{left:81%;bottom:86px;transform:translate(0,0) scale(.58) rotate(1050deg)}100%{left:84%;bottom:78px;transform:translate(0,0) scale(.55) rotate(1120deg)}}
-    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes spin{to{transform:rotate(360deg)}}\n    @keyframes netCatch{0%{transform:perspective(420px) rotateX(0) scale(1)}45%{transform:perspective(420px) rotateX(-24deg) scale(.9,.82) translateY(9px)}100%{transform:perspective(420px) rotateX(-13deg) scale(.94,.9) translateY(5px)}}\n    @keyframes netRestore{0%{transform:perspective(420px) rotateX(-13deg) scale(.94,.9) translateY(5px)}55%{transform:perspective(420px) rotateX(7deg) scale(1.02,1.04) translateY(-2px)}100%{transform:perspective(420px) rotateX(0) scale(1) translateY(0)}}
     @keyframes netShake{0%,100%{transform:perspective(500px) rotateY(-7deg) translateX(0)}25%{transform:perspective(500px) rotateY(-7deg) translateX(7px)}50%{transform:perspective(500px) rotateY(-7deg) translateX(-6px)}75%{transform:perspective(500px) rotateY(-7deg) translateX(4px)}}
     @keyframes goalPop{to{opacity:1;transform:translateX(-50%) scale(1)}}
     @media(max-width:560px){body{padding:18px}.pitch{height:220px;margin-top:14px}.goal{width:155px;height:125px;right:6%;border-width:5px}.goal-label{right:6%;width:155px}.ball{width:43px;height:43px;animation-name:shootMobile}.keeper-shadow{display:none}@keyframes shootMobile{0%{left:4%;bottom:27px;transform:scale(1) rotate(0)}45%{left:38%;bottom:125px;transform:scale(.8) rotate(500deg)}78%{left:73%;bottom:87px;transform:scale(.62) rotate(900deg)}100%{left:78%;bottom:72px;transform:scale(.55) rotate(1120deg)}}}
-    @media(prefers-reduced-motion:reduce){.ball{animation:none;left:84%;bottom:78px;transform:scale(.55)}.ball svg{animation:none}.goal-text{animation:none;opacity:1;transform:translateX(-50%) scale(1)}.goal{animation:none}}
+    @media(prefers-reduced-motion:reduce){.ball{animation:none;left:84%;bottom:78px;transform:scale(.55)}.ball svg{animation:none}.goal-text{animation:none;opacity:1;transform:translateX(-50%) scale(1)}.goal{animation:none}.goal.catch:before{animation:none;transform:none}}
   </style>
 </head>
 <body>
@@ -73,7 +73,7 @@
       <a class="btn primary" href="./">🏠 العودة إلى الرئيسية</a>
       <a class="btn secondary" href="/youthcenter/charity-wall/">🧱 حائط الخير</a>
     </nav>
-    <p class="foot">مركز شباب الأحمدية — المنزلة، الدقهلية · نورتنا في أي وقت 💚</p>
+    <p class="redirect-note">سيتم إعادتك إلى الصفحة الرئيسية خلال <strong id="countdown">10</strong> ثوانٍ</p>\n    <p class="foot">مركز شباب الأحمدية — المنزلة، الدقهلية · نورتنا في أي وقت 💚</p>
   </main>
   <script>
     const goal=document.getElementById('goal');
