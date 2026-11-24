@@ -141,7 +141,7 @@ function renderDash() {
   ];
   $('#dashCards').innerHTML = cards.map(c => `<div class="dash-card ${c.cls || ''}"><div class="v">${esc(c.v)}</div><div class="k">${c.k}</div></div>`).join('');
   $('#dashRecent tbody').innerHTML = state.donations.slice(0, 6).map(d => `<tr>
-      <td>${esc(d.donorName || '')}</td><td>${esc(egp(d.amount))}</td>
+      <td>${esc(d.donorName || '')}</td><td>${esc(egp(d.contributionType && d.contributionType !== 'cash' ? d.estimatedValue : d.amount))}</td>
       <td><span class="pill ${d.status}">${statusLabel(d.status)}</span></td>
       <td>${esc(fmtDate(d.date || d.createdAt))}</td></tr>`).join('')
     || `<tr><td colspan="4" style="text-align:center;color:var(--txt-mute)">لا تبرعات بعد</td></tr>`;
@@ -406,7 +406,7 @@ function renderReports() {
     { v: egp(s.totalInKindContributions), k: 'المساهمات العينية', cls: 'blue' },
     { v: egp(s.totalContributionValue ?? s.totalApprovedDonations), k: 'إجمالي قيمة الخير' },
     { v: egp(s.totalExpenses), k: 'المصروفات النقدية', cls: 'red' },
-    { v: egp(s.balance), k: 'الرصيد', cls: 'emerald' },
+    { v: egp(s.cashBalance ?? s.balance), k: 'الرصيد النقدي المتاح', cls: 'emerald' },
     { v: String(s.brickCount ?? 0), k: 'طوبات', cls: 'blue' }
   ].map(c => `<div class="dash-card ${c.cls || ''}"><div class="v">${esc(c.v)}</div><div class="k">${c.k}</div></div>`).join('');
 
@@ -430,8 +430,8 @@ $$('[data-export]').forEach(b => b.addEventListener('click', () => {
     csv = 'الاسم,الهاتف,الإجمالي المعتمد,الفئة\n' + state.donors.map(d =>
       `"${d.name || ''}","${(state.privates.get(d.id) || {}).phone || ''}",${d.totalDonation || 0},"${tierById(d.brickType, state.tiers).label}"`).join('\n');
   } else if (kind === 'donations') {
-    csv = 'المتبرع,المبلغ,الحالة,طريقة الدفع,رقم العملية,التاريخ\n' + state.donations.map(d =>
-      `"${d.donorName || ''}",${d.amount || 0},"${statusLabel(d.status)}","${d.paymentMethod || ''}","${d.transactionId || ''}","${fmtDate(d.date || d.createdAt)}"`).join('\n');
+    csv = 'المساهم,نوع المساهمة,الوصف,القيمة التقديرية,النقد المحصّل,الحالة,طريقة الدفع,رقم العملية,التاريخ\n' + state.donations.map(d =>
+      `"${d.donorName || ''}","${d.contributionType || 'cash'}","${d.title || d.description || ''}",${d.contributionType && d.contributionType !== 'cash' ? d.estimatedValue || 0 : d.amount || 0},${d.amount || 0},"${statusLabel(d.status)}","${d.paymentMethod || ''}","${d.transactionId || ''}","${fmtDate(d.date || d.createdAt)}"`).join('\n');
   } else if (kind === 'expenses') {
     csv = 'العنوان,البند,المبلغ,التاريخ,المعتمد\n' + state.expenses.map(x =>
       `"${x.title || ''}","${x.category || ''}",${x.amount || 0},"${fmtDate(x.date)}","${x.approvedBy || ''}"`).join('\n');
