@@ -58,14 +58,30 @@ function nameLabelTexture(name, tier) {
   ctx.stroke();
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = '700 46px Cairo, Tajawal, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.direction = 'rtl';
-  const txt = name.length > 16 ? name.slice(0, 15) + '…' : name;
   ctx.shadowColor = 'rgba(0,0,0,.85)';
-  ctx.shadowBlur = 8;
-  ctx.fillText(txt, 160, 72);
+  ctx.shadowBlur = 7;
+  const words = String(name || 'متبرع').trim().split(/\\s+/);
+  let fontSize = 38, lines = [];
+  const maxWidth = 278;
+  const wrap = () => {
+    ctx.font = `700 ${fontSize}px Cairo, Tajawal, sans-serif`;
+    const result = [];
+    let line = '';
+    words.forEach(word => {
+      const next = line ? line + ' ' + word : word;
+      if (line && ctx.measureText(next).width > maxWidth) { result.push(line); line = word; }
+      else line = next;
+    });
+    if (line) result.push(line);
+    return result;
+  };
+  do { lines = wrap(); if (lines.length <= 3) break; fontSize -= 2; } while (fontSize > 18);
+  const lineHeight = Math.min(38, fontSize + 4);
+  const startY = 70 - ((lines.length - 1) * lineHeight) / 2;
+  lines.forEach((line, i) => ctx.fillText(line, 160, startY + i * lineHeight, maxWidth));
 
   const tex = new THREE.CanvasTexture(c);
   tex.anisotropy = 4;
@@ -598,10 +614,10 @@ export class Wall3D {
   }
 
   /* ───── موضع الطوبة من رقمها التسلسلي ───── */
-  _slotPosition(index) {
+  _slotPosition(index, rowCount = PER_ROW) {
     const row = Math.floor(index / PER_ROW);
     const col = index % PER_ROW;
-    const x = (col - (PER_ROW - 1) / 2) * S + (row % 2 ? S / 2 : 0);
+    const x = (col - (rowCount - 1) / 2) * S + (row % 2 ? S / 2 : 0);
     const y = row * (B.h + B.gap) + B.h / 2;
     return new THREE.Vector3(x, y, 0);
   }
@@ -638,7 +654,11 @@ export class Wall3D {
     this._closerRows = 0;
     this.closers.clear();
 
-    records.forEach(r => this._placeInstance(r, false));
+    records.forEach((r, i) => {
+      const rowStart = Math.floor(i / PER_ROW) * PER_ROW;
+      const rowCount = Math.min(PER_ROW, records.length - rowStart);
+      this._placeInstance(r, false, null, this._slotPosition(i, rowCount));
+    });
     const rows = Math.ceil(Math.max(this.count, 1) / PER_ROW);
     this._ensureClosers(rows);
     this._growMortar(rows);
@@ -649,11 +669,11 @@ export class Wall3D {
     if (this.count === 0) this.onEmpty(true); else this.onEmpty(false);
   }
 
-  _placeInstance(record, animate, fromPos) {
+  _placeInstance(record, animate, fromPos, positionOverride) {
     const index = typeof record.index === 'number' ? record.index : this.count;
     const tierId = record.brickType || 'clay';
     const tier = tierById(tierId, this.tiers);
-    const pos = this._slotPosition(index);
+    const pos = positionOverride || this._slotPosition(index, (index % PER_ROW) + 1);
     const dummy = new THREE.Object3D();
     dummy.position.copy(pos);
     dummy.updateMatrix();
@@ -705,7 +725,24 @@ export class Wall3D {
   addBrick(record) {
     if (this.bricks.has(record.id)) return;
     const rowsBefore = Math.ceil(Math.max(this.count, 1) / PER_ROW);
-    this._placeInstance(record, true);
+    const newIndex = typeof record.index === 'number' ? record.index : this.count;
+    const rowCount = (newIndex % PER_ROW) + 1;
+    this._placeInstance(record, true, null, this._slotPosition(newIndex, rowCount));
+    /* إعادة توسيط طوبات الصف الجاري كلما أضيفت طوبة جديدة إليه. */
+    const rowStart = Math.floor(newIndex / PER_ROW) * PER_ROW;
+    for (const entry of this.bricks.values()) {
+      const idx = Number(entry.record.index);
+      if (idx < rowStart || idx > newIndex) continue;
+      const pos = this._slotPosition(idx, rowCount);
+      const dummy = new THREE.Object3D();
+      dummy.position.copy(pos);
+      dummy.updateMatrix();
+      const group = this.tierGroups[entry.tierId] || this.tierGroups.clay;
+      group.setMatrixAt(entry.groupIdx, dummy.matrix);
+      entry.matrix.copy(dummy.matrix);
+      entry.position.copy(pos);
+      entry.namePlane.position.set(pos.x, pos.y, B.d / 2 + 0.02);
+    }
     const rowsAfter = Math.ceil(this.count / PER_ROW);
     if (rowsAfter > rowsBefore) this._ensureClosers(rowsAfter);
     this._growMortar(Math.max(rowsAfter, 1));
