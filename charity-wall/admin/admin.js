@@ -59,7 +59,7 @@ onAuthStateChanged(auth, async user => {
   if (!user) { showLogin(); return; }
   state.user = user;
   $('#adminEmail').textContent = user.email || '';
-  if (!ADMIN_UIDS.has(user.uid)) { toast('هذا الحساب غير مصرح له بإدارة حائط الخير', true); await signOut(auth); showLogin(); return; }
+  if (!ADMIN_UIDS.has(user.uid)) { toast('هذا الحساب غير مصرح له بإدارة حائط الخير', true); await signOut(auth); showLogin(); if ($('#googleLoginBtn')) $('#googleLoginBtn').disabled=false; return; }
   state.isAdmin=true;
   $('#loginScreen').style.display='none';
   $('#adminApp').hidden=false;
