@@ -184,10 +184,16 @@ async function main() {
       <div class="cw-bc-name">${escapeHtml(record.donorName || 'متبرع كريم')}</div>
       <div class="cw-bc-tier"><i style="background:${tier.cssColor}"></i> طوبة ${escapeHtml(tier.label)}</div>
       <div class="cw-bc-grid">
-        <div><span class="k">إجمالي المساهمة</span><span class="v">${escapeHtml(egp(record.totalDonation))}</span></div>
+        <div><span class="k">إجمالي قيمة المساهمة</span><span class="v">${escapeHtml(egp(record.totalDonation))}</span></div>
+        <div><span class="k">منها نقدي محصّل</span><span class="v">${escapeHtml(egp(record.cashContribution||0))}</span></div>
+        <div><span class="k">قيمة عينية تقديرية</span><span class="v">${escapeHtml(egp(record.inKindContribution||0))}</span></div>
         <div><span class="k">تاريخ الاعتماد</span><span class="v">${escapeHtml(fmtDate(record.createdAt))}</span></div>
-        <div><span class="k">الموضع في الحائط</span><span class="v">صف ${Number(record.row) + 1} • طوبة ${Number(record.column) + 1}</span></div>
+        <div><span class="k">الموضع في الحائط</span><span class="v">صف ${Number(record.row)+1} • طوبة ${Number(record.column)+1}</span></div>
       </div>
+      ${Array.isArray(record.contributionDetails)&&record.contributionDetails.length?`
+        <div class="cw-bc-contributions"><strong>ماذا قدّم صاحب الطوبة؟</strong>${record.contributionDetails.map(x=>`
+          <div class="cw-bc-contribution"><b>${escapeHtml(({cash:'تبرع نقدي',service:'خدمة أو خبرة',material:'مواد وخامات',labor:'جهد وتنفيذ',sponsorship:'رعاية مشروع'})[x.type]||x.type)}</b>
+          <span>${escapeHtml(x.title||'')}</span>${x.description?`<small>${escapeHtml(x.description)}</small>`:''}<em>${escapeHtml(egp(x.estimatedValue||x.amount||0))}</em></div>`).join('')}`:''}
       <div class="cw-bc-timer"></div>`;
     card.classList.add('show');
 
