@@ -51,7 +51,7 @@
       <nav class="admin-tabs" role="tablist" aria-label="أقسام لوحة التحكم">
         <button class="tab on" data-tab="dash" role="tab" type="button">📊 نظرة عامة</button>
         <button class="tab" data-tab="donors" role="tab" type="button">👥 المتبرعون</button>
-        <button class="tab" data-tab="donations" role="tab" type="button">💰 التبرعات <span class="badge" id="pendingBadge" hidden></span></button>
+        <button class="tab" data-tab="donations" role="tab" type="button">🤝 المساهمات <span class="badge" id="pendingBadge" hidden></span></button>
         <button class="tab" data-tab="expenses" role="tab" type="button">🧾 المصروفات</button>
         <button class="tab" data-tab="tiers" role="tab" type="button">🧱 فئات الطوب</button>
         <button class="tab" data-tab="reports" role="tab" type="button">📈 التقارير</button>
@@ -62,9 +62,9 @@
       <section class="tab-panel on" id="tab-dash" role="tabpanel">
         <div class="dash-cards" id="dashCards"></div>
         <div class="card">
-          <h3>آخر التبرعات</h3>
+          <h3>آخر المساهمات</h3>
           <div class="table-wrap"><table id="dashRecent"><thead>
-            <tr><th>المتبرع</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th></tr>
+            <tr><th>المتبرع</th><th>القيمة</th><th>الحالة</th><th>التاريخ</th></tr>
           </thead><tbody></tbody></table></div>
         </div>
       </section>
@@ -95,25 +95,26 @@
       <!-- التبرعات -->
       <section class="tab-panel" id="tab-donations" role="tabpanel">
         <div class="card">
-          <h3>تسجيل تبرع نقدي</h3>
+          <h3>تسجيل مساهمة جديدة</h3>
           <form id="donationForm" class="grid-form">
-            <label><span>المتبرع *</span><select id="dnDonor" required></select></label>
-            <label><span>المبلغ (ج.م) *</span><input id="dnAmount" type="number" min="1" step="0.01" required placeholder="1000"></label>
+            <label><span>المساهم *</span><select id="dnDonor" required></select></label>
+            <label><span>نوع المساهمة *</span><select id="dnType"><option value="cash">تبرع نقدي</option><option value="service">خدمة أو خبرة</option><option value="material">مواد وخامات</option><option value="labor">جهد أو تنفيذ</option><option value="sponsorship">رعاية مشروع</option></select></label>
+            <label id="dnCashWrap"><span>المبلغ المحصّل فعليًا (ج.م) *</span><input id="dnAmount" type="number" min="0.01" step="0.01" placeholder="1000"></label>
+            <label id="dnValueWrap" hidden><span>القيمة التقديرية للمساهمة (ج.م) *</span><input id="dnValue" type="number" min="0.01" step="0.01" placeholder="12000"></label>
+            <label id="dnTitleWrap" hidden><span>عنوان المساهمة *</span><input id="dnTitle" placeholder="تصميم وتطوير موقع المركز"></label>
+            <label><span>المشروع أو القسم المستفيد</span><input id="dnProject" placeholder="تطوير الموقع الإلكتروني / صيانة الملعب"></label>
             <label><span>التاريخ</span><input id="dnDate" type="date"></label>
-            <label><span>طريقة الدفع</span>
-              <select id="dnMethod">
-                <option>نقدي</option><option>تحويل بنكي</option><option>محفظة إلكترونية</option><option>إنستاباي</option><option>أخرى</option>
-              </select>
-            </label>
-            <label><span>رقم العملية</span><input id="dnTxn" dir="ltr" placeholder="اختياري"></label>
-            <label><span>ملاحظة</span><input id="dnNote" placeholder="اختياري"></label>
-            <div class="span2"><button type="submit" class="btn btn-gold">💰 تسجيل التبرع (قيد الاعتماد)</button></div>
+            <label id="dnMethodWrap"><span>طريقة الدفع</span><select id="dnMethod"><option>نقدي</option><option>تحويل بنكي</option><option>محفظة إلكترونية</option><option>إنستاباي</option><option>أخرى</option></select></label>
+            <label id="dnTxnWrap"><span>رقم العملية</span><input id="dnTxn" dir="ltr" placeholder="اختياري"></label>
+            <label class="span2"><span>تفاصيل المساهمة / ما الذي تم تقديمه؟</span><textarea id="dnDescription" rows="2" placeholder="مثال: تصميم وبرمجة الموقع الإلكتروني وتسليمه للمركز"></textarea></label>
+            <label class="span2"><span>ملاحظة داخلية</span><input id="dnNote" placeholder="اختياري — لا تظهر للجمهور"></label>
+            <div class="span2"><button type="submit" class="btn btn-gold">＋ تسجيل المساهمة (قيد المراجعة)</button></div>
           </form>
-          <p class="hint">التبرع يُسجَّل بحالة «قيد الاعتماد» ولا تُوضع الطوبة على الحائط إلا بعد الاعتماد.</p>
+          <p class="hint">كل مساهمة تمر بالمراجعة قبل اعتمادها. القيمة العينية لا تُضاف إلى الرصيد النقدي ولا تُعامل كأموال محصّلة.</p>
         </div>
         <div class="card">
           <div class="card-head-row">
-            <h3>كل التبرعات</h3>
+            <h3>كل المساهمات</h3>
             <select id="dnFilter" class="mini-select">
               <option value="all">كل الحالات</option>
               <option value="pending">قيد الاعتماد</option>
@@ -122,7 +123,7 @@
             </select>
           </div>
           <div class="table-wrap"><table id="donationsTable">
-            <thead><tr><th>المتبرع</th><th>المبلغ</th><th>الطريقة</th><th>رقم العملية</th><th>التاريخ</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+            <thead><tr><th>المتبرع</th><th>النوع / الوصف</th><th>القيمة التقديرية</th><th>النقد المحصّل</th><th>رقم العملية</th><th>التاريخ</th><th>الحالة</th><th>إجراءات</th></tr></thead>
             <tbody></tbody>
           </table></div>
         </div>
