@@ -16,10 +16,24 @@
   .cwe-stat{display:grid;gap:2px}
   .cwe-stat .v{font-size:1.5rem;font-weight:900;color:#fbbf24;line-height:1.2}
   .cwe-stat .k{font-size:.78rem;font-weight:700;color:#7d879c}
-  .cwe-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:.9rem;
-    padding:12px 22px;border-radius:14px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#1a1206;
-    box-shadow:0 8px 24px rgba(245,158,11,.32);text-decoration:none;transition:.25s}
-  .cwe-btn:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(245,158,11,.5)}
+  .cwe-btn{position:relative;isolation:isolate;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:10px;
+    min-height:58px;font-weight:900;font-size:1rem;padding:15px 24px;border-radius:17px;
+    background:linear-gradient(110deg,#f59e0b 0%,#ffbd28 42%,#e87905 72%,#f59e0b 100%);
+    background-size:220% 100%;color:#1a1206;box-shadow:0 10px 28px rgba(245,158,11,.42),0 0 0 1px rgba(255,220,130,.32) inset;
+    text-decoration:none;transition:transform .28s ease,box-shadow .28s ease;animation:cweBtnGlow 2.4s ease-in-out infinite,cweBtnGradient 5s linear infinite}
+  .cwe-btn::before{content:"";position:absolute;inset:-2px;z-index:-1;border-radius:inherit;
+    background:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.65) 48%,transparent 72%);
+    transform:translateX(-130%);animation:cweBtnShine 3.2s ease-in-out infinite}
+  .cwe-btn::after{content:"";position:absolute;inset:-7px;z-index:-2;border:1px solid rgba(251,191,36,.45);
+    border-radius:22px;opacity:0;animation:cweBtnRing 2.4s ease-out infinite;pointer-events:none}
+  .cwe-btn:hover,.cwe-btn:focus-visible{transform:translateY(-4px) scale(1.025);
+    box-shadow:0 16px 38px rgba(245,158,11,.62),0 0 26px rgba(251,191,36,.3);outline:none}
+  .cwe-btn:active{transform:translateY(-1px) scale(.99)}
+  @keyframes cweBtnGlow{0%,100%{box-shadow:0 10px 28px rgba(245,158,11,.38),0 0 0 1px rgba(255,220,130,.3) inset}50%{box-shadow:0 14px 38px rgba(245,158,11,.65),0 0 24px rgba(251,191,36,.28),0 0 0 1px rgba(255,235,170,.65) inset}}
+  @keyframes cweBtnGradient{0%{background-position:0% 50%}100%{background-position:220% 50%}}
+  @keyframes cweBtnShine{0%,18%{transform:translateX(-130%)}58%,100%{transform:translateX(130%)}}
+  @keyframes cweBtnRing{0%{transform:scale(.96);opacity:.55}75%,100%{transform:scale(1.12);opacity:0}}
+  @media(prefers-reduced-motion:reduce){.cwe-btn,.cwe-btn::before,.cwe-btn::after{animation:none!important}.cwe-btn{background-position:center}}
   .cwe-fallback{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:26px;transform:rotate(-3deg)}
   .cwe-fb{height:34px;border-radius:6px;border:1px solid rgba(0,0,0,.4);box-shadow:0 4px 10px rgba(0,0,0,.4);
     animation:cweFloat 3.4s ease-in-out infinite}
