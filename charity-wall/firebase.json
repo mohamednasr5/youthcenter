@@ -7,7 +7,6 @@
       "**/node_modules/**",
       "functions/**",
       "database.rules.json",
-      "firestore.rules",
       "storage.rules",
       "README.md"
     ],
