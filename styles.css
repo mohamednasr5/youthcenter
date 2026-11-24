@@ -563,3 +563,22 @@ img{max-width:100%;display:block}
   .topbar .tb-right{gap:6px}
   .topbar .tb-right .soc{width:32px;height:32px}
 }
+
+
+/* أزرار التواصل في الفوتر: واتساب فوق ماسنجر وبأبعاد موحدة */
+.footer-contact-stack{display:flex;flex-direction:column;gap:10px;margin:10px 0 13px;width:100%}
+.footer-contact-btn{
+ display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:46px;
+ box-sizing:border-box;margin:0;padding:10px 14px;border:1px solid transparent;border-radius:13px;
+ color:#fff;text-decoration:none;font-family:inherit;font-size:.86rem;font-weight:900;
+ transition:transform .25s ease,box-shadow .25s ease,filter .25s ease
+}
+.footer-contact-btn svg{width:21px;height:21px;flex:0 0 21px;fill:currentColor}
+.footer-contact-btn span:nth-child(2){flex:1;text-align:center}
+.footer-contact-arrow{font-size:1.1rem;opacity:.85}
+.footer-contact-btn:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.whatsapp-contact-btn{background:linear-gradient(115deg,#20b957,#128c48);border-color:rgba(74,222,128,.42);box-shadow:0 8px 22px rgba(18,140,72,.22),inset 0 1px 0 rgba(255,255,255,.16)}
+.whatsapp-contact-btn:hover{box-shadow:0 13px 28px rgba(18,140,72,.34),0 0 18px rgba(74,222,128,.18)}
+.messenger-contact-btn{background:linear-gradient(115deg,#0875e1,#0866c6 55%,#174ea6);border-color:rgba(96,165,250,.42);box-shadow:0 8px 22px rgba(8,102,198,.22),inset 0 1px 0 rgba(255,255,255,.16)}
+.messenger-contact-btn:hover{box-shadow:0 13px 28px rgba(8,102,198,.34),0 0 18px rgba(59,130,246,.2)}
+@media(prefers-reduced-motion:reduce){.footer-contact-btn{transition:none}}
