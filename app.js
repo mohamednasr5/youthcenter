@@ -503,8 +503,13 @@
             <h4 class="ft">تواصل معنا</h4>
             <div class="ci"><span class="ci-ico">📍</span><a href="${esc(m.mapLink || "#")}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(m.location)}</a></div>
             <div class="ci"><span class="ci-ico">📞</span><a href="tel:${esc(String(m.phone || "").replace(/[^\d+]/g, ""))}" style="color:inherit;text-decoration:none" dir="ltr">${esc(m.phone)}</a></div>
-            <div class="ci"><span class="ci-ico">🟢</span><a href="https://wa.me/201222257977" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none" dir="ltr">واتساب: 01222257977</a></div>
-            <a class="messenger-contact-btn" href="${esc(m.messengerLink || "https://m.me/Markz.shabab.elahmadya")}" target="_blank" rel="noopener noreferrer" aria-label="التواصل المباشر مع مركز شباب الأحمدية عبر ماسنجر">${SVG_MSG}<span>راسلنا عبر ماسنجر</span><span class="messenger-btn-arrow" aria-hidden="true">←</span></a>
+            <div class="footer-contact-stack">
+              <a class="footer-contact-btn whatsapp-contact-btn" href="https://wa.me/201222257977" target="_blank" rel="noopener noreferrer" aria-label="التواصل عبر واتساب">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.52 3.48A11.8 11.8 0 0 0 12.12 0C5.57 0 .24 5.33.24 11.88c0 2.09.55 4.13 1.6 5.93L.14 24l6.35-1.67a11.8 11.8 0 0 0 5.63 1.43h.01c6.55 0 11.88-5.33 11.88-11.88 0-3.17-1.23-6.15-3.49-8.4ZM12.13 21.7h-.01a9.8 9.8 0 0 1-5-1.37l-.36-.21-3.77.99 1.01-3.67-.24-.38a9.8 9.8 0 1 1 8.37 4.64Zm5.38-7.34c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.5-1.78-1.68-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.38-.02-.53-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.08-.8.38-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.5 1.69.64.71.23 1.36.2 1.87.12.57-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z"/></svg>
+                <span>تواصل عبر واتساب</span><span class="footer-contact-arrow" aria-hidden="true">←</span>
+              </a>
+              <a class="footer-contact-btn messenger-contact-btn" href="${esc(m.messengerLink || "https://m.me/Markz.shabab.elahmadya")}" target="_blank" rel="noopener noreferrer" aria-label="التواصل المباشر مع مركز شباب الأحمدية عبر ماسنجر">${SVG_MSG}<span>راسلنا عبر ماسنجر</span><span class="footer-contact-arrow" aria-hidden="true">←</span></a>
+            </div>
             
             <div class="ci"><span class="ci-ico">🕒</span><span>${esc(m.hours)}</span></div>
           </div>
