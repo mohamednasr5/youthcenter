@@ -654,11 +654,24 @@ export class Wall3D {
     this._closerRows = 0;
     this.closers.clear();
 
+    const animateInitial = this.opts.animateOnLoad !== false && !this._initialAnimationPlayed;
     records.forEach((r, i) => {
       const rowStart = Math.floor(i / PER_ROW) * PER_ROW;
       const rowCount = Math.min(PER_ROW, records.length - rowStart);
-      this._placeInstance(r, false, null, this._slotPosition(i, rowCount));
+      r.index = typeof r.index === 'number' ? r.index : i;
+      const place = this._slotPosition(i, rowCount);
+      if (animateInitial) {
+        /* طوبات الزيارة الأولى تنطلق بالتتابع من نقطة الهرم إلى مواقعها */
+        window.setTimeout(() => {
+          if (!this._disposed) this._placeInstance(r, true, this.pyramidSpawn, place);
+        }, i * 115);
+      } else {
+        this._placeInstance(r, false, null, place);
+      }
     });
+    this._initialAnimationPlayed = true;
+    /* تثبيت العدد النهائي فورًا حتى لا تتعارض الإضافات الحية مع مؤقتات الطيران */
+    this.count = records.length;
     const rows = Math.ceil(Math.max(this.count, 1) / PER_ROW);
     this._ensureClosers(rows);
     this._growMortar(rows);
@@ -681,6 +694,14 @@ export class Wall3D {
 
     const group = this.tierGroups[tierId] || this.tierGroups.clay;
     const idx = group.add(dummy.matrix, record.id);
+    const finalMatrix = dummy.matrix.clone();
+    if (animate) {
+      /* إخفاء الطوبة في موضعها حتى تصل النسخة الطائرة */
+      dummy.scale.set(0.001, 0.001, 0.001);
+      dummy.updateMatrix();
+      group.setMatrixAt(idx, dummy.matrix);
+      group.mesh.instanceMatrix.needsUpdate = true;
+    }
 
     /* لوحة الاسم على واجهة الطوبة */
     const plane = new THREE.Mesh(
@@ -712,6 +733,8 @@ export class Wall3D {
       sounds.whoosh();
       flyBrick(flyMesh, from, pos, { duration: 1.7, spins: 2 }).then(() => {
         this.scene.remove(flyMesh);
+        group.setMatrixAt(idx, finalMatrix);
+        group.mesh.instanceMatrix.needsUpdate = true;
         sounds.thud();
         dustBurst(this.scene, pos.clone().add(new THREE.Vector3(0, 0, B.d / 2)), { low: this.quality === 'low' });
         lightFlash(this.scene, pos, tier.id === 'gold' ? 0xffd27a : tier.id === 'diamond' ? 0xbfe9ff : 0xffe2b0);
