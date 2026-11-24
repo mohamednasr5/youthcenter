@@ -1,6 +1,6 @@
 /* embed.js — نموذج مصغّر لحائط الخير للصفحة الرئيسية للمنصة
    يُحمَّل بتكاسل (IntersectionObserver) — لا يستهلك موارد قبل ظهوره على الشاشة.
-   مشهد ثلاثي الأبعاد مصغر بطوبات متحركة وإضاءة ذهبية + إحصائيات حية من Firestore،
+   مشهد ثلاثي الأبعاد مصغر بطوبات متحركة وإضاءة ذهبية + إحصائيات حية من Realtime Database،
    وزر دخول إلى صفحة الحائط الكاملة. عند تعذر WebGL يظهر بديل CSS متحرك. */
 
 (function () {
@@ -45,9 +45,9 @@
         </div>
       </div>`;
 
-    /* الإحصائيات من Firestore (مهلة 8 ثوانٍ ثم شرطة — فشل الشبكة ليس عطلًا) */
+    /* الإحصائيات من Realtime Database (مهلة 8 ثوانٍ ثم شرطة — فشل الشبكة ليس عطلًا) */
     import('./firebase-config.js').then(async ({ db }) => {
-      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const { ref, get } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
       const set = (t, b) => {
         const te = document.getElementById('cweTotal');
         const be = document.getElementById('cweBricks');
@@ -56,11 +56,11 @@
       };
       try {
         const s = await Promise.race([
-          getDoc(doc(db, 'settings', 'public_summary')),
+          get(ref(db, 'charityWall/settings/public_summary')),
           new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
         ]);
         if (s.exists()) {
-          const d = s.data();
+          const d = s.val();
           set((Number(d.totalApprovedDonations) || 0).toLocaleString('ar-EG') + ' ج.م',
               (Number(d.brickCount) || 0).toLocaleString('ar-EG'));
         } else {
