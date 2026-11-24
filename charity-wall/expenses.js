@@ -79,11 +79,15 @@ export class TransparencySection {
 
   renderCards() {
     const s = this.summary || {};
-    const totalIn = Number(s.totalApprovedDonations) || 0;
+    const totalIn = Number(s.totalCashDonations ?? s.totalApprovedDonations) || 0;
+    const inKind = Number(s.totalInKindContributions) || 0;
+    const totalValue = Number(s.totalContributionValue ?? s.totalApprovedDonations) || 0;
     const totalOut = Number(s.totalExpenses) || 0;
     const balance = totalIn - totalOut;
     const cards = [
-      { cls: 'in', icon: '💰', label: 'إجمالي التبرعات المعتمدة', value: egp(totalIn) },
+      { cls: 'in', icon: '💰', label: 'النقد المحصّل فعليًا', value: egp(totalIn) },
+      { cls: 'bricks', icon: '🤝', label: 'القيمة التقديرية للمساهمات العينية', value: egp(inKind) },
+      { cls: 'in', icon: '🌟', label: 'إجمالي قيمة الخير', value: egp(totalValue) },
       { cls: 'out', icon: '🧾', label: 'إجمالي المصروفات', value: egp(totalOut) },
       { cls: balance >= 0 ? 'bal' : 'neg', icon: balance >= 0 ? '🏦' : '⚠️', label: 'الرصيد المتبقي', value: egp(balance) },
       { cls: 'bricks', icon: '🧱', label: 'عدد طوبات الخير', value: String(Number(s.brickCount) || 0) }
@@ -103,7 +107,7 @@ export class TransparencySection {
     const pct = totalIn > 0 ? Math.min(100, (totalOut / totalIn) * 100) : 0;
     this.flowEl.innerHTML = `
       <div class="cw-flow-row">
-        <span class="cw-flow-lbl">مصروف من التبرعات</span>
+        <span class="cw-flow-lbl">مصروف من النقد المحصّل</span>
         <span class="cw-flow-pct">${pct.toFixed(1)}%</span>
       </div>
       <div class="cw-flow-bar">
