@@ -2,7 +2,7 @@
    app-shell precache + network-first للشيفرة + cache-first للأصول المحلية.
    المكتبات (three.js / gsap) محلية في vendor/ حتى يعمل الحائط دون اتصال. */
 
-const CACHE = 'charity-wall-v2';
+const CACHE = 'charity-wall-v3-rtdb';
 const CORE = [
   './',
   './index.html',
