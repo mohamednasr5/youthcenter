@@ -142,3 +142,11 @@ tbody tr:hover{background:rgba(245,158,11,.05)}
   .admin-topbar,.admin-tabs,.row-actions,.adm-toast{display:none !important}
   .card{border-color:#ccc;background:#fff}
 }
+
+/* Public contribution breakdown on each brick */
+.cw-bc-contributions{margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.12);display:grid;gap:8px}
+.cw-bc-contributions>strong{font-size:.82rem;color:#fbbf24}
+.cw-bc-contribution{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.05);font-size:.78rem}
+.cw-bc-contribution>span,.cw-bc-contribution>small{grid-column:1/-1;color:#cbd5e1}
+.cw-bc-contribution>small{line-height:1.6}
+.cw-bc-contribution>em{font-style:normal;color:#fbbf24;font-weight:800;grid-column:2;grid-row:1}
