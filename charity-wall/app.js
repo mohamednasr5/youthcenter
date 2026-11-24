@@ -88,6 +88,7 @@ async function main() {
         loaderProgress(0.3 + 0.5 * Math.min(1, loaded / 60));
       });
       lastLoadedIndex = bricks.length ? bricks[bricks.length - 1].index : -1;
+      donors = donorsFromBricks(bricks);
       applyData();
     } catch (e) {
       console.error('[Charity Wall] فشل جلب بيانات الحائط من Realtime Database:', e);
@@ -95,10 +96,9 @@ async function main() {
       throw e;
     }
 
-    loadDonors().then(d => { donors = d; applyDonors(); }).catch(e => {
-      console.warn('[Charity Wall] تعذر تحميل قائمة المتبرعين:', e);
-      offlineNotice(e);
-    });
+    /* قائمة يد الخير تُبنى من نفس سجلات الطوب المعتمدة حتى لا تنفصل عن الحائط. */
+    donors = donorsFromBricks(bricks);
+    applyDonors();
 
     /* استماع لحظي: اعتماد جديد → طوبة تطير من الهرم */
     {
@@ -106,6 +106,8 @@ async function main() {
         fresh.forEach(b => {
           if (!bricks.find(x => x.id === b.id)) {
             bricks.push(b);
+            donors = donorsFromBricks(bricks);
+            applyDonors();
             wall && wall.addBrick(b);
           }
         });
@@ -135,6 +137,24 @@ async function main() {
       console.warn('[Charity Wall] تعذر تحميل بيانات الشفافية:', e);
       offlineNotice(e);
     });
+  }
+
+  function donorsFromBricks(records) {
+    const byDonor = new Map();
+    (records || []).forEach(b => {
+      const id = b.donorId || b.id;
+      if (!id) return;
+      const current = byDonor.get(id);
+      const value = Number(b.totalDonation || b.amount || 0);
+      if (!current || value > Number(current.totalDonation || 0)) {
+        byDonor.set(id, {
+          id, name: b.donorName || b.name || 'متبرع كريم',
+          totalDonation: value, brickType: b.brickType || 'clay',
+          createdAt: b.createdAt || null
+        });
+      }
+    });
+    return [...byDonor.values()].sort((a, b) => String(a.name).localeCompare(String(b.name), 'ar'));
   }
 
   function applyDonors() {
