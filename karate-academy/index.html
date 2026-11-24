@@ -575,10 +575,10 @@
         <div>
           <span class="section-kicker">KARATE • CERTIFICATES</span>
           <h2>الشهادات والاعتمادات</h2>
-          <p class="section-sub">استعرض شهادات الكابتن فاطمة والكابتن فريدة، واختر عرض شهادات كل مدربة على حدة أو جميع الشهادات معًا</p>
+          <p class="section-sub">استعرض شهادات كابتن فاطمة يحيى والكابتن فريدة، واختر عرض شهادات كل مدربة على حدة أو جميع الشهادات معًا</p>
         </div>
       </div>
-      <div class="cert-filter-wrap reveal"><div class="cert-filter-title">عرض الشهادات حسب المدربة</div><div class="cert-filter-controls" role="group" aria-label="اختيار المدربة"><button class="cert-filter-btn is-active" type="button" data-cert-filter="all" aria-pressed="true">كل الشهادات <span>14</span></button><button class="cert-filter-btn" type="button" data-cert-filter="fatima" aria-pressed="false">شهادات فاطمة <span>6</span></button><button class="cert-filter-btn" type="button" data-cert-filter="farida" aria-pressed="false">شهادات فريدة <span>8</span></button></div><p class="cert-filter-status" id="certFilterStatus" aria-live="polite">يعرض الآن جميع الشهادات — 14 شهادة</p></div><div class="reveal">
+      <div class="cert-filter-wrap reveal"><div class="cert-filter-title">عرض الشهادات حسب المدربة</div><div class="cert-filter-controls" role="group" aria-label="اختيار المدربة"><button class="cert-filter-btn is-active" type="button" data-cert-filter="all" aria-pressed="true">كل الشهادات <span>14</span></button><button class="cert-filter-btn" type="button" data-cert-filter="fatima" aria-pressed="false">شهادات كابتن فاطمة يحيى <span>6</span></button><button class="cert-filter-btn" type="button" data-cert-filter="farida" aria-pressed="false">شهادات كابتن فريدة يحيى <span>8</span></button></div><p class="cert-filter-status" id="certFilterStatus" aria-live="polite">يعرض الآن جميع الشهادات — 14 شهادة</p></div><div class="reveal">
         <div class="certs-grid" id="certificatesGrid">
           <article class="cert-card" data-cert-owner="fatima">
             <img src="assets/images/certs-real/cert-1.jpg" alt="شهادة اعتماد مدرب من النقابة العامة للأكاديميات الرياضية" class="cert-photo" loading="lazy" decoding="async">
@@ -824,7 +824,7 @@
 <script defer src="../fx.js" data-section="karate"></script>
 
 <script>
-(()=>{const g=document.getElementById('certificatesGrid');if(!g)return;const cards=[...g.querySelectorAll('.cert-card')],buttons=[...document.querySelectorAll('[data-cert-filter]')],status=document.getElementById('certFilterStatus');const labels={all:'جميع الشهادات',fatima:'شهادات الكابتن فاطمة',farida:'شهادات الكابتن فريدة'};function filter(f){let n=0;cards.forEach(c=>{const show=f==='all'||c.dataset.certOwner===f;c.hidden=!show;if(show)n++});buttons.forEach(b=>{const on=b.dataset.certFilter===f;b.classList.toggle('is-active',on);b.setAttribute('aria-pressed',String(on))});if(status)status.textContent='يعرض الآن '+labels[f]+' — '+n+' شهادة'}buttons.forEach(b=>b.addEventListener('click',()=>filter(b.dataset.certFilter)))})();
+(()=>{const g=document.getElementById('certificatesGrid');if(!g)return;const cards=[...g.querySelectorAll('.cert-card')],buttons=[...document.querySelectorAll('[data-cert-filter]')],status=document.getElementById('certFilterStatus');const labels={all:'جميع الشهادات',fatima:'شهادات الكابتن فاطمة',farida:'شهادات كابتن فريدة يحيى'};function filter(f){let n=0;cards.forEach(c=>{const show=f==='all'||c.dataset.certOwner===f;c.hidden=!show;if(show)n++});buttons.forEach(b=>{const on=b.dataset.certFilter===f;b.classList.toggle('is-active',on);b.setAttribute('aria-pressed',String(on))});if(status)status.textContent='يعرض الآن '+labels[f]+' — '+n+' شهادة'}buttons.forEach(b=>b.addEventListener('click',()=>filter(b.dataset.certFilter)))})();
 </script>
 </body>
 </html>
