@@ -9,13 +9,11 @@ import {
 import {
   signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { ref, get, set, onValue, query, orderByChild, limitToLast } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
+import { ref, get, set, update, remove, push, runTransaction, onValue, query, orderByChild, limitToLast } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 import { ref as sRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
-const functions = getFunctions();
 const ROOT='charityWall';
 const rref=path=>ref(db,ROOT+'/'+path);
 const toList=snap=>Object.entries(snap.val()||{}).map(([id,value])=>({id,...value}));
@@ -30,14 +28,24 @@ function toast(msg, isErr = false) {
   t._h = setTimeout(() => t.className = 'adm-toast', 3400);
 }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const call = async (name, data) => {
-  try {
-    return await httpsCallable(functions, name)(data || {});
-  } catch (e) {
-    toast(e.message || 'تعذر تنفيذ العملية', true);
-    throw e;
-  }
-};
+
+
+const ADMIN_UIDS = new Set(["7ceFcM1t0FdKzEYHxLvbePOv9bF3","wC5JGSd1RTMwOfAfvzRGbgIri2H2","8wqUL2P6f8hbxKhSNoHZ6PRa8tl1","UcQsP5BhEXRKlEfGMr5v5WgN2hn1","iS6zXQSf9SbgsFmk78pXkUjcSQ33"]);
+const actor=()=>state.user?.email||state.user?.uid||'admin';
+const val=async path=>(await get(rref(path))).val();
+const logAction=(action,details={})=>push(rref('adminLogs'),{actor:actor(),action,details,ts:Date.now()});
+const validTypes=['cash','service','material','labor','sponsorship'];
+function amountValue(v){const n=Number(v);if(!Number.isFinite(n)||n<=0)throw new Error('يجب إدخال مبلغ أكبر من صفر');return Math.round(n*100)/100;}
+async function updateSummary(){const [donors,expenses,bricks,donations]=await Promise.all(['donors','expenses','bricks','donations'].map(val));const approved=Object.values(donations||{}).filter(x=>x.status==='approved');const cash=approved.reduce((a,x)=>a+((x.contributionType&&x.contributionType!=='cash')?0:Number(x.amount)||0),0);const kind=approved.reduce((a,x)=>a+((x.contributionType&&x.contributionType!=='cash')?(Number(x.estimatedValue)||0):0),0);const spent=Object.values(expenses||{}).reduce((a,x)=>a+(Number(x.amount)||0),0);const counts={clay:0,red:0,silver:0,gold:0,diamond:0};Object.values(bricks||{}).forEach(b=>{if(counts[b.brickType]!==undefined)counts[b.brickType]++;});const out={totalApprovedDonations:cash+kind,totalContributionValue:cash+kind,totalCashDonations:cash,totalInKindContributions:kind,totalExpenses:spent,cashBalance:Math.round((cash-spent)*100)/100,balance:Math.round((cash-spent)*100)/100,donorCount:Object.keys(donors||{}).length,brickCount:Object.keys(bricks||{}).length,tierCounts:counts,updatedAt:Date.now()};await set(rref('settings/public_summary'),out);return out;}
+async function syncDonor(id){const [ds,ns,bs,ts]=await Promise.all([get(rref('donors/'+id)),get(rref('donations')),get(rref('bricks')),get(rref('settings/tiers'))]);if(!ds.exists())throw new Error('المتبرع غير موجود');const donor=ds.val(),approved=toList(ns).filter(x=>x.donorId===id&&x.status==='approved');const cash=approved.reduce((a,x)=>a+((x.contributionType&&x.contributionType!=='cash')?0:Number(x.amount)||0),0),kind=approved.reduce((a,x)=>a+((x.contributionType&&x.contributionType!=='cash')?(Number(x.estimatedValue)||0):0),0),total=Math.round((cash+kind)*100)/100,tiers=ts.val()?.list||TIERS,tier=tiers.find(t=>total>=Number(t.min)&&total<=Number(t.max)),brickType=tier?.id||'clay';const details=approved.slice(-8).map(x=>({type:x.contributionType||'cash',title:String(x.title||'تبرع نقدي').slice(0,100),description:String(x.description||x.note||'').slice(0,240),estimatedValue:Number(x.estimatedValue)||Number(x.amount)||0,amount:Number(x.amount)||0,project:String(x.project||'').slice(0,100)}));await update(rref('donors/'+id),{totalDonation:total,cashContribution:cash,inKindContribution:kind,brickType});const entries=Object.entries(bs.val()||{}),found=entries.find(e=>e[1].donorId===id);if(total>0){const data={donorId:id,donorName:donor.name,totalDonation:total,cashContribution:cash,inKindContribution:kind,contributionDetails:details,brickType};if(found)await update(rref('bricks/'+found[0]),data);else{const tx=await runTransaction(rref('settings/counters/nextIndex'),v=>(Number(v)||0)+1),index=Math.max(0,Number(tx.snapshot.val())-1),node=push(rref('bricks'));await set(node,{...data,index,row:Math.floor(index/10),column:index%10,createdAt:Date.now()});}}else if(found)await remove(rref('bricks/'+found[0]));return{total,cash,kind,brickType};}
+async function addDonor(data){const name=String(data.name||'').trim();if(name.length<2)throw new Error('اسم المتبرع مطلوب');const node=push(rref('donors')),id=node.key,now=Date.now(),u={};u['donors/'+id]={name,createdAt:now,totalDonation:0,brickType:'clay'};u['donors_private/'+id]={phone:String(data.phone||''),notes:String(data.notes||''),createdAt:now};await update(rref(''),u);await updateSummary();await logAction('add_donor',{donorId:id,name});}
+async function updateDonor(id,data){const old=await val('donors/'+id);if(!old)throw new Error('المتبرع غير موجود');const name=String(data.name??old.name).trim();if(name.length<2)throw new Error('الاسم قصير جدًا');const u={};u['donors/'+id+'/name']=name;u['donors_private/'+id]={phone:String(data.phone||''),notes:String(data.notes||'')};const bs=await val('bricks');Object.entries(bs||{}).forEach(([k,b])=>{if(b.donorId===id)u['bricks/'+k+'/donorName']=name;});await update(rref(''),u);await logAction('update_donor',{donorId:id});}
+async function recordContribution(data){const donor=await val('donors/'+data.donorId);if(!donor)throw new Error('المساهم غير موجود');const type=String(data.contributionType||'cash');if(!validTypes.includes(type))throw new Error('نوع المساهمة غير صحيح');const amount=type==='cash'?amountValue(data.amount):0,estimatedValue=type==='cash'?amount:amountValue(data.estimatedValue),title=String(data.title||(type==='cash'?'تبرع نقدي':'')).trim();if(type!=='cash'&&title.length<2)throw new Error('اكتب وصفًا للمساهمة');const date=data.date?new Date(data.date).getTime():Date.now();if(!Number.isFinite(date))throw new Error('تاريخ غير صالح');const node=push(rref('donations')),id=node.key;await set(node,{donorId:data.donorId,donorName:donor.name,contributionType:type,amount,estimatedValue,title,description:String(data.description||data.note||''),project:String(data.project||''),date,status:'pending',paymentMethod:String(data.paymentMethod||'نقدي'),transactionId:String(data.transactionId||''),note:String(data.note||''),createdBy:actor(),createdAt:Date.now()});await logAction('record_contribution',{donationId:id,donorId:data.donorId,type,amount,estimatedValue});}
+async function approveContribution(id){const node=rref('donations/'+id),tx=await runTransaction(node,current=>{if(!current||current.status!=='pending')return;return{...current,status:'approved',approvedBy:actor(),approvedAt:Date.now()};});if(!tx.committed)throw new Error('هذه المساهمة تمت معالجتها مسبقًا');const d=tx.snapshot.val();await syncDonor(d.donorId);await updateSummary();await logAction('approve_donation',{donationId:id,donorId:d.donorId});}
+async function rejectContribution(id,reason){const tx=await runTransaction(rref('donations/'+id),current=>{if(!current||current.status!=='pending')return;return{...current,status:'rejected',rejectedBy:actor(),rejectedAt:Date.now(),rejectReason:String(reason||'')};});if(!tx.committed)throw new Error('هذه المساهمة لم تعد قيد الانتظار');await logAction('reject_donation',{donationId:id,reason:String(reason||'')});}
+async function addExpense(data){const amount=amountValue(data.amount),title=String(data.title||'').trim();if(title.length<2)throw new Error('عنوان المصروف مطلوب');const date=data.date?new Date(data.date).getTime():Date.now();if(!Number.isFinite(date))throw new Error('تاريخ غير صالح');const node=push(rref('expenses')),id=node.key;await set(node,{title,description:String(data.description||''),category:String(data.category||''),amount,date,receiptUrl:String(data.receiptUrl||''),images:Array.isArray(data.images)?data.images.map(String).slice(0,20):[],approvedBy:actor(),createdAt:Date.now()});await updateSummary();await logAction('add_expense',{expenseId:id,title,amount});}
+async function deleteExpense(id){await remove(rref('expenses/'+id));await updateSummary();await logAction('delete_expense',{expenseId:id});}
+async function recalculateAll(){const donors=await val('donors');for(const id of Object.keys(donors||{}))await syncDonor(id);const bricks=await val('bricks'),sorted=Object.entries(bricks||{}).sort((a,b)=>Number(a[1].createdAt||0)-Number(b[1].createdAt||0)),u={};sorted.forEach(([id],i)=>{u['bricks/'+id+'/index']=i;u['bricks/'+id+'/row']=Math.floor(i/10);u['bricks/'+id+'/column']=i%10;});if(Object.keys(u).length)await update(rref(''),u);await set(rref('settings/counters/nextIndex'),sorted.length);const totals=await updateSummary();await logAction('recalc_all',totals);return{donors:Object.keys(donors||{}).length,bricks:sorted.length};}
 
 /* ═══ الحالة ═══ */
 const state = {
@@ -51,19 +59,10 @@ onAuthStateChanged(auth, async user => {
   if (!user) { showLogin(); return; }
   state.user = user;
   $('#adminEmail').textContent = user.email || '';
-  /* فحص الصلاحية: ycAdmin Claim أو القائمة المحلية (الفصل النهائي للخادم) */
-  let ok = false;
-  try {
-    const tr = await user.getIdTokenResult();
-    ok = tr.claims.ycAdmin === true;
-  } catch (_e) {}
-  if (!ok && window.YC_AUTH_CONFIG && Array.isArray(window.YC_AUTH_CONFIG.adminEmails)) {
-    ok = window.YC_AUTH_CONFIG.adminEmails.some(a => a.email === user.email);
-  }
-  state.isAdmin = ok;
-  if (!ok) toast('تنبيه: هذا الحساب لا يملك صلاحية ycAdmin — قد تُرفض بعض العمليات', true);
-  $('#loginScreen').style.display = 'none';
-  $('#adminApp').hidden = false;
+  if (!ADMIN_UIDS.has(user.uid)) { toast('هذا الحساب غير مصرح له بإدارة حائط الخير', true); await signOut(auth); showLogin(); return; }
+  state.isAdmin=true;
+  $('#loginScreen').style.display='none';
+  $('#adminApp').hidden=false;
   loadAll();
 });
 
@@ -111,7 +110,7 @@ async function loadAll() {
  onValue(query(rref('expenses'),orderByChild('date'),limitToLast(300)),s=>{state.expenses=toList(s).sort((x,y)=>Number(y.date||0)-Number(x.date||0));renderExpenses();},e=>toast('تعذر قراءة المصروفات: '+e.message,true));
  onValue(rref('settings/public_summary'),s=>{state.summary=s.val()||{};renderDash();renderReports();});
  get(rref('settings/tiers')).then(s=>{const v=s.val();if(v&&Array.isArray(v.list))state.tiers=v.list;renderTiers();}).catch(()=>renderTiers());
- get(rref('settings/admins/emails')).then(s=>{state.admins=Object.values(s.val()||{});renderAdmins();}).catch(()=>{});
+ state.admins=[...ADMIN_UIDS];renderAdmins();
  onValue(query(rref('adminLogs'),orderByChild('ts'),limitToLast(100)),s=>{const rows=toList(s).sort((x,y)=>Number(y.ts||0)-Number(x.ts||0));$('#logsTable tbody').innerHTML=rows.map(x=>`<tr><td>${esc(fmtDate(x.ts))}</td><td>${esc(x.actor||'')}</td><td>${esc(actionLabel(x.action))}</td><td style="white-space:normal">${esc(JSON.stringify(x.details||{}))}</td></tr>`).join('')||`<tr><td colspan="4" style="text-align:center;color:var(--txt-mute)">لا عمليات بعد</td></tr>`;},()=>{});
 }
 
@@ -192,7 +191,7 @@ function renderDonorSelect() {
 $('#donorForm').addEventListener('submit', async e => {
   e.preventDefault();
   try {
-    await call('cwAddDonor', {
+    await addDonor({
       name: $('#dName').value, phone: $('#dPhone').value, notes: $('#dNotes').value
     });
     toast('تمت إضافة المتبرع ✓');
@@ -224,7 +223,7 @@ function openDonorModal(id) {
   ov.querySelector('#mCancel').addEventListener('click', () => ov.remove());
   ov.querySelector('#mSave').addEventListener('click', async () => {
     try {
-      await call('cwUpdateDonor', {
+      await updateDonor(id, {
         donorId: id, name: ov.querySelector('#mName').value,
         phone: ov.querySelector('#mPhone').value, notes: ov.querySelector('#mNotes').value
       });
@@ -251,7 +250,7 @@ $('#donationForm').addEventListener('submit', async e => {
   if (!$('#dnDonor').value) { toast('أضف مساهمًا أولًا', true); return; }
   const type=$('#dnType').value;
   try {
-    await call('cwRecordDonation', {donorId:$('#dnDonor').value,contributionType:type,
+    await recordContribution({donorId:$('#dnDonor').value,contributionType:type,
       amount:type==='cash'?Number($('#dnAmount').value):0,
       estimatedValue:type==='cash'?Number($('#dnAmount').value):Number($('#dnValue').value),
       title:type==='cash'?'تبرع نقدي':$('#dnTitle').value,description:$('#dnDescription').value,
@@ -280,7 +279,7 @@ function renderDonations() {
   $$('#donationsTable [data-approve]').forEach(b => b.addEventListener('click', async () => {
     b.disabled = true;
     try {
-      await call('cwApproveDonation', { donationId: b.dataset.approve });
+      await approveContribution(b.dataset.approve);
       toast('تم الاعتماد — الطوبة في طريقها إلى الحائط 🧱');
     } catch (_e) {} finally { b.disabled = false; }
   }));
@@ -288,7 +287,7 @@ function renderDonations() {
     const reason = prompt('سبب الرفض (اختياري):') || '';
     b.disabled = true;
     try {
-      await call('cwRejectDonation', { donationId: b.dataset.reject, reason });
+      await rejectContribution(b.dataset.reject, reason);
       toast('تم رفض التبرع');
     } catch (_e) {} finally { b.disabled = false; }
   }));
@@ -312,7 +311,7 @@ $('#expenseForm').addEventListener('submit', async e => {
     const rf = $('#exReceipt').files[0];
     if (rf) receiptUrl = await uploadImage(rf, 'receipt');
     for (const f of $('#exImages').files) images.push(await uploadImage(f, 'work'));
-    await call('cwAddExpense', {
+    await addExpense({
       title: $('#exTitle').value,
       description: $('#exDesc').value,
       category: $('#exCategory').value,
@@ -336,7 +335,7 @@ function renderExpenses() {
     || `<tr><td colspan="6" style="text-align:center;color:var(--txt-mute)">لا مصروفات</td></tr>`;
   $$('#expensesTable [data-delexp]').forEach(b => b.addEventListener('click', async () => {
     if (!confirm('حذف هذا المصروف نهائيًا؟')) return;
-    try { await call('cwDeleteExpense', { expenseId: b.dataset.delexp }); toast('تم الحذف'); } catch (_e) {}
+    try { await deleteExpense(b.dataset.delexp); toast('تم الحذف'); } catch (_e) {}
   }));
 }
 
@@ -367,36 +366,12 @@ $('#saveTiers').addEventListener('click', async () => {
 $('#recalcBtn').addEventListener('click', async () => {
   if (!confirm('إعادة احتساب إجماليات كل المتبرعين وفئاتهم وترصيف الطوب؟')) return;
   try {
-    const r = await call('cwRecalcAll');
-    toast(`تمت إعادة الاحتساب: ${r.data.donors} متبرع و${r.data.bricks} طوبة ✓`);
+    const r = await recalculateAll();
+    toast(`تمت إعادة الاحتساب: ${r.donors} متبرع و${r.bricks} طوبة ✓`);
   } catch (_e) {}
 });
 
-function renderAdmins() {
-  $('#adminsList').innerHTML = state.admins.map((a, i) =>
-    `<li><span>${esc(a)}</span><button class="btn btn-danger btn-sm" data-deladm="${i}">حذف</button></li>`).join('')
-    || '<li style="justify-content:center;color:var(--txt-mute)">لا بريدات مضافة (الاعتماد على ycAdmin Claims)</li>';
-  $$('#adminsList [data-deladm]').forEach(b => b.addEventListener('click', async () => {
-    state.admins.splice(Number(b.dataset.deladm), 1);
-    try {
-      await set(rref('settings/admins/emails'), Object.fromEntries(state.admins.map(email => [emailKey(email), email])));
-      renderAdmins();
-    } catch (e) { toast(e.message, true); }
-  }));
-}
-
-$('#adminForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const v = $('#adminEmailInput').value.trim().toLowerCase();
-  if (!v) return;
-  if (!state.admins.includes(v)) state.admins.push(v);
-  try {
-    await set(rref('settings/admins/emails'), Object.fromEntries(state.admins.map(email => [emailKey(email), email])));
-    $('#adminEmailInput').value = '';
-    renderAdmins();
-    toast('تمت الإضافة — أنشئ الحساب بأداة setup-admins.mjs');
-  } catch (err) { toast(err.message, true); }
-});
+function renderAdmins(){ $('#adminsList').innerHTML=[...ADMIN_UIDS].map(uid=>'<li><span dir="ltr">'+esc(uid)+'</span><small>مسؤول معتمد</small></li>').join(''); if($('#adminForm')) $('#adminForm').hidden=true; }
 
 /* ═══ التقارير ═══ */
 function renderReports() {
