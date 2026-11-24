@@ -1,18 +1,60 @@
 {
   "rules": {
     "charityWall": {
-      "bricks": { ".read": true, ".write": false, ".indexOn": ["index"] },
-      "donors": { ".read": true, ".write": false },
-      "expenses": { ".read": true, ".write": false, ".indexOn": ["date"] },
-      "settings": {
-        "public_summary": { ".read": true, ".write": false },
-        "tiers": { ".read": true, ".write": false },
-        "admins": { ".read": "auth != null && auth.token.ycAdmin == true", ".write": false },
-        "counters": { ".read": "auth != null && auth.token.ycAdmin == true", ".write": false }
+      "bricks": {
+        ".read": true,
+        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
+        ".indexOn": [
+          "index"
+        ]
       },
-      "donations": { ".read": "auth != null && auth.token.ycAdmin == true", ".write": false, ".indexOn": ["createdAt"] },
-      "donors_private": { ".read": "auth != null && auth.token.ycAdmin == true", ".write": false },
-      "adminLogs": { ".read": "auth != null && auth.token.ycAdmin == true", ".write": false, ".indexOn": ["ts"] }
+      "donors": {
+        ".read": true,
+        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
+      },
+      "expenses": {
+        ".read": true,
+        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
+        ".indexOn": [
+          "date"
+        ]
+      },
+      "settings": {
+        "public_summary": {
+          ".read": true,
+          ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
+        },
+        "tiers": {
+          ".read": true,
+          ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
+        },
+        "admins": {
+          ".read": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
+          ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
+        },
+        "counters": {
+          ".read": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
+          ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
+        }
+      },
+      "donations": {
+        ".read": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
+        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
+        ".indexOn": [
+          "createdAt"
+        ]
+      },
+      "donors_private": {
+        ".read": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
+        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
+      },
+      "adminLogs": {
+        ".read": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
+        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
+        ".indexOn": [
+          "ts"
+        ]
+      }
     }
   }
 }
