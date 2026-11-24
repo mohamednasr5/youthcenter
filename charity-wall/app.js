@@ -81,22 +81,24 @@ async function main() {
       applyData();
       return;
     }
+    // لا نعرض بيانات الكاش كأنها بيانات مؤكدة من قاعدة البيانات.
     try {
       tiers = await loadTiers();
-    } catch (_e) { tiers = TIERS; }
-
-    try {
       bricks = await loadBricks((loaded) => {
         loaderProgress(0.3 + 0.5 * Math.min(1, loaded / 60));
       });
       lastLoadedIndex = bricks.length ? bricks[bricks.length - 1].index : -1;
+      applyData();
     } catch (e) {
-      console.warn('تعذر تحميل الطوب:', e);
-      offlineNotice();
+      console.error('[Charity Wall] فشل جلب بيانات الحائط من Firestore:', e);
+      offlineNotice(e);
+      throw e;
     }
 
-    loadDonors().then(d => { donors = d; applyDonors(); }).catch(() => {});
-    applyData();
+    loadDonors().then(d => { donors = d; applyDonors(); }).catch(e => {
+      console.warn('[Charity Wall] تعذر تحميل قائمة المتبرعين:', e);
+      offlineNotice(e);
+    });
 
     /* استماع لحظي: اعتماد جديد → طوبة تطير من الهرم */
     if (lastLoadedIndex >= 0) {
@@ -108,13 +110,14 @@ async function main() {
           }
         });
         refreshStats();
-      });
+        $('#cwEmptyHint').classList.remove('show');
+      }, offlineNotice);
     }
     subscribeSummary(s => {
       $('#cwTotalDonations').textContent = egp(s.totalApprovedDonations || 0);
       $('#cwDonorsCount').textContent = (Number(s.donorCount) || 0).toLocaleString('ar-EG');
       transparency.setSummary(s);
-    });
+    }, offlineNotice);
   }
 
   function applyData() {
@@ -128,7 +131,10 @@ async function main() {
     applyDonors();
     refreshStats();
     transparency.setTiers(tiers);
-    loadExpenses().then(ex => transparency.setExpenses(ex)).catch(() => {});
+    loadExpenses().then(ex => transparency.setExpenses(ex)).catch(e => {
+      console.warn('[Charity Wall] تعذر تحميل بيانات الشفافية:', e);
+      offlineNotice(e);
+    });
   }
 
   function applyDonors() {
@@ -250,9 +256,10 @@ async function main() {
     l.classList.add('hide');
     setTimeout(() => l.remove(), 700);
   }
-  function offlineNotice() {
+  function offlineNotice(error) {
     const n = $('#cwNotice');
-    n.textContent = '⚠️ تعذر الاتصال بخدمة البيانات — يتم عرض آخر نسخة محفوظة على جهازك';
+    const detail = error && error.message ? ' (' + error.message + ')' : '';
+    n.textContent = '⚠️ تعذر تأكيد الاتصال بقاعدة البيانات؛ لم يتم تحميل بيانات الحائط الحقيقية. تحقق من Firebase والاتصال.' + detail;
     n.classList.add('show');
   }
   function toast(msg) {
