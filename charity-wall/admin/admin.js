@@ -19,7 +19,7 @@ const functions = getFunctions();
 const ROOT='charityWall';
 const rref=path=>ref(db,ROOT+'/'+path);
 const toList=snap=>Object.entries(snap.val()||{}).map(([id,value])=>({id,...value}));
-const emailKey=email=>String(email).toLowerCase().replaceAll('.','_').replaceAll('#','_').replaceAll('
+const emailKey=email=>String(email).toLowerCase().replace(/[.#$\[\]\/]/g,'_');
 
 /* ═══ أدوات مساعدة ═══ */
 function toast(msg, isErr = false) {
@@ -119,7 +119,7 @@ function actionLabel(a) {
   return ({
     add_donor: 'إضافة متبرع', update_donor: 'تعديل متبرع',
     record_donation: 'تسجيل تبرع', approve_donation: 'اعتماد تبرع', reject_donation: 'رفض تبرع',
-    add_expense: 'إضافة مصروف', delete_expense: 'حذف مصروف', recalc_all: 'إعادة احتساب شاملة'
+    add_expense: 'إضافة مصروف', delete_expense: 'حذف مصروف', recalc_all: 'إعادة احتساب شاملة', record_contribution: 'تسجيل مساهمة'
   })[a] || a;
 }
 
@@ -130,9 +130,11 @@ function renderDash() {
   $('#pendingBadge').hidden = pending === 0;
   $('#pendingBadge').textContent = String(pending);
   const cards = [
-    { v: egp(s.totalApprovedDonations), k: 'إجمالي التبرعات المعتمدة' },
+    { v: egp(s.totalCashDonations ?? s.totalApprovedDonations), k: 'النقد المحصّل فعليًا' },
+    { v: egp(s.totalInKindContributions), k: 'القيمة التقديرية للمساهمات العينية', cls: 'blue' },
+    { v: egp(s.totalContributionValue ?? s.totalApprovedDonations), k: 'إجمالي قيمة الخير', cls: 'emerald' },
     { v: egp(s.totalExpenses), k: 'إجمالي المصروفات', cls: 'red' },
-    { v: egp(s.balance), k: 'الرصيد المتبقي', cls: 'emerald' },
+    { v: egp(s.cashBalance ?? s.balance), k: 'الرصيد النقدي المتاح', cls: 'emerald' },
     { v: String(s.donorCount ?? state.donors.length), k: 'متبرع', cls: 'blue' },
     { v: String(s.brickCount ?? 0), k: 'طوبة على الحائط' },
     { v: String(pending), k: 'تبرع قيد الاعتماد', cls: 'red' }
@@ -174,7 +176,7 @@ function renderDonors() {
   $$('#donorsTable [data-donate]').forEach(b => b.addEventListener('click', () => {
     $$('.tab').find(x => x.dataset.tab === 'donations').click();
     $('#dnDonor').value = b.dataset.donate;
-    $('#dnAmount').focus();
+    $('#dnType').value='cash'; syncContributionFields(); $('#dnAmount').focus();
   }));
 }
 
@@ -236,20 +238,26 @@ function openDonorModal(id) {
 }
 
 /* ═══ التبرعات ═══ */
+function syncContributionFields() {
+  const cash=$('#dnType').value==='cash';
+  $('#dnCashWrap').hidden=!cash; $('#dnMethodWrap').hidden=!cash; $('#dnTxnWrap').hidden=!cash;
+  $('#dnValueWrap').hidden=cash; $('#dnTitleWrap').hidden=cash;
+  $('#dnAmount').required=cash; $('#dnValue').required=!cash; $('#dnTitle').required=!cash;
+}
+$('#dnType').addEventListener('change',syncContributionFields);
+syncContributionFields();
 $('#donationForm').addEventListener('submit', async e => {
   e.preventDefault();
-  if (!$('#dnDonor').value) { toast('أضف متبرعًا أولًا', true); return; }
+  if (!$('#dnDonor').value) { toast('أضف مساهمًا أولًا', true); return; }
+  const type=$('#dnType').value;
   try {
-    await call('cwRecordDonation', {
-      donorId: $('#dnDonor').value,
-      amount: Number($('#dnAmount').value),
-      date: $('#dnDate').value || null,
-      paymentMethod: $('#dnMethod').value,
-      transactionId: $('#dnTxn').value,
-      note: $('#dnNote').value
-    });
-    toast('تم تسجيل التبرع — في انتظار الاعتماد ✓');
-    e.target.reset();
+    await call('cwRecordDonation', {donorId:$('#dnDonor').value,contributionType:type,
+      amount:type==='cash'?Number($('#dnAmount').value):0,
+      estimatedValue:type==='cash'?Number($('#dnAmount').value):Number($('#dnValue').value),
+      title:type==='cash'?'تبرع نقدي':$('#dnTitle').value,description:$('#dnDescription').value,
+      project:$('#dnProject').value,date:$('#dnDate').value||null,paymentMethod:$('#dnMethod').value,
+      transactionId:$('#dnTxn').value,note:$('#dnNote').value});
+    toast('تم تسجيل المساهمة — في انتظار المراجعة والاعتماد ✓'); e.target.reset(); syncContributionFields();
   } catch (_e) {}
 });
 
@@ -258,18 +266,16 @@ $('#dnFilter').addEventListener('change', renderDonations);
 function renderDonations() {
   const f = $('#dnFilter').value;
   const rows = state.donations.filter(d => f === 'all' || d.status === f);
-  $('#donationsTable tbody').innerHTML = rows.map(d => `<tr>
-      <td>${esc(d.donorName || '')}</td>
-      <td><b>${esc(egp(d.amount))}</b></td>
-      <td>${esc(d.paymentMethod || '')}</td>
-      <td dir="ltr">${esc(d.transactionId || '—')}</td>
-      <td>${esc(fmtDate(d.date || d.createdAt))}</td>
-      <td><span class="pill ${d.status}">${statusLabel(d.status)}</span></td>
-      <td>${d.status === 'pending' ? `
-        <button class="btn btn-emerald btn-sm" data-approve="${d.id}">✓ اعتماد</button>
-        <button class="btn btn-danger btn-sm" data-reject="${d.id}">✕ رفض</button>` : (d.approvedBy ? `<small>اعتمده: ${esc(d.approvedBy)}</small>` : '')}
-      </td></tr>`).join('')
-    || `<tr><td colspan="7" style="text-align:center;color:var(--txt-mute)">لا تبرعات — سجّل أول تبرع</td></tr>`;
+  $('#donationsTable tbody').innerHTML = rows.map(d => {
+    const cash=d.contributionType==='cash'||!d.contributionType, kind=d.contributionType||'cash';
+    const labels={cash:'نقدي',service:'خدمة / خبرة',material:'مواد / خامات',labor:'جهد / تنفيذ',sponsorship:'رعاية مشروع'};
+    const value=cash?Number(d.amount)||0:Number(d.estimatedValue)||0;
+    return `<tr><td>${esc(d.donorName||'')}</td><td>${esc(labels[kind]||kind)} — ${esc(d.title||'')}</td>
+      <td><b>${esc(egp(value))}</b></td><td><b>${esc(egp(d.amount||0))}</b></td>
+      <td>${esc(d.paymentMethod||(cash?'—':'مساهمة عينية'))}</td><td dir="ltr">${esc(d.transactionId||'—')}</td>
+      <td>${esc(fmtDate(d.date||d.createdAt))}</td><td><span class="pill ${d.status}">${statusLabel(d.status)}</span></td>
+      <td>${d.status==='pending'? `<button class="btn btn-emerald btn-sm" data-approve="${d.id}">✓ اعتماد</button> <button class="btn btn-danger btn-sm" data-reject="${d.id}">✕ رفض</button>`:(d.approvedBy?`<small>اعتمده: ${esc(d.approvedBy)}</small>`:'')}</td></tr>`;
+  }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--txt-mute)">لا توجد مساهمات — سجّل أول مساهمة</td></tr>`;
 
   $$('#donationsTable [data-approve]').forEach(b => b.addEventListener('click', async () => {
     b.disabled = true;
@@ -396,17 +402,21 @@ $('#adminForm').addEventListener('submit', async e => {
 function renderReports() {
   const s = state.summary || {};
   $('#reportCards').innerHTML = [
-    { v: egp(s.totalApprovedDonations), k: 'التبرعات المعتمدة' },
-    { v: egp(s.totalExpenses), k: 'المصروفات', cls: 'red' },
+    { v: egp(s.totalCashDonations ?? s.totalApprovedDonations), k: 'النقد المحصّل' },
+    { v: egp(s.totalInKindContributions), k: 'المساهمات العينية', cls: 'blue' },
+    { v: egp(s.totalContributionValue ?? s.totalApprovedDonations), k: 'إجمالي قيمة الخير' },
+    { v: egp(s.totalExpenses), k: 'المصروفات النقدية', cls: 'red' },
     { v: egp(s.balance), k: 'الرصيد', cls: 'emerald' },
     { v: String(s.brickCount ?? 0), k: 'طوبات', cls: 'blue' }
   ].map(c => `<div class="dash-card ${c.cls || ''}"><div class="v">${esc(c.v)}</div><div class="k">${c.k}</div></div>`).join('');
 
   const tc = s.tierCounts || {};
   $('#printableSummary').innerHTML = `
-    <div class="p-row"><span>إجمالي التبرعات المعتمدة</span><b>${esc(egp(s.totalApprovedDonations))}</b></div>
+    <div class="p-row"><span>النقد المحصّل فعليًا</span><b>${esc(egp(s.totalCashDonations ?? s.totalApprovedDonations))}</b></div>
+    <div class="p-row"><span>القيمة التقديرية للمساهمات العينية</span><b>${esc(egp(s.totalInKindContributions))}</b></div>
+    <div class="p-row"><span>إجمالي قيمة الخير</span><b>${esc(egp(s.totalContributionValue ?? s.totalApprovedDonations))}</b></div>
     <div class="p-row"><span>إجمالي المصروفات</span><b>${esc(egp(s.totalExpenses))}</b></div>
-    <div class="p-row"><span>الرصيد المتبقي</span><b>${esc(egp(s.balance))}</b></div>
+    <div class="p-row"><span>الرصيد المتبقي</span><b>${esc(egp(s.cashBalance ?? s.balance))}</b></div>
     <div class="p-row"><span>عدد المتبرعين</span><b>${s.donorCount ?? '—'}</b></div>
     <div class="p-row"><span>الطوبات: طين ${tc.clay || 0} • حمراء ${tc.red || 0} • فضية ${tc.silver || 0} • ذهبية ${tc.gold || 0} • ماسية ${tc.diamond || 0}</span><b>${s.brickCount ?? 0}</b></div>
     <div class="p-row"><span>آخر تحديث</span><b>${esc(fmtDate(s.updatedAt))}</b></div>`;
@@ -434,31 +444,3 @@ $$('[data-export]').forEach(b => b.addEventListener('click', () => {
   URL.revokeObjectURL(a.href);
   toast('تم تنزيل التقرير ✓');
 }));
-,'_').replaceAll('[','_').replaceAll(']','_').replaceAll('/','_');
-
-/* ═══ أدوات مساعدة ═══ */
-function toast(msg, isErr = false) {
-  const t = $('#admToast');
-  t.textContent = msg;
-  t.className = 'adm-toast show' + (isErr ? ' err' : '');
-  clearTimeout(t._h);
-  t._h = setTimeout(() => t.className = 'adm-toast', 3400);
-}
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const call = async (name, data) => {
-  try {
-    return await httpsCallable(functions, name)(data || {});
-  } catch (e) {
-    toast(e.message || 'تعذر تنفيذ العملية', true);
-    throw e;
-  }
-};
-
-/* ═══ الحالة ═══ */
-const state = {
-  user: null, isAdmin: false,
-  donors: [], privates: new Map(), donations: [], expenses: [],
-  summary: {}, tiers: TIERS, admins: []
-};
-
-/* ═══ المصادقة ═══ */
