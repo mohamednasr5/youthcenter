@@ -835,11 +835,36 @@ export class Wall3D {
       this.onPick(entry.record, screen);
     });
 
-    /* مؤشر اليد فوق الطوبات */
+    /* تلميح نوع الطوبة عند الوقوف عليها */
+    const tip = document.createElement('div');
+    tip.className = 'cw-brick-tooltip';
+    Object.assign(tip.style, {
+      position: 'fixed', zIndex: '10050', display: 'none',
+      padding: '8px 13px', borderRadius: '10px',
+      background: 'rgba(8, 14, 27, .96)', color: '#fff',
+      border: '1px solid rgba(255,255,255,.2)',
+      boxShadow: '0 8px 24px rgba(0,0,0,.35)',
+      font: '800 13px/1.4 system-ui, sans-serif',
+      whiteSpace: 'nowrap', pointerEvents: 'none',
+      transform: 'translate(12px, 12px)'
+    });
+    document.body.appendChild(tip);
+    this._brickTooltip = tip;
+
+    const hideTip = () => { tip.style.display = 'none'; };
+    dom.addEventListener('pointerleave', hideTip);
     dom.addEventListener('pointermove', e => {
-      if (this._pointersBusy) return;
+      if (this._pointersBusy) { hideTip(); return; }
       const hit = this._pick(e, ray, ndc);
       dom.style.cursor = hit ? 'pointer' : 'grab';
+      if (!hit) { hideTip(); return; }
+      const entry = this.bricks.get(hit.recordId);
+      if (!entry) { hideTip(); return; }
+      const tier = tierById(entry.tierId, this.tiers);
+      tip.textContent = 'نوع الطوبة: ' + tier.label;
+      tip.style.left = Math.min(e.clientX, window.innerWidth - 175) + 'px';
+      tip.style.top = Math.min(e.clientY, window.innerHeight - 55) + 'px';
+      tip.style.display = 'block';
     });
   }
 
