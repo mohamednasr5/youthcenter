@@ -24,6 +24,7 @@ jobs:
     timeout-minutes: 350
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_ADMIN_CHAT_IDS: ${{ secrets.TELEGRAM_ADMIN_CHAT_IDS }}
 
     steps:
       - name: Check out repository
