@@ -286,3 +286,22 @@ button{font-family:inherit}
 .cw-bc-contribution>span,.cw-bc-contribution>small{grid-column:1/-1;color:#cbd5e1}
 .cw-bc-contribution>small{line-height:1.6}
 .cw-bc-contribution>em{font-style:normal;color:#fbbf24;font-weight:800;grid-column:2;grid-row:1}
+
+
+/* بطاقة مسؤولي استقبال التبرعات */
+.cw-contact-box{margin-top:22px;padding:18px;border:1px solid rgba(245,158,11,.28);border-radius:20px;
+  background:linear-gradient(145deg,rgba(16,24,48,.86),rgba(8,13,27,.94));
+  box-shadow:0 14px 34px rgba(0,0,0,.22);max-width:760px}
+.cw-contact-box>h2{font-size:clamp(.88rem,2vw,1rem);font-weight:800;color:#f5d58a;line-height:1.8;margin-bottom:14px}
+.cw-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cw-contact-person{min-width:0;padding:14px;border-radius:15px;background:rgba(255,255,255,.045);border:1px solid var(--border)}
+.cw-contact-role{font-size:.72rem;color:var(--gold-2);font-weight:800;margin-bottom:5px}
+.cw-contact-person h3{font-size:.91rem;line-height:1.65;font-weight:900;color:#fff;margin-bottom:12px}
+.cw-contact-call{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:46px;padding:9px 12px;
+  border-radius:12px;background:linear-gradient(120deg,#0e9f6e,#047857);color:#fff;font-weight:900;transition:transform .2s,box-shadow .2s}
+.cw-contact-call b{font-size:.88rem;letter-spacing:.2px;white-space:nowrap}
+.cw-contact-call span{font-size:.78rem;white-space:nowrap}
+.cw-contact-call i{font-style:normal;font-size:1rem}
+.cw-contact-call:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(16,185,129,.25)}
+@media(max-width:620px){.cw-contact-grid{grid-template-columns:1fr}.cw-contact-box{padding:14px}.cw-contact-person h3{font-size:.88rem}}
+@media(prefers-reduced-motion:reduce){.cw-contact-call{transition:none}}
