@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "charityWall": {
+      "bricks": { ".read": true, ".write": false, ".indexOn": ["index"] },
+      "donors": { ".read": true, ".write": false },
+      "expenses": { ".read": true, ".write": false, ".indexOn": ["date"] },
+      "settings": {
+        "public_summary": { ".read": true, ".write": false },
+        "tiers": { ".read": true, ".write": false },
+        "admins": { ".read": "auth != null && auth.token.ycAdmin == true", ".write": false },
+        "counters": { ".read": "auth != null && auth.token.ycAdmin == true", ".write": false }
+      },
+      "donations": { ".read": "auth != null && auth.token.ycAdmin == true", ".write": false, ".indexOn": ["createdAt"] },
+      "donors_private": { ".read": "auth != null && auth.token.ycAdmin == true", ".write": false },
+      "adminLogs": { ".read": "auth != null && auth.token.ycAdmin == true", ".write": false, ".indexOn": ["ts"] }
+    }
+  }
+}
