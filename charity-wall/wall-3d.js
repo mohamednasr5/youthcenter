@@ -713,6 +713,9 @@ export class Wall3D {
       })
     );
     plane.position.set(pos.x, pos.y, B.d / 2 + 0.02);
+    /* لوحة الاسم هدف التقاط مستقل؛ تضمن فتح الطوبة حتى إذا أخفق Raycast جسم الفئة */
+    plane.userData.recordId = record.id;
+    plane.userData.isBrickLabel = true;
     this.wallGroup.add(plane);
 
     this.bricks.set(record.id, {
@@ -938,7 +941,18 @@ export class Wall3D {
     const hits = ray.intersectObjects(meshes, false);
     for (const h of hits) {
       const recId = h.object.userData.byIndex && h.object.userData.byIndex[h.instanceId];
-      if (recId) return { recordId: recId };
+      if (recId && this.bricks.has(recId)) return { recordId: recId };
+    }
+
+    /* احتياط مهم: التقط لوحة الاسم نفسها، لا تعتمد على خامة الطوبة المعدنية */
+    const labels = [];
+    for (const entry of this.bricks.values()) {
+      if (entry.namePlane && entry.namePlane.visible) labels.push(entry.namePlane);
+    }
+    const labelHits = ray.intersectObjects(labels, false);
+    for (const h of labelHits) {
+      const recId = h.object.userData && h.object.userData.recordId;
+      if (recId && this.bricks.has(recId)) return { recordId: recId };
     }
     return null;
   }
