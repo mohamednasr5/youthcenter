@@ -40,7 +40,7 @@ jobs:
           fi
 
       - name: Validate bot JavaScript
-        run: node --check bot-runner.js
+        run: node --check pitch-booking/bot-runner.js
 
       - name: Run bot for five hours and restart it after unexpected exits
         shell: bash
@@ -53,7 +53,7 @@ jobs:
             export BOT_RUNNER_DURATION_MS=$((REMAINING_SECONDS * 1000))
 
             echo "[Actions] Starting Telegram bot. Remaining window: ${REMAINING_SECONDS}s"
-            node bot-runner.js
+            node pitch-booking/bot-runner.js
             EXIT_CODE=$?
 
             if [ "$SECONDS" -lt "$END_AT" ]; then
