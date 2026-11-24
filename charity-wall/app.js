@@ -101,7 +101,7 @@ async function main() {
     });
 
     /* استماع لحظي: اعتماد جديد → طوبة تطير من الهرم */
-    if (lastLoadedIndex >= 0) {
+    {
       subscribeNewBricks(lastLoadedIndex, fresh => {
         fresh.forEach(b => {
           if (!bricks.find(x => x.id === b.id)) {
