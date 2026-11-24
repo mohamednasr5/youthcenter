@@ -1,5 +1,5 @@
 /* app.js — نقطة تجميع صفحة حائط الخير
-   ينسّق: مشهد 3D + البيانات من Firestore + يد الخير + الشفافية + الأصوات + الأدوات
+   ينسّق: مشهد 3D + البيانات من Realtime Database + يد الخير + الشفافية + الأصوات + الأدوات
    لا شاشة سوداء: غطاء تحميل يُخفى عند جهوزية المشهد، ووضع عرض بديل عند تعذر WebGL
    ?test=1 → وضع معاينة ببيانات عرض مؤقتة (لا يُكتب شيء في Firebase ولا يُعدّ تبرعات حقيقية) */
 
@@ -90,7 +90,7 @@ async function main() {
       lastLoadedIndex = bricks.length ? bricks[bricks.length - 1].index : -1;
       applyData();
     } catch (e) {
-      console.error('[Charity Wall] فشل جلب بيانات الحائط من Firestore:', e);
+      console.error('[Charity Wall] فشل جلب بيانات الحائط من Realtime Database:', e);
       offlineNotice(e);
       throw e;
     }
