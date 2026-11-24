@@ -48,6 +48,7 @@ async function main() {
   try {
     wall = new Wall3D(container, {
       quality: isLow ? 'low' : 'high',
+      animateOnLoad: !reduceMotion,
       onPick: showBrickPopup,
       onEmpty: empty => {
         $('#cwEmptyHint').classList.toggle('show', empty && !TEST_MODE);
