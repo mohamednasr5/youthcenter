@@ -149,7 +149,7 @@ export class HandOfGood {
       row.setAttribute('role', 'listitem');
       row.style.setProperty('--c', tier.cssColor);
       row.innerHTML = `
-        <span class="cw-d-avatar">${(d.name || '؟').trim().charAt(0)}</span>
+        <span class="cw-d-avatar">${escapeHtml((d.name || '؟').trim().charAt(0))}</span>
         <span class="cw-d-body">
           <span class="cw-d-name">${escapeHtml(d.name || 'متبرع')}</span>
           <span class="cw-d-meta"><span class="cw-d-tier">طوبة ${escapeHtml(tier.label)}</span> • ${escapeHtml(fmtDate(d.createdAt))}</span>
