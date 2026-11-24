@@ -1,0 +1,20 @@
+{
+  "images": [
+    {
+      "src": "brick_wall.jpg",
+      "caption": "brick wall"
+    },
+    {
+      "src": "brick_wall_bump.jpg",
+      "caption": "brick wall bump"
+    },
+    {
+      "src": "concrete.jpg",
+      "caption": "concrete"
+    },
+    {
+      "src": "concrete_bump.jpg",
+      "caption": "concrete bump"
+    }
+  ]
+}
