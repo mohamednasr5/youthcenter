@@ -373,7 +373,7 @@ function renderAdmins() {
   $$('#adminsList [data-deladm]').forEach(b => b.addEventListener('click', async () => {
     state.admins.splice(Number(b.dataset.deladm), 1);
     try {
-      await set(rref('settings/admins/emails'), Object.fromEntries(state.admins.map(email => [emailKey(email), true])));
+      await set(rref('settings/admins/emails'), Object.fromEntries(state.admins.map(email => [emailKey(email), email])));
       renderAdmins();
     } catch (e) { toast(e.message, true); }
   }));
@@ -385,7 +385,7 @@ $('#adminForm').addEventListener('submit', async e => {
   if (!v) return;
   if (!state.admins.includes(v)) state.admins.push(v);
   try {
-    await set(rref('settings/admins/emails'), Object.fromEntries(state.admins.map(email => [emailKey(email), true])));
+    await set(rref('settings/admins/emails'), Object.fromEntries(state.admins.map(email => [emailKey(email), email])));
     $('#adminEmailInput').value = '';
     renderAdmins();
     toast('تمت الإضافة — أنشئ الحساب بأداة setup-admins.mjs');
