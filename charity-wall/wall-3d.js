@@ -671,6 +671,7 @@ export class Wall3D {
 
   _placeInstance(record, animate, fromPos, positionOverride) {
     const index = typeof record.index === 'number' ? record.index : this.count;
+    record.index = index; /* تثبيت الفهرس لاستخدامه عند إعادة توسيط الصف */
     const tierId = record.brickType || 'clay';
     const tier = tierById(tierId, this.tiers);
     const pos = positionOverride || this._slotPosition(index, (index % PER_ROW) + 1);
