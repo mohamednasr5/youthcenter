@@ -817,14 +817,29 @@ export class Wall3D {
   flyToBrick(brickId) {
     const b = this.bricks.get(brickId);
     if (!b) return Promise.resolve(false);
+
+    /* لقطة قريبة أمامية: الطوبة المختارة في مركز الصورة وبعيدة عن تشويش بقية الحائط */
     const target = b.position.clone();
-    const camPos = b.position.clone().add(new THREE.Vector3(0, 1.2, 10.5));
+    target.y += 0.12;
+    const camPos = target.clone().add(new THREE.Vector3(0, 0.72, 4.65));
+
+    /* اسمح بزوم أقرب بعد الوصول دون أن تقفز الكاميرا للخلف */
+    this.controls.minRadius = 3.2;
     this.controls.enabled = false;
-    return flyCamera(this.camera, this.controls, target, camPos, 1.5).then(() => {
+    this.controls.flying = true;
+
+    return flyCamera(this.camera, this.controls, target, camPos, 1.85).then(() => {
       this.controls.target.copy(target);
       this._syncControls();
       this.controls.flying = false;
       this.controls.enabled = true;
+      /* مزامنة المسافة الفعلية بدقة مع وضع الكاميرا القريب */
+      const offset = this.camera.position.clone().sub(target);
+      const radius = Math.max(3.2, offset.length());
+      const phi = Math.acos(THREE.MathUtils.clamp(offset.y / radius, -1, 1));
+      const theta = Math.atan2(offset.x, offset.z);
+      this.controls.spherical = { radius, phi, theta };
+      this.controls.desired = { radius, phi, theta };
       return true;
     });
   }
