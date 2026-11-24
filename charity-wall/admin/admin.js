@@ -7,7 +7,7 @@ import {
   auth, db, storage, TIERS, tierById, egp, fmtDate
 } from '../firebase-config.js';
 import {
-  signInWithEmailAndPassword, onAuthStateChanged, signOut
+  signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { ref, get, set, update, remove, push, runTransaction, onValue, query, orderByChild, limitToLast } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 import { ref as sRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
@@ -93,6 +93,34 @@ $('#loginForm').addEventListener('submit', async e => {
 });
 
 $('#logoutBtn').addEventListener('click', () => signOut(auth));
+
+/* Google sign-in: Firebase Auth first, then strict UID allowlist check in auth observer. */
+const googleBtn = $('#googleLoginBtn');
+googleBtn?.addEventListener('click', async () => {
+  if (googleBtn.disabled) return;
+  googleBtn.disabled = true;
+  $('#loginErr').textContent = '';
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (err) {
+    if (['auth/popup-blocked','auth/cancelled-popup-request','auth/operation-not-supported-in-this-environment'].includes(err.code)) {
+      try { await signInWithRedirect(auth, provider); return; } catch (redirectErr) { err = redirectErr; }
+    }
+    const messages = {
+      'auth/unauthorized-domain':'هذا النطاق غير مضاف إلى Authorized domains في Firebase.',
+      'auth/operation-not-allowed':'فعّل Google من Firebase Authentication ثم Sign-in method.',
+      'auth/popup-closed-by-user':'أُغلقت نافذة Google قبل إتمام الدخول.',
+      'auth/network-request-failed':'تعذر الاتصال بالشبكة.'
+    };
+    $('#loginErr').textContent = messages[err.code] || err.message || 'تعذر تسجيل الدخول باستخدام Google.';
+    googleBtn.disabled = false;
+  }
+});
+getRedirectResult(auth).catch(err => {
+  $('#loginErr').textContent = err.message || 'تعذر إكمال تسجيل الدخول باستخدام Google.';
+});
 
 /* ═══ التبويبات ═══ */
 $$('.tab').forEach(b => b.addEventListener('click', () => {
