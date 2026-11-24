@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>حائط الخير | مركز شباب الأحمدية</title>
+  <meta name="description" content="حائط الخير — كل طوبة تحمل اسم متبرع حقيقي. شاهد حائط البناء ثلاثي الأبعاد لمركز شباب الأحمدية وشفافية كاملة لأين ذهب كل جنيه.">
+  <meta name="theme-color" content="#070b16">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta property="og:title" content="حائط الخير | مركز شباب الأحمدية">
+  <meta property="og:description" content="كل طوبة تحمل اسم متبرع حقيقي — اترك أثرك في بناء المركز">
+  <meta property="og:image" content="../assets/og-image.jpg">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- شريط تنقل المنصة الموحّد -->
+  <script defer src="../platform-nav.js" data-section="wall"></script>
+
+  <!-- ترويسة الصفحة -->
+  <header class="cw-hero">
+    <div class="cw-wrap">
+      <div class="cw-hero-text">
+        <div class="cw-kicker"><span class="dot"></span> CHARITY WALL • حائط الخير</div>
+        <h1>حائط <span class="grad">الخير</span></h1>
+        <p class="cw-lead">كل طوبة تحمل اسم متبرع حقيقي، وكل مساهمة تُبنى أمام عيون المجتمع.
+           ساهم في تطوير مركز شباب الأحمدية واترك اسمك على حائط الخير إلى الأبد.</p>
+        <div class="cw-hero-stats">
+          <div class="cw-stat"><div class="num" id="cwTotalDonations">… ج.م</div><div class="lbl">إجمالي المساهمات المعتمدة</div></div>
+          <div class="cw-stat"><div class="num" id="cwBrickCount">…</div><div class="lbl">طوبة على الحائط</div></div>
+          <div class="cw-stat"><div class="num" id="cwDonorsCount">…</div><div class="lbl">متبرع كريم</div></div>
+        </div>
+      </div>
+      <div class="cw-hero-emblem" aria-hidden="true">
+        <div class="ring r1"></div><div class="ring r2"></div>
+        <div class="cw-mini-bricks">
+          <span class="mb gold"></span><span class="mb clay"></span><span class="mb red"></span>
+          <span class="mb red"></span><span class="mb silver"></span><span class="mb clay"></span>
+          <span class="mb clay"></span><span class="mb red"></span><span class="mb gold"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- مشهد الحائط ثلاثي الأبعاد -->
+  <section class="cw-stage-wrap" aria-label="حائط الخير ثلاثي الأبعاد">
+    <div class="cw-viewport" id="cwViewport">
+      <!-- غطاء التحميل (لا شاشة سوداء) -->
+      <div id="cwLoader" class="cw-loader">
+        <div class="cw-loader-box">
+          <div class="cw-loader-brick">🧱</div>
+          <div class="cw-loader-title">يجري بناء حائط الخير…</div>
+          <div class="cw-loader-track"><div id="cwLoaderBar"></div></div>
+          <div class="cw-loader-hint">اسحب للدوران • عجلة الفأرة أو القرصة للتقريب • اضغط على أي طوبة لمعرفة صاحبها</div>
+        </div>
+      </div>
+
+      <div id="cwEmptyHint" class="cw-empty-hint">
+        <div class="cw-empty-ico">🧱</div>
+        <div>الحائط بانتظار أول طوبة خير…<br><small>بمجرد اعتماد أول تبرع ستطير طوبته من الهرم إلى مكانها</small></div>
+      </div>
+
+      <div id="cwNotice" class="cw-notice" role="status"></div>
+
+      <!-- أدوات التحكم -->
+      <div class="cw-toolbar" role="toolbar" aria-label="أدوات العرض">
+        <button id="cwResetBtn" class="cw-tool" type="button" title="إعادة العرض العام">🎯</button>
+        <button id="cwMuteBtn" class="cw-tool" type="button" title="كتم/تشغيل الأصوات">🔊</button>
+        <button id="cwQualityBtn" class="cw-tool" type="button" title="وضع الأداء للأجهزة الضعيفة">⚡</button>
+        <button id="cwFullscreenBtn" class="cw-tool" type="button" title="ملء الشاشة">⛶</button>
+      </div>
+
+      <!-- بطاقة بيانات المتبرع -->
+      <div id="cwBrickCard" class="cw-brick-card" role="dialog" aria-live="polite"></div>
+    </div>
+
+    <!-- دليل فئات الطوب -->
+    <div class="cw-tier-legend cw-wrap">
+      <span class="cw-lg-title">فئات الطوب حسب إجمالي التبرع المعتمد:</span>
+      <span class="cw-lg-chip" style="--c:#a0714f">طين — أقل من 1000 ج.م</span>
+      <span class="cw-lg-chip" style="--c:#b3432c">حمراء — 1000 إلى 3000 ج.م</span>
+      <span class="cw-lg-chip" style="--c:#c9d2dd">فضية — 3000 إلى 5000 ج.م</span>
+      <span class="cw-lg-chip" style="--c:#f0b542">ذهبية — 5000 إلى 10000 ج.م</span>
+      <span class="cw-lg-chip" style="--c:#d9f4ff">ماسية — أكثر من 10000 ج.م</span>
+    </div>
+  </section>
+
+  <!-- قسم الشفافية المالية -->
+  <section class="cw-transparency cw-wrap" id="cwTransparency" aria-label="الشفافية المالية"></section>
+
+  <!-- GSAP (محلي) ثم التطبيق -->
+  <script src="vendor/gsap.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

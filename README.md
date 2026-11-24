@@ -48,7 +48,8 @@
 ├── tools/update_fb_post.py # يجلب آخر منشور على الصفحة ويكتب fb-post.json
 ├── football-academy/       # أكاديمية كرة القدم
 ├── karate-academy/         # أكاديمية الكاراتيه
-└── pitch-booking/          # نظام حجز الملعب الخماسي
+├── pitch-booking/          # نظام حجز الملعب الخماسي
+└── charity-wall/           # حائط الخير — حائط متبرعين ثلاثي الأبعاد + شفافية مالية (Firestore/Storage/Cloud Functions)
 ```
 
 ---

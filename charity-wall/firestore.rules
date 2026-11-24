@@ -1,0 +1,73 @@
+rules_version = '2';
+
+/* firestore.rules — حائط الخير | مركز شباب الأحمدية
+   القراءة عامة لما يظهر للزوار (المتبرعون، الطوب، المصروفات، الملخص، الفئات)
+   الكتابة المالية (تبرعات/طوب/ملخص/سجلات) حصريًا عبر Cloud Functions (SDK الإداري يتجاوز القواعد)
+   المسؤول (ycAdmin Claim) يعدّل المتبرعين والفئات وقائمة المصرَّح لهم فقط */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.ycAdmin == true;
+    }
+
+    /* المتبرعون (بيانات عامة: الاسم والإجمالي المعتمد والفئة) — التعديل للمسؤول */
+    match /donors/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    /* بيانات التواصل الخاصة (هاتف/ملاحظات) — مسؤول فقط */
+    match /donors_private/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    /* التبرعات — قراءتها للمسؤول فقط، والكتابة عبر Cloud Functions حصرًا */
+    match /donations/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    /* الطوب — عامة القراءة، وتُكتب/تُحدَّث عبر Cloud Functions حصرًا */
+    match /bricks/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    /* المصروفات — علنية (شفافية)، والكتابة عبر Cloud Functions حصرًا */
+    match /expenses/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    /* الإعدادات */
+    match /settings/{doc} {
+      /* الملخص المالي العام: يقرأه الجميع ويكتبه الخادم فقط */
+      match /public_summary {
+        allow read: if true;
+        allow write: if false;
+      }
+      /* عدّاد مواضع الطوب: الخادم فقط */
+      match /counters {
+        allow read: if isAdmin();
+        allow write: if false;
+      }
+      /* فئات الطوب: الجميع يقرؤها والمسؤول يعدلها */
+      match /tiers {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+      /* قائمة بريدات الإدارة: مسؤول فقط (تستخدمها Cloud Functions أيضًا) */
+      match /admins {
+        allow read, write: if isAdmin();
+      }
+    }
+
+    /* سجل العمليات — مسؤول فقط للقراءة، ولا يُعدَّل أو يُحذف من المتصفح إطلاقًا */
+    match /adminLogs/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+  }
+}

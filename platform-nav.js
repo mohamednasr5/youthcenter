@@ -1,5 +1,5 @@
-/* platform-nav.js — شريط تنقل وتذييل موحّدان لأقسام منصة مركز شباب الأحمدية الأربعة
-   الاستخدام: <script defer src="../platform-nav.js" data-section="football|karate|pitch|home"></script>
+/* platform-nav.js — شريط تنقل وتذييل موحّدان لأقسام منصة مركز شباب الأحمدية
+   الاستخدام: <script defer src="../platform-nav.js" data-section="football|karate|pitch|wall|home"></script>
    - الشريط يظهر أعلى الصفحة (غير ثابت لتفادي التعارض مع ترويسات الأقسام).
    - يحافظ على هوية كل قسم بلونه، ولا يغيّر روابط الصفحات القائمة. */
 (function () {
@@ -12,10 +12,11 @@
     ["football", "أكاديمية كرة القدم", "football-academy/index.html", "⚽"],
     ["karate", "أكاديمية الكاراتيه", "karate-academy/index.html", "🥋"],
     ["pitch", "الملعب الخماسي", "pitch-booking/index.html", "🏟️"],
+    ["wall", "حائط الخير", "charity-wall/index.html", "🧱"],
     ["news", "الأخبار والأنشطة", "index.html#activities", "📰"],
     ["contact", "اتصل بنا", "index.html#contact", "📞"]
   ];
-  const ACCENT = { home: "#f59e0b", football: "#10b981", karate: "#f43f5e", pitch: "#fbbf24" };
+  const ACCENT = { home: "#f59e0b", football: "#10b981", karate: "#f43f5e", pitch: "#fbbf24", wall: "#eab308" };
   const acc = ACCENT[section] || ACCENT.home;
 
   const css = `

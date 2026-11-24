@@ -1,0 +1,24 @@
+rules_version = '2';
+
+/* storage.rules — حائط الخير | مركز شباب الأحمدية
+   صور الفواتير وصور الأعمال المنفذة تحت charity-wall/
+   القراءة عامة (شفافية)، والرفع للمسؤولين فقط وبحد حجم ونوع آمن */
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.ycAdmin == true;
+    }
+
+    function validImage() {
+      return request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /charity-wall/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && validImage();
+    }
+  }
+}

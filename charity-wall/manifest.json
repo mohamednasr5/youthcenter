@@ -1,0 +1,19 @@
+{
+  "name": "حائط الخير — مركز شباب الأحمدية",
+  "short_name": "حائط الخير",
+  "description": "حائط بناء ثلاثي الأبعاد يحمل أسماء متبرعي مركز شباب الأحمدية، مع شفافية مالية كاملة: أين ذهب كل جنيه.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#05080f",
+  "theme_color": "#070b16",
+  "categories": ["charity", "education"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
