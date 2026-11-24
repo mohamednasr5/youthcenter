@@ -38,7 +38,21 @@ const validTypes=['cash','service','material','labor','sponsorship'];
 function amountValue(v){const n=Number(v);if(!Number.isFinite(n)||n<=0)throw new Error('يجب إدخال مبلغ أكبر من صفر');return Math.round(n*100)/100;}
 async function updateSummary(){const [donors,expenses,bricks,donations]=await Promise.all(['donors','expenses','bricks','donations'].map(val));const approved=Object.values(donations||{}).filter(x=>x.status==='approved');const cash=approved.reduce((a,x)=>a+((x.contributionType&&x.contributionType!=='cash')?0:Number(x.amount)||0),0);const kind=approved.reduce((a,x)=>a+((x.contributionType&&x.contributionType!=='cash')?(Number(x.estimatedValue)||0):0),0);const spent=Object.values(expenses||{}).reduce((a,x)=>a+(Number(x.amount)||0),0);const counts={clay:0,red:0,silver:0,gold:0,diamond:0};Object.values(bricks||{}).forEach(b=>{if(counts[b.brickType]!==undefined)counts[b.brickType]++;});const out={totalApprovedDonations:cash+kind,totalContributionValue:cash+kind,totalCashDonations:cash,totalInKindContributions:kind,totalExpenses:spent,cashBalance:Math.round((cash-spent)*100)/100,balance:Math.round((cash-spent)*100)/100,donorCount:Object.keys(donors||{}).length,brickCount:Object.keys(bricks||{}).length,tierCounts:counts,updatedAt:Date.now()};await set(rref('settings/public_summary'),out);return out;}
 async function syncDonor(id){const [ds,ns,bs,ts]=await Promise.all([get(rref('donors/'+id)),get(rref('donations')),get(rref('bricks')),get(rref('settings/tiers'))]);if(!ds.exists())throw new Error('المتبرع غير موجود');const donor=ds.val(),approved=toList(ns).filter(x=>x.donorId===id&&x.status==='approved');const cash=approved.reduce((a,x)=>a+((x.contributionType&&x.contributionType!=='cash')?0:Number(x.amount)||0),0),kind=approved.reduce((a,x)=>a+((x.contributionType&&x.contributionType!=='cash')?(Number(x.estimatedValue)||0):0),0),total=Math.round((cash+kind)*100)/100,tiers=ts.val()?.list||TIERS,tier=tiers.find(t=>total>=Number(t.min)&&total<=Number(t.max)),brickType=tier?.id||'clay';const details=approved.slice(-8).map(x=>({type:x.contributionType||'cash',title:String(x.title||'تبرع نقدي').slice(0,100),description:String(x.description||x.note||'').slice(0,240),estimatedValue:Number(x.estimatedValue)||Number(x.amount)||0,amount:Number(x.amount)||0,project:String(x.project||'').slice(0,100)}));await update(rref('donors/'+id),{totalDonation:total,cashContribution:cash,inKindContribution:kind,brickType});const entries=Object.entries(bs.val()||{}),found=entries.find(e=>e[1].donorId===id);if(total>0){const data={donorId:id,donorName:donor.name,totalDonation:total,cashContribution:cash,inKindContribution:kind,contributionDetails:details,brickType};if(found)await update(rref('bricks/'+found[0]),data);else{const tx=await runTransaction(rref('settings/counters/nextIndex'),v=>(Number(v)||0)+1),index=Math.max(0,Number(tx.snapshot.val())-1),node=push(rref('bricks'));await set(node,{...data,index,row:Math.floor(index/10),column:index%10,createdAt:Date.now()});}}else if(found)await remove(rref('bricks/'+found[0]));return{total,cash,kind,brickType};}
-async function addDonor(data){const name=String(data.name||'').trim();if(name.length<2)throw new Error('اسم المتبرع مطلوب');const node=push(rref('donors')),id=node.key,now=Date.now(),u={};u['donors/'+id]={name,createdAt:now,totalDonation:0,brickType:'clay'};u['donors_private/'+id]={phone:String(data.phone||''),notes:String(data.notes||''),createdAt:now};await update(rref(''),u);await updateSummary();await logAction('add_donor',{donorId:id,name});}
+async function addDonor(data){
+  const name=String(data.name||'').trim();
+  if(name.length<2)throw new Error('اسم المتبرع مطلوب');
+  const node=push(rref('donors')),id=node.key,now=Date.now();
+  // إضافة المتبرع تكتب حصريًا في مساري donors وdonors_private.
+  // لا تستدعي إعادة احتساب الإيرادات أو المصروفات حتى لا تخلط بين العمليات.
+  const updates={};
+  updates['donors/'+id]={name,createdAt:now,totalDonation:0,brickType:'clay'};
+  updates['donors_private/'+id]={phone:String(data.phone||''),notes:String(data.notes||''),createdAt:now};
+  await update(rref(''),updates);
+  const donors=await val('donors');
+  await update(rref('settings/public_summary'),{donorCount:Object.keys(donors||{}).length,updatedAt:now});
+  await logAction('add_donor',{donorId:id,name});
+  return id;
+}
 async function updateDonor(id,data){const old=await val('donors/'+id);if(!old)throw new Error('المتبرع غير موجود');const name=String(data.name??old.name).trim();if(name.length<2)throw new Error('الاسم قصير جدًا');const u={};u['donors/'+id+'/name']=name;u['donors_private/'+id]={phone:String(data.phone||''),notes:String(data.notes||'')};const bs=await val('bricks');Object.entries(bs||{}).forEach(([k,b])=>{if(b.donorId===id)u['bricks/'+k+'/donorName']=name;});await update(rref(''),u);await logAction('update_donor',{donorId:id});}
 async function recordContribution(data){const donor=await val('donors/'+data.donorId);if(!donor)throw new Error('المساهم غير موجود');const type=String(data.contributionType||'cash');if(!validTypes.includes(type))throw new Error('نوع المساهمة غير صحيح');const amount=type==='cash'?amountValue(data.amount):0,estimatedValue=type==='cash'?amount:amountValue(data.estimatedValue),title=String(data.title||(type==='cash'?'تبرع نقدي':'')).trim();if(type!=='cash'&&title.length<2)throw new Error('اكتب وصفًا للمساهمة');const date=data.date?new Date(data.date).getTime():Date.now();if(!Number.isFinite(date))throw new Error('تاريخ غير صالح');const node=push(rref('donations')),id=node.key;await set(node,{donorId:data.donorId,donorName:donor.name,contributionType:type,amount,estimatedValue,title,description:String(data.description||data.note||''),project:String(data.project||''),date,status:'pending',paymentMethod:String(data.paymentMethod||'نقدي'),transactionId:String(data.transactionId||''),note:String(data.note||''),createdBy:actor(),createdAt:Date.now()});await logAction('record_contribution',{donationId:id,donorId:data.donorId,type,amount,estimatedValue});}
 async function approveContribution(id){const node=rref('donations/'+id),tx=await runTransaction(node,current=>{if(!current||current.status!=='pending')return;return{...current,status:'approved',approvedBy:actor(),approvedAt:Date.now()};});if(!tx.committed)throw new Error('هذه المساهمة تمت معالجتها مسبقًا');const d=tx.snapshot.val();await syncDonor(d.donorId);await updateSummary();await logAction('approve_donation',{donationId:id,donorId:d.donorId});}
@@ -218,16 +232,24 @@ function renderDonorSelect() {
 
 $('#donorForm').addEventListener('submit', async e => {
   e.preventDefault();
+  e.stopPropagation();
+  const form=e.currentTarget;
+  const btn=form.querySelector('button[type="submit"]');
+  if(btn?.disabled)return;
+  if(btn)btn.disabled=true;
   try {
-    await addDonor({
-      name: $('#dName').value, phone: $('#dPhone').value, notes: $('#dNotes').value
-    });
+    await addDonor({name:$('#dName').value,phone:$('#dPhone').value,notes:$('#dNotes').value});
     toast('تمت إضافة المتبرع ✓');
-    e.target.reset();
-    const dn = await get(rref('donors'));
-    state.donors = toList(dn);
-    renderDonors(); renderDonorSelect();
-  } catch (_e) { /* الرسالة تظهر من call */ }
+    form.reset();
+    const [dn,pv]=await Promise.all([get(rref('donors')),get(rref('donors_private'))]);
+    state.donors=toList(dn);
+    state.privates=new Map(Object.entries(pv.val()||{}));
+    renderDonors();renderDonorSelect();
+  } catch (err) {
+    toast('تعذرت إضافة المتبرع: '+(err?.message||'خطأ غير معروف'),true);
+  } finally {
+    if(btn)btn.disabled=false;
+  }
 });
 
 /* تعديل متبرع (نافذة منبثقة) */
@@ -331,6 +353,8 @@ async function uploadImage(file, kind) {
 
 $('#expenseForm').addEventListener('submit', async e => {
   e.preventDefault();
+  e.stopPropagation();
+  if(e.target !== $('#expenseForm')) return;
   const btn = e.target.querySelector('button[type=submit]');
   btn.disabled = true; btn.textContent = 'جارٍ رفع المستندات…';
   try {
@@ -349,7 +373,9 @@ $('#expenseForm').addEventListener('submit', async e => {
     });
     toast('تم حفظ المصروف ونشره في قسم الشفافية ✓');
     e.target.reset();
-  } catch (_e) {}
+  } catch (err) {
+    toast('تعذر حفظ المصروف: '+(err?.message||'خطأ غير معروف'),true);
+  }
   finally { btn.disabled = false; btn.textContent = '🧾 حفظ المصروف (يُنشر في الشفافية)'; }
 });
 
