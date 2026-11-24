@@ -7,7 +7,7 @@ const H=functions.https.HttpsError;
 const p=x=>db.ref(ROOT+'/'+x);
 async function read(x){const s=await p(x).once('value');return s.val();}
 function safeEmail(e){return String(e||'').toLowerCase().replaceAll('.','_').replaceAll('#','_').replaceAll('$','_').replaceAll('[','_').replaceAll(']','_').replaceAll('/','_');}
-async function adminOnly(ctx){if(!ctx.auth)throw new H('unauthenticated','يجب تسجيل الدخول أولًا');const email=String(ctx.auth.token.email||'').toLowerCase();if(ctx.auth.token.ycAdmin===true)return email||ctx.auth.uid;if(email&&(await p('settings/admins/emails/'+safeEmail(email)).once('value')).val()===true)return email;throw new H('permission-denied','هذا الحساب غير مصرَّح له بإدارة حائط الخير');}
+async function adminOnly(ctx){if(!ctx.auth)throw new H('unauthenticated','يجب تسجيل الدخول أولًا');const email=String(ctx.auth.token.email||'').toLowerCase();if(ctx.auth.token.ycAdmin===true)return email||ctx.auth.uid;if(email&&(await p('settings/admins/emails/'+safeEmail(email)).once('value')).val()===email)return email;throw new H('permission-denied','هذا الحساب غير مصرَّح له بإدارة حائط الخير');}
 async function log(actor,action,details={}){await p('adminLogs').push({actor,action,details,ts:Date.now()});}
 const DEFAULT=[{id:'clay',label:'طين',min:0,max:999.99},{id:'red',label:'حمراء',min:1000,max:2999.99},{id:'silver',label:'فضية',min:3000,max:4999.99},{id:'gold',label:'ذهبية',min:5000,max:10000},{id:'diamond',label:'ماسية',min:10000.01,max:999999999}];
 async function tierFor(n){const s=await read('settings/tiers');const a=s&&Array.isArray(s.list)&&s.list.length?s.list:DEFAULT;const t=a.find(x=>n>=Number(x.min)&&n<=Number(x.max));return t?t.id:'clay';}
