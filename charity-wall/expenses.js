@@ -102,7 +102,7 @@ export class TransparencySection {
 
   renderFlow() {
     const s = this.summary || {};
-    const totalIn = Number(s.totalApprovedDonations) || 0;
+    const totalIn = Number(s.totalCashDonations ?? s.totalApprovedDonations) || 0;
     const totalOut = Number(s.totalExpenses) || 0;
     const pct = totalIn > 0 ? Math.min(100, (totalOut / totalIn) * 100) : 0;
     this.flowEl.innerHTML = `
