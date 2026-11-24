@@ -3,7 +3,7 @@
    - رسم بياني دائري للمصروفات حسب البند + رسم أعمدة شهري (Canvas مرسوم يدويًا)
    - تفاصيل كل مصروف: الوصف والمبلغ والتاريخ والمعتمِد
    - صور الفواتير وصور الأعمال المنفذة مع عارض مكبّر
-   كل البيانات تُقرأ مباشرة من Firestore */
+   كل البيانات تُقرأ مباشرة من Realtime Database */
 
 import { egp, fmtDate, TIERS } from './firebase-config.js';
 import { escapeHtml } from './donors.js';
