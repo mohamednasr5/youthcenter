@@ -80,7 +80,14 @@
   </main>
   <script>
     const goal=document.getElementById('goal');
-    window.setTimeout(()=>goal.classList.add('shake'),2250);
+    const countdown=document.getElementById('countdown');
+    let remaining=10;
+    const timer=window.setInterval(()=>{
+      remaining=Math.max(0,remaining-1);
+      if(countdown) countdown.textContent=String(remaining);
+      if(remaining===0){window.clearInterval(timer);window.location.replace('/youthcenter/');}
+    },1000);
+    window.setTimeout(()=>goal.classList.add('catch','shake'),2250);
   </script>
 </body>
 </html>
