@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>لوحة تحكم حائط الخير | مركز شباب الأحمدية</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#070b16">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <!-- شاشة تسجيل الدخول -->
+  <div id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-card" autocomplete="on">
+      <div class="login-logo">🧱</div>
+      <h1>لوحة تحكم حائط الخير</h1>
+      <p class="login-sub">مركز شباب الأحمدية — للمسؤولين المصرَّح لهم فقط</p>
+      <label>
+        <span>البريد الإلكتروني</span>
+        <input type="email" id="loginEmail" required autocomplete="username" placeholder="admin@example.com" dir="ltr">
+      </label>
+      <label>
+        <span>كلمة المرور</span>
+        <input type="password" id="loginPass" required autocomplete="current-password" placeholder="••••••••" dir="ltr">
+      </label>
+      <button type="submit" class="btn btn-gold" id="loginBtn">تسجيل الدخول بالبريد</button>
+      <div class="login-divider"><span>أو</span></div>
+      <button type="button" class="btn-google" id="googleLoginBtn"><span class="google-mark">G</span> الدخول باستخدام Google</button>
+      <p id="loginErr" class="login-err" role="alert"></p>
+      <p class="login-hint">الدخول متاح لحسابات المشرفين المعتمدة فقط</p>
+      <a href="../index.html" class="login-back">← العودة إلى حائط الخير</a>
+    </form>
+  </div>
+
+  <!-- التطبيق -->
+  <div id="adminApp" class="admin-app" hidden>
+    <header class="admin-topbar">
+      <div class="ab-brand">
+        <img src="../../assets/logo.png" alt="" width="34" height="34">
+        <div>
+          <div class="ab-title">لوحة تحكم حائط الخير</div>
+          <div class="ab-sub" id="adminEmail">—</div>
+        </div>
+      </div>
+      <div class="ab-actions">
+        <a href="../index.html" class="btn btn-ghost btn-sm" target="_blank">👁️ عرض الحائط</a>
+        <a href="../../index.html" class="btn btn-ghost btn-sm">🏠 المنصة</a>
+        <button type="button" id="logoutBtn" class="btn btn-sm btn-danger">تسجيل الخروج</button>
+      </div>
+    </header>
+
+    <div class="admin-body">
+      <nav class="admin-tabs" role="tablist" aria-label="أقسام لوحة التحكم">
+        <button class="tab on" data-tab="dash" role="tab" type="button">📊 نظرة عامة</button>
+        <button class="tab" data-tab="donors" role="tab" type="button">👥 المتبرعون</button>
+        <button class="tab" data-tab="donations" role="tab" type="button">🤝 المساهمات <span class="badge" id="pendingBadge" hidden></span></button>
+        <button class="tab" data-tab="expenses" role="tab" type="button">🧾 المصروفات</button>
+        <button class="tab" data-tab="tiers" role="tab" type="button">🧱 فئات الطوب</button>
+        <button class="tab" data-tab="reports" role="tab" type="button">📈 التقارير</button>
+        <button class="tab" data-tab="logs" role="tab" type="button">🗂️ سجل العمليات</button>
+      </nav>
+
+      <!-- نظرة عامة -->
+      <section class="tab-panel on" id="tab-dash" role="tabpanel">
+        <div class="dash-cards" id="dashCards"></div>
+        <div class="card">
+          <h3>آخر المساهمات</h3>
+          <div class="table-wrap"><table id="dashRecent"><thead>
+            <tr><th>المتبرع</th><th>القيمة</th><th>الحالة</th><th>التاريخ</th></tr>
+          </thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- المتبرعون -->
+      <section class="tab-panel" id="tab-donors" role="tabpanel">
+        <div class="card">
+          <h3>إضافة متبرع</h3>
+          <form id="donorForm" class="grid-form">
+            <label><span>الاسم *</span><input id="dName" required placeholder="الاسم الكامل"></label>
+            <label><span>الهاتف (خاص — لا يُنشر)</span><input id="dPhone" dir="ltr" placeholder="01xxxxxxxxx"></label>
+            <label class="span2"><span>ملاحظات (خاصة)</span><input id="dNotes" placeholder="ملاحظة داخلية"></label>
+            <div class="span2"><button type="submit" class="btn btn-gold">＋ إضافة المتبرع</button></div>
+          </form>
+        </div>
+        <div class="card">
+          <div class="card-head-row">
+            <h3>قائمة المتبرعين (<span id="donorCount">0</span>)</h3>
+            <input type="search" id="donorSearch" class="mini-search" placeholder="بحث بالاسم أو الهاتف…">
+          </div>
+          <div class="table-wrap"><table id="donorsTable">
+            <thead><tr><th>الاسم</th><th>الهاتف</th><th>الإجمالي المعتمد</th><th>فئة الطوبة</th><th>إجراءات</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- التبرعات -->
+      <section class="tab-panel" id="tab-donations" role="tabpanel">
+        <div class="card">
+          <h3>تسجيل مساهمة جديدة</h3>
+          <form id="donationForm" class="grid-form">
+            <label><span>المساهم *</span><select id="dnDonor" required></select></label>
+            <label><span>نوع المساهمة *</span><select id="dnType"><option value="cash">تبرع نقدي</option><option value="service">خدمة أو خبرة</option><option value="material">مواد وخامات</option><option value="labor">جهد أو تنفيذ</option><option value="sponsorship">رعاية مشروع</option></select></label>
+            <label id="dnCashWrap"><span>المبلغ المحصّل فعليًا (ج.م) *</span><input id="dnAmount" type="number" min="0.01" step="0.01" placeholder="1000"></label>
+            <label id="dnValueWrap" hidden><span>القيمة التقديرية للمساهمة (ج.م) *</span><input id="dnValue" type="number" min="0.01" step="0.01" placeholder="12000"></label>
+            <label id="dnTitleWrap" hidden><span>عنوان المساهمة *</span><input id="dnTitle" placeholder="تصميم وتطوير موقع المركز"></label>
+            <label><span>المشروع أو القسم المستفيد</span><input id="dnProject" placeholder="تطوير الموقع الإلكتروني / صيانة الملعب"></label>
+            <label><span>التاريخ</span><input id="dnDate" type="date"></label>
+            <label id="dnMethodWrap"><span>طريقة الدفع</span><select id="dnMethod"><option>نقدي</option><option>تحويل بنكي</option><option>محفظة إلكترونية</option><option>إنستاباي</option><option>أخرى</option></select></label>
+            <label id="dnTxnWrap"><span>رقم العملية</span><input id="dnTxn" dir="ltr" placeholder="اختياري"></label>
+            <label class="span2"><span>تفاصيل المساهمة / ما الذي تم تقديمه؟</span><textarea id="dnDescription" rows="2" placeholder="مثال: تصميم وبرمجة الموقع الإلكتروني وتسليمه للمركز"></textarea></label>
+            <label class="span2"><span>ملاحظة داخلية</span><input id="dnNote" placeholder="اختياري — لا تظهر للجمهور"></label>
+            <div class="span2"><button type="submit" class="btn btn-gold">＋ تسجيل المساهمة (قيد المراجعة)</button></div>
+          </form>
+          <p class="hint">كل مساهمة تمر بالمراجعة قبل اعتمادها. القيمة العينية لا تُضاف إلى الرصيد النقدي ولا تُعامل كأموال محصّلة.</p>
+        </div>
+        <div class="card">
+          <div class="card-head-row">
+            <h3>كل المساهمات</h3>
+            <select id="dnFilter" class="mini-select">
+              <option value="all">كل الحالات</option>
+              <option value="pending">قيد الاعتماد</option>
+              <option value="approved">معتمد</option>
+              <option value="rejected">مرفوض</option>
+            </select>
+          </div>
+          <div class="table-wrap"><table id="donationsTable">
+            <thead><tr><th>المتبرع</th><th>النوع / الوصف</th><th>القيمة التقديرية</th><th>النقد المحصّل</th><th>طريقة الدفع</th><th>رقم العملية</th><th>التاريخ</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- المصروفات -->
+      <section class="tab-panel" id="tab-expenses" role="tabpanel">
+        <div class="card">
+          <h3>إضافة مصروف</h3>
+          <form id="expenseForm" class="grid-form">
+            <label><span>العنوان *</span><input id="exTitle" required placeholder="مثال: شراء أسمنت و طوب"></label>
+            <label><span>المبلغ (ج.م) *</span><input id="exAmount" type="number" min="1" step="0.01" required></label>
+            <label><span>البند</span><input id="exCategory" placeholder="مواد بناء / أعمال كهرباء…"></label>
+            <label><span>التاريخ</span><input id="exDate" type="date"></label>
+            <label class="span2"><span>الوصف</span><textarea id="exDesc" rows="2" placeholder="تفاصيل المصروف"></textarea></label>
+            <label><span>صورة الفاتورة</span><input id="exReceipt" type="file" accept="image/*"></label>
+            <label><span>صور الأعمال المنفذة</span><input id="exImages" type="file" accept="image/*" multiple></label>
+            <div class="span2"><button type="submit" class="btn btn-gold">🧾 حفظ المصروف (يُنشر في الشفافية)</button></div>
+          </form>
+        </div>
+        <div class="card">
+          <h3>المصروفات المسجّلة (<span id="expenseCount">0</span>)</h3>
+          <div class="table-wrap"><table id="expensesTable">
+            <thead><tr><th>العنوان</th><th>البند</th><th>المبلغ</th><th>التاريخ</th><th>المستندات</th><th>إجراءات</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- فئات الطوب -->
+      <section class="tab-panel" id="tab-tiers" role="tabpanel">
+        <div class="card">
+          <h3>فئات الطوب وحدودها</h3>
+          <p class="hint">عدّل المسميات وحدود المبالغ ثم احفظ. تطبيق الحدود الجديدة على المتبرعين الحاليين يتطلب «إعادة الاحتساب الشاملة».</p>
+          <div class="table-wrap"><table id="tiersTable">
+            <thead><tr><th>الفئة</th><th>من (ج.م)</th><th>إلى (ج.م)</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+          <div class="row-actions">
+            <button type="button" id="saveTiers" class="btn btn-gold">💾 حفظ الفئات</button>
+            <button type="button" id="recalcBtn" class="btn btn-emerald">♻️ إعادة الاحتساب الشاملة</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>المصرَّح لهم بالإدارة</h3>
+          <p class="hint">بريدات مسؤولي حائط الخير (تُستخدم مع صلاحية ycAdmin في التحقق من الخادم). الحسابات تُنشأ بأداة setup-admins.mjs.</p>
+          <form id="adminForm" class="inline-form">
+            <input id="adminEmailInput" type="email" required placeholder="admin@example.com" dir="ltr">
+            <button type="submit" class="btn btn-ghost btn-sm">＋ إضافة</button>
+          </form>
+          <ul id="adminsList" class="admins-list"></ul>
+        </div>
+      </section>
+
+      <!-- التقارير -->
+      <section class="tab-panel" id="tab-reports" role="tabpanel">
+        <div class="dash-cards" id="reportCards"></div>
+        <div class="card">
+          <h3>استخراج التقارير (CSV — يفتح في Excel)</h3>
+          <div class="row-actions wrap">
+            <button type="button" class="btn btn-ghost" data-export="donors">👥 تقرير المتبرعين</button>
+            <button type="button" class="btn btn-ghost" data-export="donations">💰 تقرير التبرعات</button>
+            <button type="button" class="btn btn-ghost" data-export="expenses">🧾 تقرير المصروفات</button>
+            <button type="button" class="btn btn-ghost" onclick="window.print()">🖨️ طباعة الملخص</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>ملخص قابل للطباعة</h3>
+          <div id="printableSummary" class="printable"></div>
+        </div>
+      </section>
+
+      <!-- سجل العمليات -->
+      <section class="tab-panel" id="tab-logs" role="tabpanel">
+        <div class="card">
+          <h3>سجل العمليات (آخر 100 عملية)</h3>
+          <div class="table-wrap"><table id="logsTable">
+            <thead><tr><th>الوقت</th><th>المسؤول</th><th>العملية</th><th>التفاصيل</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="admToast" class="adm-toast" role="status"></div>
+
+  <!-- إعدادات الصلاحيات المشتركة -->
+  <script src="../../yc-auth-config.js"></script>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

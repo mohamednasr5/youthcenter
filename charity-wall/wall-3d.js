@@ -7,7 +7,7 @@
    - هرم جانبي بالأنواع الخمسة + عدادات حية، ومنه تنطلق الطوبات الجديدة
    - تحكم كامل بالكاميرا: سحب للدوران، عجلة/قرصة للتقريب، سحب بإصبعين للتحريك
    - المطرقة (الشاكوش) تظهر عند الاقتراب من أي طوبة أو توجيه المؤشر إليها:
-     • ضغطة واحدة → بيانات المتبرع
+     • ضغطة واحدة → فتح الطوبة: بيانات المتبرع مع تقدم الطوبة من الحائط ثم عودتها لمكانها بعد 5 ثوانٍ
      • الاستمرار بالضغط/النقر المتكرر → طرق متتالٍ وتشقق ثم تحطيم
      • بعد التحطيم يظهر مكان الطوبة «المبلغ المدفوع» ثلاثي الأبعاد مع نوعها
      • بعد 5 ثوانٍ تُعاد بناء الطوبة ويمكن تكرار الدورة
@@ -19,7 +19,7 @@ import { TIERS, tierById, egp } from './firebase-config.js';
 import { sounds } from './sounds.js';
 import {
   flyBrick, dustBurst, lightFlash, breakBrick, popBrick, flyCamera,
-  brickShake, debrisBurst, smashBrick, rebuildBrick, bezierPoint
+  brickShake, debrisBurst, smashBrick, rebuildBrick, bezierPoint, killPop
 } from './animations.js';
 
 /* ─── أبعاد البناء ─── */
@@ -1064,8 +1064,12 @@ export class Wall3D {
     this.wallGroup.add(plane);
 
     this.bricks.set(record.id, {
-      record, tierId, groupIdx: idx, matrix: dummy.matrix.clone(),
-      namePlane: plane, position: pos.clone()
+      /* finalMatrix هي المصفوفة الكاملة بمقياس 1 — dummy.matrix تكون قد انكمشت إلى
+         0.001 لإخفاء أنيميشن الطيران، وحفظها هنا كان يجعل الطوبة تختفي نهائيًا
+         عند أول ضغطة (فتحها) ولا تعود بعد الكسر، لأن كل حركات الاهتزاز/التحطيم/
+         إعادة البناء تستخدم هذه المصفوفة كأساس */
+      record, tierId, groupIdx: idx, matrix: finalMatrix,
+      namePlane: plane, position: pos.clone(), labelBaseZ: plane.position.z
     });
     this.byDonor.set(record.donorId, record.id);
     this.count = Math.max(this.count, index + 1);
@@ -1231,12 +1235,14 @@ export class Wall3D {
       const tier = tierById(entry.tierId, this.tiers);
       const hitPoint = this.hammer ? this.hammer.impactOf(entry) : pos.clone().add(new THREE.Vector3(0, 0, B.d / 2));
       debrisBurst(this.scene, hitPoint, tier.color, { low: this.quality === 'low' });
-      brickShake(group, entry, hitNo === 1 ? 0.8 : 1.5);
       if (hitNo === 1) {
-        /* ضغطة واحدة → بيانات المتبرع */
+        /* ضغطة واحدة → فتح الطوبة: تتقدم من الحائط مع بيانات المتبرع
+           ثم تعود إلى مكانها بعد 5 ثوانٍ (بذات مهلة إخفاء البطاقة) */
+        popBrick(group, entry, { holdSec: RESTORE_MS / 1000 });
         this.onPick(entry.record, screen || this.worldToScreen(pos));
       } else {
         /* ضربات متتالية → إغلاق البطاقة وتشقق متصاعد */
+        brickShake(group, entry, 1.5);
         this.onCloseCard();
         sounds.crack();
         this._showCracks(entry, hitNo >= 3 ? 2 : 1);
@@ -1330,6 +1336,7 @@ export class Wall3D {
   _restoreBrick(entry) {
     entry._restoreTimer = null;
     if (this._disposed || !this.bricks.has(entry.record.id)) return;
+    killPop(entry); /* إن كانت الطوبة متقدمة (مفتوحة) تُعاد فورًا قبل إعادة البناء */
     entry._broken = false;
     entry._breaking = false;
     if (entry._hits) entry._hits.count = 0;
@@ -1379,6 +1386,7 @@ export class Wall3D {
   _cleanupEntry(entry) {
     if (entry._shakeTween) { entry._shakeTween.kill(); entry._shakeTween = null; }
     if (entry._restoreTimer) { clearTimeout(entry._restoreTimer); entry._restoreTimer = null; }
+    killPop(entry);
     this._removeAmount(entry);
     this._hideCracks(entry);
     entry._broken = false;
