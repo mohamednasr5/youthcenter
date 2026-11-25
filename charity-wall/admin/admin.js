@@ -57,6 +57,36 @@ async function updateDonor(id,data){const old=await val('donors/'+id);if(!old)th
 async function recordContribution(data){const donor=await val('donors/'+data.donorId);if(!donor)throw new Error('المساهم غير موجود');const type=String(data.contributionType||'cash');if(!validTypes.includes(type))throw new Error('نوع المساهمة غير صحيح');const amount=type==='cash'?amountValue(data.amount):0,estimatedValue=type==='cash'?amount:amountValue(data.estimatedValue),title=String(data.title||(type==='cash'?'تبرع نقدي':'')).trim();if(type!=='cash'&&title.length<2)throw new Error('اكتب وصفًا للمساهمة');const date=data.date?new Date(data.date).getTime():Date.now();if(!Number.isFinite(date))throw new Error('تاريخ غير صالح');const node=push(rref('donations')),id=node.key;await set(node,{donorId:data.donorId,donorName:donor.name,contributionType:type,amount,estimatedValue,title,description:String(data.description||data.note||''),project:String(data.project||''),date,status:'pending',paymentMethod:String(data.paymentMethod||'نقدي'),transactionId:String(data.transactionId||''),note:String(data.note||''),createdBy:actor(),createdAt:Date.now()});await logAction('record_contribution',{donationId:id,donorId:data.donorId,type,amount,estimatedValue});}
 async function approveContribution(id){const node=rref('donations/'+id),tx=await runTransaction(node,current=>{if(!current||current.status!=='pending')return;return{...current,status:'approved',approvedBy:actor(),approvedAt:Date.now()};});if(!tx.committed)throw new Error('هذه المساهمة تمت معالجتها مسبقًا');const d=tx.snapshot.val();await syncDonor(d.donorId);await updateSummary();await logAction('approve_donation',{donationId:id,donorId:d.donorId});}
 async function rejectContribution(id,reason){const tx=await runTransaction(rref('donations/'+id),current=>{if(!current||current.status!=='pending')return;return{...current,status:'rejected',rejectedBy:actor(),rejectedAt:Date.now(),rejectReason:String(reason||'')};});if(!tx.committed)throw new Error('هذه المساهمة لم تعد قيد الانتظار');await logAction('reject_donation',{donationId:id,reason:String(reason||'')});}
+async function updateContribution(id,data){
+  const old=await val('donations/'+id);
+  if(!old)throw new Error('المساهمة غير موجودة');
+  const donor=await val('donors/'+data.donorId);
+  if(!donor)throw new Error('المتبرع المحدد غير موجود');
+  const type=String(data.contributionType||'cash');
+  if(!validTypes.includes(type))throw new Error('نوع المساهمة غير صحيح');
+  const amount=type==='cash'?amountValue(data.amount):0;
+  const estimatedValue=type==='cash'?amount:amountValue(data.estimatedValue);
+  const title=String(data.title||(type==='cash'?'تبرع نقدي':'')).trim();
+  if(type!=='cash'&&title.length<2)throw new Error('اكتب وصفًا للمساهمة');
+  if(!data.date)throw new Error('تاريخ المساهمة مطلوب');
+  const date=new Date(data.date+'T12:00:00').getTime();
+  if(!Number.isFinite(date))throw new Error('تاريخ غير صالح');
+  const updated={
+    donorId:data.donorId,donorName:donor.name,contributionType:type,
+    amount,estimatedValue,title,
+    description:String(data.description||''),project:String(data.project||''),
+    date,paymentMethod:type==='cash'?String(data.paymentMethod||'نقدي'):'',
+    transactionId:type==='cash'?String(data.transactionId||''):'',
+    note:String(data.note||''),updatedAt:Date.now(),updatedBy:actor()
+  };
+  await update(rref('donations/'+id),updated);
+  if(old.status==='approved'){
+    await syncDonor(old.donorId);
+    if(data.donorId!==old.donorId)await syncDonor(data.donorId);
+    await updateSummary();
+  }
+  await logAction('update_contribution',{donationId:id,oldDonorId:old.donorId,newDonorId:data.donorId,oldAmount:Number(old.amount)||0,newAmount:amount,oldEstimatedValue:Number(old.estimatedValue)||0,newEstimatedValue:estimatedValue,status:old.status});
+}
 async function addExpense(data){const amount=amountValue(data.amount),title=String(data.title||'').trim();if(title.length<2)throw new Error('عنوان المصروف مطلوب');const date=data.date?new Date(data.date).getTime():Date.now();if(!Number.isFinite(date))throw new Error('تاريخ غير صالح');const node=push(rref('expenses')),id=node.key;await set(node,{title,description:String(data.description||''),category:String(data.category||''),amount,date,receiptUrl:String(data.receiptUrl||''),images:Array.isArray(data.images)?data.images.map(String).slice(0,20):[],approvedBy:actor(),createdAt:Date.now()});await updateSummary();await logAction('add_expense',{expenseId:id,title,amount});}
 async function deleteExpense(id){await remove(rref('expenses/'+id));await updateSummary();await logAction('delete_expense',{expenseId:id});}
 async function recalculateAll(){const donors=await val('donors');for(const id of Object.keys(donors||{}))await syncDonor(id);const bricks=await val('bricks'),sorted=Object.entries(bricks||{}).sort((a,b)=>Number(a[1].createdAt||0)-Number(b[1].createdAt||0)),u={};sorted.forEach(([id],i)=>{u['bricks/'+id+'/index']=i;u['bricks/'+id+'/row']=Math.floor(i/10);u['bricks/'+id+'/column']=i%10;});if(Object.keys(u).length)await update(rref(''),u);await set(rref('settings/counters/nextIndex'),sorted.length);const totals=await updateSummary();await logAction('recalc_all',totals);return{donors:Object.keys(donors||{}).length,bricks:sorted.length};}
@@ -323,10 +353,14 @@ function renderDonations() {
       <td><b>${esc(egp(value))}</b></td><td><b>${esc(egp(d.amount||0))}</b></td>
       <td>${esc(d.paymentMethod||(cash?'—':'مساهمة عينية'))}</td><td dir="ltr">${esc(d.transactionId||'—')}</td>
       <td>${esc(fmtDate(d.date||d.createdAt))}</td><td><span class="pill ${d.status}">${statusLabel(d.status)}</span></td>
-      <td>${d.status==='pending'? `<button class="btn btn-emerald btn-sm" data-approve="${d.id}">✓ اعتماد</button> <button class="btn btn-danger btn-sm" data-reject="${d.id}">✕ رفض</button>`:(d.approvedBy?`<small>اعتمده: ${esc(d.approvedBy)}</small>`:'')}</td></tr>`;
+      <td><div class="row-actions wrap">
+        <button class="btn btn-ghost btn-sm" data-edit-contribution="${esc(d.id)}">✏️ تعديل</button>
+        ${d.status==='pending'? `<button class="btn btn-emerald btn-sm" data-approve="${esc(d.id)}">✓ اعتماد</button> <button class="btn btn-danger btn-sm" data-reject="${esc(d.id)}">✕ رفض</button>`:(d.approvedBy?`<small>اعتمده: ${esc(d.approvedBy)}</small>`:'')}
+      </div></td></tr>`;
   }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--txt-mute)">لا توجد مساهمات — سجّل أول مساهمة</td></tr>`;
 
-  $$('#donationsTable [data-approve]').forEach(b => b.addEventListener('click', async () => {
+  $('#donationsTable [data-edit-contribution]').forEach(b => b.addEventListener('click', () => openContributionModal(b.dataset.editContribution)));
+  $('#donationsTable [data-approve]').forEach(b => b.addEventListener('click', async () => {
     b.disabled = true;
     try {
       await approveContribution(b.dataset.approve);
@@ -343,6 +377,76 @@ function renderDonations() {
   }));
 }
 
+function dateInputValue(value){
+  const d=new Date(Number(value)||Date.now());
+  return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+}
+function openContributionModal(id){
+  const d=state.donations.find(x=>x.id===id);
+  if(!d)return;
+  const cash=(d.contributionType||'cash')==='cash';
+  const ov=document.createElement('div');
+  ov.className='cw-modal';
+  ov.innerHTML=`<form class="cw-modal-card cw-contribution-edit" id="editContributionForm">
+    <h3>تعديل بيانات المساهمة</h3>
+    <label><span>المتبرع</span><select name="donorId" required>${state.donors.map(x=>`<option value="${esc(x.id)}" ${x.id===d.donorId?'selected':''}>${esc(x.name||'')}</option>`).join('')}</select></label>
+    <label><span>نوع المساهمة</span><select name="contributionType">
+      <option value="cash" ${cash?'selected':''}>تبرع نقدي</option>
+      <option value="service" ${d.contributionType==='service'?'selected':''}>خدمة أو خبرة</option>
+      <option value="material" ${d.contributionType==='material'?'selected':''}>مواد وخامات</option>
+      <option value="labor" ${d.contributionType==='labor'?'selected':''}>جهد أو تنفيذ</option>
+      <option value="sponsorship" ${d.contributionType==='sponsorship'?'selected':''}>رعاية مشروع</option>
+    </select></label>
+    <label data-edit-cash ${cash?'':'hidden'}><span>مبلغ التبرع النقدي (ج.م)</span><input name="amount" type="number" min="0.01" step="0.01" value="${Number(d.amount)||0}" ${cash?'required':''}></label>
+    <label data-edit-kind ${cash?'hidden':''}><span>القيمة التقديرية للمساهمة العينية (ج.م)</span><input name="estimatedValue" type="number" min="0.01" step="0.01" value="${Number(d.estimatedValue)||0}" ${cash?'':'required'}></label>
+    <label data-edit-title ${cash?'hidden':''}><span>وصف / عنوان المساهمة</span><input name="title" value="${esc(d.title||'')}" ${cash?'':'required'}></label>
+    <label><span>المشروع أو القسم المستفيد</span><input name="project" value="${esc(d.project||'')}"></label>
+    <label><span>التاريخ</span><input name="date" type="date" value="${dateInputValue(d.date||d.createdAt)}" required></label>
+    <label data-edit-method ${cash?'':'hidden'}><span>طريقة الدفع</span><select name="paymentMethod">
+      ${['نقدي','تحويل بنكي','محفظة إلكترونية','إنستاباي','أخرى'].map(x=>`<option ${(d.paymentMethod||'نقدي')===x?'selected':''}>${x}</option>`).join('')}
+    </select></label>
+    <label data-edit-txn ${cash?'':'hidden'}><span>رقم العملية</span><input name="transactionId" dir="ltr" value="${esc(d.transactionId||'')}"></label>
+    <label class="span2"><span>التفاصيل</span><textarea name="description" rows="2">${esc(d.description||'')}</textarea></label>
+    <label class="span2"><span>ملاحظة داخلية</span><input name="note" value="${esc(d.note||'')}"></label>
+    <div class="row-actions wrap"><button class="btn btn-gold" type="submit">💾 حفظ التعديلات</button><button class="btn btn-ghost" type="button" data-edit-cancel>إلغاء</button></div>
+    <p class="hint">إذا كانت المساهمة معتمدة، سيُعاد احتساب إجمالي المتبرع والرصيد النقدي والطوبة تلقائيًا بعد الحفظ.</p>
+  </form>`;
+  document.body.appendChild(ov);
+  const form=ov.querySelector('#editContributionForm');
+  const type=form.elements.contributionType;
+  const syncFields=()=>{
+    const isCash=type.value==='cash';
+    ov.querySelector('[data-edit-cash]').hidden=!isCash;
+    ov.querySelector('[data-edit-kind]').hidden=isCash;
+    ov.querySelector('[data-edit-title]').hidden=isCash;
+    ov.querySelector('[data-edit-method]').hidden=!isCash;
+    ov.querySelector('[data-edit-txn]').hidden=!isCash;
+    form.elements.amount.required=isCash;
+    form.elements.estimatedValue.required=!isCash;
+    form.elements.title.required=!isCash;
+  };
+  type.addEventListener('change',syncFields);
+  ov.querySelector('[data-edit-cancel]').addEventListener('click',()=>ov.remove());
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const button=form.querySelector('[type="submit"]');
+    if(button.disabled)return;
+    button.disabled=true;
+    const f=new FormData(form);
+    try{
+      await updateContribution(id,{
+        donorId:f.get('donorId'),contributionType:f.get('contributionType'),
+        amount:f.get('amount'),estimatedValue:f.get('estimatedValue'),title:f.get('title'),
+        project:f.get('project'),date:f.get('date'),paymentMethod:f.get('paymentMethod'),
+        transactionId:f.get('transactionId'),description:f.get('description'),note:f.get('note')
+      });
+      toast('تم تعديل المساهمة وإعادة احتساب الإجماليات ✓');
+      ov.remove();
+    }catch(err){toast('تعذر تعديل المساهمة: '+(err?.message||'خطأ غير معروف'),true);}
+    finally{button.disabled=false;}
+  });
+}
 /* ═══ المصروفات ═══ */
 async function uploadImage(file, kind) {
   const safe = file.name.replace(/[^\w.\-]+/g, '_');
