@@ -712,25 +712,49 @@
   function initBottomNav() {
     const bn = document.querySelector(".bottom-nav");
     if (!bn) return;
-    const links = bn.querySelectorAll("a");
+    const links = bn.querySelectorAll(".bn-inner a");
+    const moreBtn = document.getElementById("bottomMoreToggle");
+    const moreMenu = document.getElementById("bottomMoreMenu");
+    const closeMore = () => {
+      if (!moreBtn || !moreMenu) return;
+      moreMenu.hidden = true;
+      moreBtn.setAttribute("aria-expanded", "false");
+    };
     links.forEach(a => a.addEventListener("click", () => {
       links.forEach(x => x.classList.remove("active"));
       a.classList.add("active");
+      closeMore();
     }));
+    if (moreBtn && moreMenu) {
+      moreBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        const opening = moreMenu.hidden;
+        moreMenu.hidden = !opening;
+        moreBtn.setAttribute("aria-expanded", String(opening));
+      });
+      moreMenu.querySelectorAll("a").forEach(a => a.addEventListener("click", closeMore));
+      document.addEventListener("click", e => {
+        if (!bn.contains(e.target)) closeMore();
+      });
+      document.addEventListener("keydown", e => {
+        if (e.key === "Escape") closeMore();
+      });
+    }
     const inPage = {};
-    links.forEach(a => { const h = a.getAttribute("href"); if (h && h.startsWith("#")) inPage[h.slice(1)] = a; });
+    links.forEach(a => {
+      const h = a.getAttribute("href");
+      if (h && h.startsWith("#")) inPage[h.slice(1)] = a;
+    });
     const home = inPage["home"], contact = inPage["contact"];
     if (home || contact) {
       window.addEventListener("scroll", () => {
-        const y = window.scrollY;
-        const nearBottom = (window.innerHeight + y) >= document.body.scrollHeight - 140;
+        const nearBottom = (window.innerHeight + window.scrollY) >= document.body.scrollHeight - 140;
         links.forEach(x => x.classList.remove("active"));
         if (contact && nearBottom) contact.classList.add("active");
         else if (home) home.classList.add("active");
       }, { passive: true });
     }
   }
-
   // ===== TICKER: نفس الشريط المتصل على الكمبيوتر والهاتف =====
   function initTicker() {
     const ticker = document.querySelector(".ticker");
