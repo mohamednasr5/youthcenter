@@ -864,12 +864,13 @@ export class Wall3D {
 
     dom.addEventListener('pointerdown', e => {
       downX = e.clientX; downY = e.clientY; pressed = true; longPressed = false;
-      downEntry = this._pick(e, ray, ndc) && this.bricks.get(this._pick(e, ray, ndc).recordId);
+      const downHit = this._pick(e, ray, ndc);
+      downEntry = downHit ? this.bricks.get(downHit.recordId) : null;
       latestPointer = null;
       if (hoverFrame) cancelAnimationFrame(hoverFrame);
       hoverFrame = 0;
       if (this._brickTooltip) this._brickTooltip.style.display = 'none';
-      if (!downEntry || this._pointersBusy) return;
+      if (!downEntry) return;
       holdTimer = setTimeout(() => {
         if (!pressed || !downEntry) return;
         longPressed = true;
