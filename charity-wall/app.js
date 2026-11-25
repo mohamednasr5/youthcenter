@@ -234,10 +234,10 @@ async function main() {
     card.style.top = y + 'px';
 
     const timerBar = card.querySelector('.cw-bc-timer');
-    gsap.fromTo(timerBar, { scaleX: 1 }, { scaleX: 0, duration: 5, ease: 'none' });
+    gsap.fromTo(timerBar, { scaleX: 1 }, { scaleX: 0, duration: 3, ease: 'none' });
 
     clearTimeout(popupTimer);
-    popupTimer = setTimeout(hidePopup, 5000); /* البطاقة والطوبة المفتوحة تنتهيان معًا بعد 5 ثوانٍ */
+    popupTimer = setTimeout(hidePopup, 3000); /* تفاصيل المتبرع تختفي تلقائيًا بعد 3 ثوانٍ */
     card.querySelector('.cw-bc-close').addEventListener('click', hidePopup);
   }
   function hidePopup() {
