@@ -169,6 +169,74 @@ export function popBrick(getMatrix, setMatrix, base, frontOffset = 0.75, holdSec
   });
 }
 
+/* ═══ كسر الطوبة وتناثر شظايا معدنية ثم إعادة بنائها ═══ */
+export function breakBrick(scene, group, entry, holdSec = 5) {
+  if (!scene || !group || !entry || entry._breaking) return;
+  entry._breaking = true;
+  const base = entry.matrix.clone();
+  const pos = new THREE.Vector3(), quat = new THREE.Quaternion(), scale = new THREE.Vector3();
+  base.decompose(pos, quat, scale);
+
+  const hidden = new THREE.Matrix4().compose(
+    pos, quat, new THREE.Vector3(0.0001, 0.0001, 0.0001)
+  );
+  group.setMatrixAt(entry.groupIdx, hidden);
+  group.mesh.instanceMatrix.needsUpdate = true;
+  if (entry.namePlane) entry.namePlane.visible = false;
+
+  const material = new THREE.MeshStandardMaterial({
+    color: group.mesh.material.color ? group.mesh.material.color.clone() : new THREE.Color(0xb8c5d1),
+    metalness: 0.96, roughness: 0.2, emissive: 0x263747,
+    emissiveIntensity: 0.28, side: THREE.DoubleSide
+  });
+  const shards = [];
+  const count = 13;
+  for (let i = 0; i < count; i++) {
+    const geo = new THREE.BoxGeometry(
+      0.12 + Math.random() * 0.2,
+      0.035 + Math.random() * 0.09,
+      0.035 + Math.random() * 0.07
+    );
+    const shard = new THREE.Mesh(geo, material.clone());
+    shard.position.copy(pos).add(new THREE.Vector3(
+      (Math.random() - .5) * 1.15,
+      (Math.random() - .5) * .72,
+      .42 + Math.random() * .25
+    ));
+    shard.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+    scene.add(shard);
+    shards.push(shard);
+    const destination = shard.position.clone().add(new THREE.Vector3(
+      (Math.random() - .5) * 2.2,
+      .45 + Math.random() * 1.45,
+      .5 + Math.random() * 1.1
+    ));
+    gsap.to(shard.position, { x: destination.x, y: destination.y, z: destination.z, duration: .72 + Math.random() * .38, ease: 'power2.out' });
+    gsap.to(shard.rotation, { x: shard.rotation.x + 3 + Math.random() * 5, y: shard.rotation.y + 3 + Math.random() * 5, z: shard.rotation.z + 3 + Math.random() * 5, duration: 1.05, ease: 'power2.out' });
+    gsap.to(shard.scale, { x: 0.01, y: 0.01, z: 0.01, delay: .62, duration: .42, ease: 'power2.in' });
+  }
+  const flash = new THREE.PointLight(0xcceaff, 5, 5, 2);
+  flash.position.copy(pos).add(new THREE.Vector3(0, .1, 1));
+  scene.add(flash);
+  gsap.to(flash, { intensity: 0, duration: .55, onComplete: () => scene.remove(flash) });
+
+  setTimeout(() => {
+    shards.forEach(shard => {
+      scene.remove(shard); shard.geometry.dispose(); shard.material.dispose();
+    });
+    material.dispose();
+    group.setMatrixAt(entry.groupIdx, base);
+    group.mesh.instanceMatrix.needsUpdate = true;
+    if (entry.namePlane) entry.namePlane.visible = true;
+    entry._breaking = false;
+    /* وميض إعادة التكوين */
+    const glow = new THREE.PointLight(0x9edcff, 3.2, 4, 2);
+    glow.position.copy(pos).add(new THREE.Vector3(0, 0, .8));
+    scene.add(glow);
+    gsap.to(glow, { intensity: 0, duration: .5, onComplete: () => scene.remove(glow) });
+  }, Math.max(1, holdSec) * 1000);
+}
+
 /* ═══ تحريك الكاميرا والهدف بسلاسة نحو طوبة ═══ */
 export function flyCamera(camera, controls, targetPos, camPos, duration = 1.4) {
   const c0 = camera.position.clone();
