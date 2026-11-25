@@ -89,6 +89,39 @@ async function updateContribution(id,data){
 }
 async function addExpense(data){const amount=amountValue(data.amount),title=String(data.title||'').trim();if(title.length<2)throw new Error('عنوان المصروف مطلوب');const date=data.date?new Date(data.date).getTime():Date.now();if(!Number.isFinite(date))throw new Error('تاريخ غير صالح');const node=push(rref('expenses')),id=node.key;await set(node,{title,description:String(data.description||''),category:String(data.category||''),amount,date,receiptUrl:String(data.receiptUrl||''),images:Array.isArray(data.images)?data.images.map(String).slice(0,20):[],approvedBy:actor(),createdAt:Date.now()});await updateSummary();await logAction('add_expense',{expenseId:id,title,amount});}
 async function deleteExpense(id){await remove(rref('expenses/'+id));await updateSummary();await logAction('delete_expense',{expenseId:id});}
+async function deleteContribution(id){
+  const d=await val('donations/'+id);
+  if(!d)throw new Error('المساهمة غير موجودة');
+  await remove(rref('donations/'+id));
+  const donor=await val('donors/'+d.donorId);
+  if(donor)await syncDonor(d.donorId);
+  await updateSummary();
+  await logAction('delete_contribution',{donationId:id,donorId:d.donorId,donorName:d.donorName,amount:Number(d.amount)||0,estimatedValue:Number(d.estimatedValue)||0,status:d.status});
+}
+async function deleteDonor(id){
+  const donor=await val('donors/'+id);
+  if(!donor)throw new Error('المتبرع غير موجود');
+  const donations=await val('donations')||{};
+  const bricks=await val('bricks')||{};
+  const updates={};
+  const linked=Object.entries(donations).filter(([,d])=>d.donorId===id);
+  linked.forEach(([key])=>{updates['donations/'+key]=null;});
+  Object.entries(bricks).forEach(([key,b])=>{if(b.donorId===id)updates['bricks/'+key]=null;});
+  updates['donors/'+id]=null;
+  updates['donors_private/'+id]=null;
+  await update(rref(''),updates);
+  const remaining=Object.entries(bricks).filter(([,b])=>b.donorId!==id).sort((a,b)=>Number(a[1].createdAt||0)-Number(b[1].createdAt||0));
+  const positions={};
+  remaining.forEach(([key],i)=>{
+    positions['bricks/'+key+'/index']=i;
+    positions['bricks/'+key+'/row']=Math.floor(i/10);
+    positions['bricks/'+key+'/column']=i%10;
+  });
+  if(Object.keys(positions).length)await update(rref(''),positions);
+  await set(rref('settings/counters/nextIndex'),remaining.length);
+  await updateSummary();
+  await logAction('delete_donor',{donorId:id,name:donor.name,deletedContributions:linked.length,deletedBrick:Object.values(bricks).some(b=>b.donorId===id)});
+}
 async function recalculateAll(){const donors=await val('donors');for(const id of Object.keys(donors||{}))await syncDonor(id);const bricks=await val('bricks'),sorted=Object.entries(bricks||{}).sort((a,b)=>Number(a[1].createdAt||0)-Number(b[1].createdAt||0)),u={};sorted.forEach(([id],i)=>{u['bricks/'+id+'/index']=i;u['bricks/'+id+'/row']=Math.floor(i/10);u['bricks/'+id+'/column']=i%10;});if(Object.keys(u).length)await update(rref(''),u);await set(rref('settings/counters/nextIndex'),sorted.length);const totals=await updateSummary();await logAction('recalc_all',totals);return{donors:Object.keys(donors||{}).length,bricks:sorted.length};}
 
 /* ═══ الحالة ═══ */
@@ -190,7 +223,7 @@ function actionLabel(a) {
   return ({
     add_donor: 'إضافة متبرع', update_donor: 'تعديل متبرع',
     record_donation: 'تسجيل تبرع', approve_donation: 'اعتماد تبرع', reject_donation: 'رفض تبرع',
-    add_expense: 'إضافة مصروف', delete_expense: 'حذف مصروف', recalc_all: 'إعادة احتساب شاملة', record_contribution: 'تسجيل مساهمة', update_contribution: 'تعديل مساهمة'
+    add_expense: 'إضافة مصروف', delete_expense: 'حذف مصروف', recalc_all: 'إعادة احتساب شاملة', record_contribution: 'تسجيل مساهمة', update_contribution: 'تعديل مساهمة', delete_contribution: 'حذف مساهمة', delete_donor: 'حذف متبرع'
   })[a] || a;
 }
 
@@ -240,11 +273,22 @@ function renderDonors() {
       <td>
         <button class="btn btn-ghost btn-sm" data-edit="${d.id}">✏️ تعديل</button>
         <button class="btn btn-gold btn-sm" data-donate="${d.id}">＋ تبرع</button>
+        <button class="btn btn-danger btn-sm" data-delete-donor="${esc(d.id)}">🗑️ حذف</button>
       </td></tr>`;
   }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--txt-mute)">لا متبرعين — أضف أول متبرع</td></tr>`;
 
   $$('#donorsTable [data-edit]').forEach(b => b.addEventListener('click', () => openDonorModal(b.dataset.edit)));
-  $$('#donorsTable [data-donate]').forEach(b => b.addEventListener('click', () => {
+  $('#donorsTable [data-delete-donor]').forEach(b => b.addEventListener('click', async () => {
+    const donor=state.donors.find(x=>x.id===b.dataset.deleteDonor);
+    if(!donor)return;
+    const count=state.donations.filter(x=>x.donorId===donor.id).length;
+    if(!confirm('حذف المتبرع "'+(donor.name||'')+'" نهائيًا؟ سيتم حذف '+count+' مساهمة مرتبطة به والطوبة وبياناته الخاصة. لا يمكن التراجع عن هذا الإجراء.'))return;
+    b.disabled=true;
+    try{await deleteDonor(donor.id);toast('تم حذف المتبرع ومساهماته المرتبطة');}
+    catch(e){toast('تعذر الحذف: '+(e?.message||'خطأ غير معروف'),true);}
+    finally{b.disabled=false;}
+  }));
+  $('#donorsTable [data-donate]').forEach(b => b.addEventListener('click', () => {
     $$('.tab').find(x => x.dataset.tab === 'donations').click();
     $('#dnDonor').value = b.dataset.donate;
     $('#dnType').value='cash'; syncContributionFields(); $('#dnAmount').focus();
@@ -355,11 +399,21 @@ function renderDonations() {
       <td>${esc(fmtDate(d.date||d.createdAt))}</td><td><span class="pill ${d.status}">${statusLabel(d.status)}</span></td>
       <td><div class="row-actions wrap">
         <button class="btn btn-ghost btn-sm" data-edit-contribution="${esc(d.id)}">✏️ تعديل</button>
+        <button class="btn btn-danger btn-sm" data-delete-contribution="${esc(d.id)}">🗑️ حذف</button>
         ${d.status==='pending'? `<button class="btn btn-emerald btn-sm" data-approve="${esc(d.id)}">✓ اعتماد</button> <button class="btn btn-danger btn-sm" data-reject="${esc(d.id)}">✕ رفض</button>`:(d.approvedBy?`<small>اعتمده: ${esc(d.approvedBy)}</small>`:'')}
       </div></td></tr>`;
   }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--txt-mute)">لا توجد مساهمات — سجّل أول مساهمة</td></tr>`;
 
-  $$('#donationsTable [data-edit-contribution]').forEach(b => b.addEventListener('click', () => openContributionModal(b.dataset.editContribution)));
+  $('#donationsTable [data-edit-contribution]').forEach(b => b.addEventListener('click', () => openContributionModal(b.dataset.editContribution)));
+  $('#donationsTable [data-delete-contribution]').forEach(b => b.addEventListener('click', async () => {
+    const d=state.donations.find(x=>x.id===b.dataset.deleteContribution);
+    if(!d)return;
+    if(!confirm('حذف هذه المساهمة نهائيًا؟'+(d.status==='approved'?' سيتم خصم قيمتها من إجمالي المتبرع وتحديث الطوبة والرصيد.':'')+' لا يمكن التراجع عن هذا الإجراء.'))return;
+    b.disabled=true;
+    try{await deleteContribution(d.id);toast('تم حذف المساهمة وتحديث الإجماليات');}
+    catch(e){toast('تعذر الحذف: '+(e?.message||'خطأ غير معروف'),true);}
+    finally{b.disabled=false;}
+  }));
   $$('#donationsTable [data-approve]').forEach(b => b.addEventListener('click', async () => {
     b.disabled = true;
     try {
