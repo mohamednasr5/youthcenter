@@ -12,7 +12,7 @@
 import * as THREE from './vendor/three.module.js';
 import { TIERS, tierById } from './firebase-config.js';
 import { sounds } from './sounds.js';
-import { flyBrick, dustBurst, lightFlash, popBrick, flyCamera } from './animations.js';
+import { flyBrick, dustBurst, lightFlash, breakBrick, flyCamera } from './animations.js';
 
 /* ─── أبعاد البناء ─── */
 export const PER_ROW = 10;
@@ -271,6 +271,7 @@ export class Wall3D {
     this.tiers = TIERS;
     this.quality = opts.quality === 'low' ? 'low' : 'high';
     this.onPick = opts.onPick || (() => {});
+    this.onHold = opts.onHold || (() => {});
     this.onEmpty = opts.onEmpty || (() => {});
     this.onStats = opts.onStats || (() => {});
     this.onAutoLow = opts.onAutoLow || (() => {});
@@ -855,47 +856,58 @@ export class Wall3D {
     const dom = this.renderer.domElement;
     const ray = new THREE.Raycaster();
     const ndc = new THREE.Vector2();
-    let downX = 0, downY = 0;
-    let pressed = false;
-    let hoverFrame = 0;
-    let latestPointer = null;
-    let lastHoverId = null;
+    let downX = 0, downY = 0, pressed = false, longPressed = false;
+    let holdTimer = null, hoverFrame = 0, latestPointer = null, lastHoverId = null, downEntry = null;
 
-    /* الضغط يحدد الطوبة مرة واحدة فقط بعد انتهاء اللمسة/النقرة */
+    const clearHold = () => { if (holdTimer) clearTimeout(holdTimer); holdTimer = null; };
+    const hammerCursor = 'url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 40 40%22%3E%3Cpath d=%22M8 8l7-6 11 11-6 7z%22 fill=%22%23d6dce8%22 stroke=%22%23111827%22 stroke-width=%222%22/%3E%3Cpath d=%22M18 17L7 34l4 3 12-17%22 fill=%22%239b6338%22 stroke=%22%23111%22 stroke-width=%222%22/%3E%3C/svg%3E") 8 5, pointer';
+
     dom.addEventListener('pointerdown', e => {
-      downX = e.clientX;
-      downY = e.clientY;
-      pressed = true;
+      downX = e.clientX; downY = e.clientY; pressed = true; longPressed = false;
+      downEntry = this._pick(e, ray, ndc) && this.bricks.get(this._pick(e, ray, ndc).recordId);
       latestPointer = null;
       if (hoverFrame) cancelAnimationFrame(hoverFrame);
       hoverFrame = 0;
       if (this._brickTooltip) this._brickTooltip.style.display = 'none';
+      if (!downEntry || this._pointersBusy) return;
+      holdTimer = setTimeout(() => {
+        if (!pressed || !downEntry) return;
+        longPressed = true;
+        const entry = downEntry;
+        const screen = this.worldToScreen(entry.position);
+        this.onHold(entry.record, screen);
+        sounds.pop();
+        const group = this.tierGroups[entry.tierId];
+        breakBrick(this.scene, group, entry, 5);
+      }, 520);
     }, { passive: true });
 
     dom.addEventListener('pointerup', e => {
       pressed = false;
-      if (Math.hypot(e.clientX - downX, e.clientY - downY) > 7) return;
+      clearHold();
+      const moved = Math.hypot(e.clientX - downX, e.clientY - downY) > 7;
+      if (moved || longPressed) { downEntry = null; return; }
       const hit = this._pick(e, ray, ndc);
-      if (!hit) return;
+      if (!hit) { downEntry = null; return; }
       const entry = this.bricks.get(hit.recordId);
+      downEntry = null;
       if (!entry) return;
-
-      /* افتح بيانات المتبرع فورًا؛ لا ننتظر انتهاء حركة الطوبة */
       const screen = this.worldToScreen(entry.position);
       this.onPick(entry.record, screen);
       sounds.pop();
-
+      /* نقرة قصيرة: بروز خفيف للطوبة مع العودة */
       const group = this.tierGroups[entry.tierId];
       popBrick(
         m => group.getMatrixAt(entry.groupIdx, m),
         m => group.setMatrixAt(entry.groupIdx, m),
-        entry.matrix
+        entry.matrix,
+        0.42,
+        0.15
       );
     }, { passive: true });
 
-    dom.addEventListener('pointercancel', () => { pressed = false; }, { passive: true });
+    dom.addEventListener('pointercancel', () => { pressed = false; clearHold(); downEntry = null; }, { passive: true });
 
-    /* تلميح المرور اختياري للفأرة فقط؛ لا ننفذ Raycast مع كل حركة إصبع */
     const tip = document.createElement('div');
     tip.className = 'cw-brick-tooltip';
     Object.assign(tip.style, {
@@ -912,9 +924,7 @@ export class Wall3D {
     this._brickTooltip = tip;
 
     const hideTip = () => {
-      lastHoverId = null;
-      tip.style.display = 'none';
-      dom.style.cursor = 'grab';
+      lastHoverId = null; tip.style.display = 'none'; dom.style.cursor = 'grab';
     };
     dom.addEventListener('pointerleave', hideTip, { passive: true });
     dom.addEventListener('pointermove', e => {
@@ -932,13 +942,13 @@ export class Wall3D {
         if (!hit) { hideTip(); return; }
         const entry = this.bricks.get(hit.recordId);
         if (!entry) { hideTip(); return; }
-        dom.style.cursor = 'pointer';
+        dom.style.cursor = hammerCursor;
         if (lastHoverId !== hit.recordId) {
           const tier = tierById(entry.tierId, this.tiers);
-          tip.textContent = 'نوع الطوبة: ' + tier.label;
+          tip.textContent = 'نوع الطوبة: ' + tier.label + ' • اضغط مطولًا للكسر';
           lastHoverId = hit.recordId;
         }
-        tip.style.left = Math.min(p.clientX, window.innerWidth - 175) + 'px';
+        tip.style.left = Math.min(p.clientX, window.innerWidth - 230) + 'px';
         tip.style.top = Math.min(p.clientY, window.innerHeight - 55) + 'px';
         tip.style.display = 'block';
       });
