@@ -35,7 +35,7 @@ const COMBO_MS = 1700;      /* مهلة بقاء «وضع الكسر» بين ا
 const HOLD_MS = 480;        /* الاستمرار بالضغط هذه المدة يبدأ الطرق التلقائي */
 const HAMMER_PERIOD = 430;  /* فاصل ضربات الطرق التلقائي أثناء الاستمرار بالضغط */
 const CLOSE_RADIUS = 17;    /* اقتراب الكاميرا هذه المسافة يُظهر المطرقة فوق أقرب طوبة */
-const RESTORE_MS = 5000;    /* عودة الطوبة بعد التحطيم (تظهر خلالها قيمة المساهمة) */
+const RESTORE_MS = 5000;    /* مهلة موحدة: إغلاق الطوبة المفتوحة أو إعادة بناء المكسورة بعد 5 ثوانٍ */
 
 /* ─── نسيج ضجيج إجرائي (خشونة الطوب والأسمنت) ─── */
 function noiseTexture(base = 128, variation = 46, size = 256) {
@@ -1238,7 +1238,7 @@ export class Wall3D {
       if (hitNo === 1) {
         /* ضغطة واحدة → فتح الطوبة: تتقدم من الحائط مع بيانات المتبرع
            ثم تعود إلى مكانها بعد 5 ثوانٍ (بذات مهلة إخفاء البطاقة) */
-        popBrick(group, entry, { holdSec: RESTORE_MS / 1000 });
+        popBrick(group, entry, { holdSec: 5 });
         this.onPick(entry.record, screen || this.worldToScreen(pos));
       } else {
         /* ضربات متتالية → إغلاق البطاقة وتشقق متصاعد */
