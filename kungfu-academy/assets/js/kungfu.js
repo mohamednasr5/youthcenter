@@ -103,67 +103,6 @@
     { n: 7, name: 'حزام الكونغ فو الأسود', en: 'Black Belt', level: 'الدرجة السابعة', color: '#111111', light: '#4b5563', dark: '#000000', glow: 'rgba(232,160,32,0.4)', desc: 'مرحلة الإتقان: مستوى متقدم في الأساليب والحركات، مع مواصلة التطور الفني والانضباط والمشاركة في تعليم اللاعبين.' }
   ];
 
-  /* ============ بيانات أساليب الحيوانات الخمسة ============ */
-  const ANIMALS = [
-    { name: 'وضعية التنين', cn: '龙', image: '07.jpg', color: '#dc2626', desc: 'تُظهر الصورة شعار التنين مع وضع منخفض واسع؛ الذراع الأمامية ممتدة والذراع الأخرى قريبة من الجذع. الوصف هنا يلتزم بالهيئة الظاهرة ولا يفترض وجود مخالب أو ركلة غير موجودة في الرسم.' },
-    { name: 'وضعية الأفعى', cn: '蛇', image: '08.jpg', color: '#2ea06a', desc: 'تُظهر الصورة شعار الأفعى مع جلوس جانبي منخفض، وإحدى الذراعين مرفوعة فوق الرأس والأخرى قريبة من الصدر. حافظ على اتزان الحوض وثبات القدمين أثناء الانتقال.' },
-    { name: 'وضعية الفهد', cn: '豹', image: '09.jpg', color: '#e8a020', desc: 'تُظهر الصورة شعار الفهد مع اندفاع جانبي منخفض؛ إحدى الساقين مثنية والأخرى ممتدة، والذراعان مفتوحتان لتحقيق الاتزان. لا تحوّل الوضع إلى قفزة قبل إتقان الثبات.' },
-    { name: 'وضعية الكركي', cn: '鹤', image: '010.jpg', color: '#38bdf8', desc: 'تُظهر الصورة طائرًا مع وقوف على ساق واحدة ورفع الساق الأخرى جانبًا، والذراعان مفتوحتان للموازنة. الفكرة الأساسية هي الاتزان والتحكم، لا ارتفاع الركلة.' },
-    { name: 'وضعية العقرب', cn: '蝎式', image: '011.jpg', color: '#f59e0b', desc: 'هذه الحركة خاطفة وحماسية وفعّالة. اتخذ وضعية قتالية أكثر اتساعًا، واجلس في وضع القرفصاء بشكل أساسي. ضع يديك أمام كتفيك في شكل براثن، مع توجيههما إلى الأمام. في التدريب الحركي، ابدأ بمجموعة من اللكمات المتعاقبة، ثم تدرّب على الركلة الجانبية ضمن تمرين منضبط وتحت إشراف المدرب، مع تجنّب توجيه الركلات إلى الحنجرة أو الرقبة.' }
-  ];
-
-  /* ============ توليد بطاقات الحركات ============ */
-  function renderMoves() {
-    const grid = document.getElementById('movesGrid');
-    if (!grid) return;
-    grid.innerHTML = MOVES.map(function (move) {
-      const src = 'assets/images/photos/' + move.image;
-      return `
-      <article class="move-card reveal" data-move="${move.id}">
-        <div class="move-card-head">
-          <h4>${move.name}</h4>
-          <span class="jp-name">${move.cn}</span>
-        </div>
-        <div class="move-stage">
-          <img class="move-real-photo" src="${src}" alt="${move.name}" loading="lazy" decoding="async" data-lightbox="${src}" data-caption="${move.name}">
-        </div>
-        <p>${move.desc}</p>
-        <span class="move-tag">${move.tag}</span>
-      </article>`;
-    }).join('');
-  }
-
-  /* ============ توليد الأحزمة العشرة ============ */
-  function renderBelts() {
-    const track = document.getElementById('beltsTrack');
-    if (!track) return;
-    track.innerHTML = BELTS.map(function (b, i) {
-      return `
-      <div class="belt-row reveal" data-belt="${b.n}" style="--belt-color:${b.color}; --belt-color-light:${b.light}; --belt-color-dark:${b.dark}; --belt-color-glow:${b.glow}; transition-delay:${i * 0.05}s">
-        <div class="belt-visual"></div>
-        <div class="belt-info">
-          <h4>${b.name} <span class="jp">• ${b.en}</span></h4>
-          <p>${b.desc}</p>
-        </div>
-        <div class="belt-level">${b.n}</div>
-      </div>`;
-    }).join('');
-  }
-
-  /* ============ توليد أساليب الحيوانات الخمسة ============ */
-  function renderAnimals() {
-    const grid = document.getElementById('animalsGrid');
-    if (!grid) return;
-    grid.innerHTML = ANIMALS.map(function (a) {
-      return `
-      <article class="animal-card reveal" style="--animal-color:${a.color}; --animal-glow:${a.color}55">
-        <div class="animal-photo-wrap"><img class="animal-photo" src="assets/images/photos/${a.image}" alt="${a.name}" loading="lazy" decoding="async" data-lightbox="assets/images/photos/${a.image}" data-caption="${a.name}"></div>
-        <h4>${a.name} <span class="cn">${a.cn}</span></h4>
-        <p>${a.desc}</p>
-      </article>`;
-    }).join('');
-  }
-
   /* ============ Lightbox ============ */
   function setupLightbox() {
     const overlay = document.getElementById('lightbox');
@@ -244,7 +183,6 @@
   function init() {
     renderMoves();
     renderBelts();
-    renderAnimals();
     setupLightbox();
     setupReveal();
     setupActiveNav();
