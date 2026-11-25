@@ -278,7 +278,7 @@ function renderDonors() {
   }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--txt-mute)">لا متبرعين — أضف أول متبرع</td></tr>`;
 
   $$('#donorsTable [data-edit]').forEach(b => b.addEventListener('click', () => openDonorModal(b.dataset.edit)));
-  $('#donorsTable [data-delete-donor]').forEach(b => b.addEventListener('click', async () => {
+  $$('#donorsTable [data-delete-donor]').forEach(b => b.addEventListener('click', async () => {
     const donor=state.donors.find(x=>x.id===b.dataset.deleteDonor);
     if(!donor)return;
     const count=state.donations.filter(x=>x.donorId===donor.id).length;
@@ -405,7 +405,7 @@ function renderDonations() {
   }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--txt-mute)">لا توجد مساهمات — سجّل أول مساهمة</td></tr>`;
 
   $('#donationsTable [data-edit-contribution]').forEach(b => b.addEventListener('click', () => openContributionModal(b.dataset.editContribution)));
-  $('#donationsTable [data-delete-contribution]').forEach(b => b.addEventListener('click', async () => {
+  $$('#donationsTable [data-delete-contribution]').forEach(b => b.addEventListener('click', async () => {
     const d=state.donations.find(x=>x.id===b.dataset.deleteContribution);
     if(!d)return;
     if(!confirm('حذف هذه المساهمة نهائيًا؟'+(d.status==='approved'?' سيتم خصم قيمتها من إجمالي المتبرع وتحديث الطوبة والرصيد.':'')+' لا يمكن التراجع عن هذا الإجراء.'))return;
