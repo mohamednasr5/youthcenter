@@ -50,6 +50,7 @@ async function main() {
       quality: isLow ? 'low' : 'high',
       animateOnLoad: !reduceMotion,
       onPick: showBrickPopup,
+      onHold: showAmountOnly,
       onEmpty: empty => {
         $('#cwEmptyHint').classList.toggle('show', empty && !TEST_MODE);
       },
@@ -236,9 +237,26 @@ async function main() {
     popupTimer = setTimeout(hidePopup, 5000); /* تختفي بعد 5 ثوانٍ */
     card.querySelector('.cw-bc-close').addEventListener('click', hidePopup);
   }
+  function showAmountOnly(record, screen) {
+    const card = $('#cwBrickCard');
+    card.innerHTML = `
+      <div class="cw-bc-bar" style="background:#d5e5f2"></div>
+      <div class="cw-hold-amount" dir="rtl">${escapeHtml(egp(record.totalDonation || 0))}</div>
+      <div class="cw-bc-timer"></div>`;
+    card.classList.add('show', 'cw-amount-only');
+    const w = card.offsetWidth || 240, h = card.offsetHeight || 100, pad = 14;
+    let x = screen.x - w / 2, y = screen.y - h - 24;
+    if (y < pad) y = screen.y + 24;
+    card.style.left = Math.max(pad, Math.min(x, innerWidth - w - pad)) + 'px';
+    card.style.top = Math.max(pad, Math.min(y, innerHeight - h - pad)) + 'px';
+    const timerBar = card.querySelector('.cw-bc-timer');
+    if (window.gsap) gsap.fromTo(timerBar, { scaleX: 1 }, { scaleX: 0, duration: 5, ease: 'none' });
+    clearTimeout(popupTimer);
+    popupTimer = setTimeout(hidePopup, 5000);
+  }
   function hidePopup() {
     clearTimeout(popupTimer);
-    $('#cwBrickCard').classList.remove('show');
+    $('#cwBrickCard').classList.remove('show', 'cw-amount-only');
   }
 
   /* ─── أزرار الأدوات ─── */
