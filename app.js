@@ -121,6 +121,16 @@
           <div class="pills">${(kf.pills || []).map(x => `<span class="pill">${esc(x)}</span>`).join("")}</div>
           <span class="btn btn-red" style="background:linear-gradient(135deg,#dc2626,#7f1d1d);border-color:#ef4444;color:#fff">${esc(kf.cta)}</span>
         </div>
+      </a>
+      <a href="nasheed-academy/index.html" class="acard nasheed tilt">
+        <div class="bg"><div class="bg-orb"></div></div>
+        <div class="content">
+          <span class="tag">🎙️ NASHEED & MAQAMAT</span>
+          <h3>أكاديمية الإنشاد الديني</h3>
+          <p>انضم إلى فريق الإنشاد الديني وتعلّم المقامات الصوتية وأصول الأداء والإنشاد، بقيادة المنشد المتميز مصطفى الحسن.</p>
+          <div class="pills"><span class="pill">تعلم المقامات</span><span class="pill">إنشاد ديني</span><span class="pill">فريق المركز</span></div>
+          <span class="btn btn-nasheed">انضم إلى فريق الإنشاد ←</span>
+        </div>
       </a>`;
     $("#pitchSlot").innerHTML = `
       <a href="${esc(p.href)}" class="pitch-card tilt">
