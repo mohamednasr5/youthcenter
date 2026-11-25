@@ -201,33 +201,45 @@ async function main() {
   let popupTimer = null;
   function showBrickPopup(record, screen) {
     const card = $('#cwBrickCard');
+    /* إخراج البطاقة من أي حاوية ذات stacking context حتى تظهر فوق مشهد Three.js دائمًا */
+    if (card.parentElement !== document.body) document.body.appendChild(card);
+    card.style.position = 'fixed';
+    card.style.zIndex = '100000';
+    card.style.pointerEvents = 'auto';
+    card.classList.remove('cw-amount-only');
     const tier = tierById(record.brickType, tiers);
     card.innerHTML = `
       <div class="cw-bc-bar" style="background:${tier.cssColor}"></div>
       <button class="cw-bc-close" type="button" aria-label="إغلاق">✕</button>
+      <div class="cw-bc-heading">تفاصيل المتبرع</div>
       <div class="cw-bc-name">${escapeHtml(record.donorName || 'متبرع كريم')}</div>
       <div class="cw-bc-tier"><i style="background:${tier.cssColor}"></i> طوبة ${escapeHtml(tier.label)}</div>
       <div class="cw-bc-grid">
         <div><span class="k">إجمالي قيمة المساهمة</span><span class="v">${escapeHtml(egp(record.totalDonation))}</span></div>
-        <div><span class="k">منها نقدي محصّل</span><span class="v">${escapeHtml(egp(record.cashContribution||0))}</span></div>
-        <div><span class="k">قيمة عينية تقديرية</span><span class="v">${escapeHtml(egp(record.inKindContribution||0))}</span></div>
+        <div><span class="k">مبلغ التبرع النقدي</span><span class="v">${escapeHtml(egp(record.cashContribution||0))}</span></div>
+        <div><span class="k">قيمة الخدمة / التبرع العيني</span><span class="v">${escapeHtml(egp(record.inKindContribution||0))}</span></div>
         <div><span class="k">تاريخ الاعتماد</span><span class="v">${escapeHtml(fmtDate(record.createdAt))}</span></div>
         <div><span class="k">الموضع في الحائط</span><span class="v">${Number.isFinite(Number(record.row)) && Number.isFinite(Number(record.column)) ? `صف ${Number(record.row)+1} • طوبة ${Number(record.column)+1}` : '—'}</span></div>
       </div>
       ${Array.isArray(record.contributionDetails)&&record.contributionDetails.length?`
-        <div class="cw-bc-contributions"><strong>ماذا قدّم صاحب الطوبة؟</strong>${record.contributionDetails.map(x=>`
+        <div class="cw-bc-contributions"><strong>التفاصيل</strong>${record.contributionDetails.map(x=>`
           <div class="cw-bc-contribution"><b>${escapeHtml(({cash:'تبرع نقدي',service:'خدمة أو خبرة',material:'مواد وخامات',labor:'جهد وتنفيذ',sponsorship:'رعاية مشروع'})[x.type]||x.type)}</b>
           <span>${escapeHtml(x.title||'')}</span>${x.description?`<small>${escapeHtml(x.description)}</small>`:''}<em>${escapeHtml(egp(x.estimatedValue||x.amount||0))}</em></div>`).join('')}`:''}
       <div class="cw-bc-timer"></div>`;
     card.classList.add('show');
 
-    /* تموضع قرب الطوبة مع تثبيت داخل الشاشة */
-    const pad = 14;
-    const w = card.offsetWidth || 300;
-    const h = card.offsetHeight || 210;
-    let x = screen.x - w / 2;
-    let y = screen.y - h - 28;
-    if (y < pad) y = screen.y + 30;
+    /* تموضع البطاقة فوق المشهد مع ضمان ظهورها كاملة على الهاتف والكمبيوتر */
+    const pad = 12;
+    card.style.left = '0px';
+    card.style.top = '0px';
+    const rect = card.getBoundingClientRect();
+    const w = rect.width || 320;
+    const h = rect.height || 240;
+    const sx = Number(screen && screen.x) || innerWidth / 2;
+    const sy = Number(screen && screen.y) || innerHeight / 2;
+    let x = sx - w / 2;
+    let y = sy - h - 24;
+    if (y < pad) y = sy + 24;
     x = Math.max(pad, Math.min(x, innerWidth - w - pad));
     y = Math.max(pad, Math.min(y, innerHeight - h - pad));
     card.style.left = x + 'px';
