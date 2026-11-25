@@ -190,7 +190,7 @@ function actionLabel(a) {
   return ({
     add_donor: 'إضافة متبرع', update_donor: 'تعديل متبرع',
     record_donation: 'تسجيل تبرع', approve_donation: 'اعتماد تبرع', reject_donation: 'رفض تبرع',
-    add_expense: 'إضافة مصروف', delete_expense: 'حذف مصروف', recalc_all: 'إعادة احتساب شاملة', record_contribution: 'تسجيل مساهمة'
+    add_expense: 'إضافة مصروف', delete_expense: 'حذف مصروف', recalc_all: 'إعادة احتساب شاملة', record_contribution: 'تسجيل مساهمة', update_contribution: 'تعديل مساهمة'
   })[a] || a;
 }
 
