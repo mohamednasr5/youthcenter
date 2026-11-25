@@ -103,6 +103,44 @@
     { n: 7, name: 'حزام الكونغ فو الأسود', en: 'Black Belt', level: 'الدرجة السابعة', color: '#111111', light: '#4b5563', dark: '#000000', glow: 'rgba(232,160,32,0.4)', desc: 'مرحلة الإتقان: مستوى متقدم في الأساليب والحركات، مع مواصلة التطور الفني والانضباط والمشاركة في تعليم اللاعبين.' }
   ];
 
+  /* ============ توليد بطاقات الحركات ============ */
+  function renderMoves() {
+    const grid = document.getElementById('movesGrid');
+    if (!grid) return;
+    grid.innerHTML = MOVES.map(function (move) {
+      const src = 'assets/images/photos/' + move.image;
+      return `
+      <article class="move-card reveal" data-move="${move.id}">
+        <div class="move-card-head">
+          <h4>${move.name}</h4>
+          <span class="jp-name">${move.cn}</span>
+        </div>
+        <div class="move-stage">
+          <img class="move-real-photo" src="${src}" alt="${move.name}" loading="lazy" decoding="async" data-lightbox="${src}" data-caption="${move.name}">
+        </div>
+        <p>${move.desc}</p>
+        <span class="move-tag">${move.tag}</span>
+      </article>`;
+    }).join('');
+  }
+
+  /* ============ توليد الأحزمة السبعة ============ */
+  function renderBelts() {
+    const track = document.getElementById('beltsTrack');
+    if (!track) return;
+    track.innerHTML = BELTS.map(function (b, i) {
+      return `
+      <div class="belt-row reveal" data-belt="${b.n}" style="--belt-color:${b.color}; --belt-color-light:${b.light}; --belt-color-dark:${b.dark}; --belt-color-glow:${b.glow}; transition-delay:${i * 0.05}s">
+        <div class="belt-visual"></div>
+        <div class="belt-info">
+          <h4>${b.name} <span class="jp">• ${b.en}</span></h4>
+          <p>${b.desc}</p>
+        </div>
+        <div class="belt-level">${b.n}</div>
+      </div>`;
+    }).join('');
+  }
+
   /* ============ Lightbox ============ */
   function setupLightbox() {
     const overlay = document.getElementById('lightbox');
