@@ -496,14 +496,6 @@ body {
   background: rgba(16,185,129,0.12); color: var(--accent-green);
   border: 1px solid rgba(16,185,129,0.3);
 }
-.source-attribution {
-  margin-top: 24px; padding: 14px 18px; border-radius: 14px;
-  background: rgba(232,160,32,0.06); border: 1px dashed rgba(232,160,32,0.35);
-  color: var(--text-secondary); font-size: 0.82rem; line-height: 1.8;
-}
-.source-attribution a { color: var(--accent-gold); font-weight: 800; text-decoration: none; }
-.source-attribution a:hover { text-decoration: underline; }
-@media (max-width: 768px) { .steps-grid { grid-template-columns: 1fr; } }
 
 /* ============ KEYFRAMES ============ */
 @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 8px rgba(220,38,38,0.5); } 50% { box-shadow: 0 0 24px rgba(220,38,38,1), 0 0 40px rgba(220,38,38,0.4); } }
