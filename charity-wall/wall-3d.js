@@ -610,6 +610,7 @@ export class Wall3D {
     this.byDonor = new Map();     /* donorId → brickId */
     this.count = 0;
     this.hammer = null;           /* المطرقة ثلاثية الأبعاد */
+    this._activeBrickEntry = null; /* يسمح بفتح/كسر طوبة واحدة فقط في كل مرة */
     this._hoverBrickId = null;    /* الطوبة تحت المؤشر (لغة المطرقة) */
     this._autoHammer = null;      /* مؤقت الطرق التلقائي عند الاستمرار بالضغط */
     this._hammerT = 0;            /* خنق فحص اقتراب الكاميرا */
@@ -1212,6 +1213,24 @@ export class Wall3D {
      والاستمرار في الضغط/النقر يتراكم حتى التحطيم الكامل */
   _hitBrick(entry, screen) {
     if (!entry || entry._broken || entry._breaking || this._disposed) return;
+
+    /* طوبة نشطة واحدة فقط: عند الانتقال لطوبة أخرى نغلق البطاقة
+       ونعيد الطوبة السابقة فورًا، سواء كانت مفتوحة أو مكسورة. */
+    const previous = this._activeBrickEntry;
+    if (previous && previous !== entry) {
+      this.onCloseCard();
+      if (this.hammer && this.hammer._swingTl) {
+        this.hammer._swingTl.kill();
+        this.hammer.swinging = false;
+      }
+      if (previous._restoreTimer) {
+        clearTimeout(previous._restoreTimer);
+        previous._restoreTimer = null;
+      }
+      this._restoreBrick(previous);
+    }
+    this._activeBrickEntry = entry;
+
     const now = performance.now();
     const st = entry._hits || (entry._hits = { count: 0, t: 0 });
     if (st.count > 0 && now - st.t > COMBO_MS) {
@@ -1330,8 +1349,12 @@ export class Wall3D {
 
   /* ───── عودة الطوبة بعد 5 ثوانٍ وتصفير حالة الكسر ───── */
   _restoreBrick(entry) {
-    entry._restoreTimer = null;
+    if (entry._restoreTimer) {
+      clearTimeout(entry._restoreTimer);
+      entry._restoreTimer = null;
+    }
     if (this._disposed || !this.bricks.has(entry.record.id)) return;
+    if (this._activeBrickEntry === entry) this._activeBrickEntry = null;
 
     /* إيقاف أي حركة سابقة وإزالة آثار الكسر قبل إعادة الحالة الأصلية */
     killPop(entry);
