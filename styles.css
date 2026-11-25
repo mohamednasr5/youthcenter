@@ -632,3 +632,31 @@ html{scroll-behavior:smooth}
 .acard.nasheed{border-color:rgba(167,139,250,.35)}
 .acard.nasheed:hover{box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 34px rgba(167,139,250,.22)}
 .btn-nasheed{background:linear-gradient(135deg,#8b5cf6,#5b21b6);border:1px solid #a78bfa;color:#fff}
+
+
+/* Responsive navigation refinements */
+@media(min-width:921px){
+  .header .wrap{gap:10px}
+  .nav{flex:1 1 auto;min-width:0;justify-content:center;gap:2px}
+  .nav a{white-space:nowrap;flex:0 0 auto;padding:8px 8px;font-size:clamp(.72rem,.82vw,.88rem)}
+  .nav a.btn{padding:9px 12px;white-space:nowrap;min-width:max-content}
+  .h-actions{flex:0 0 auto}
+}
+.bottom-nav .bn-inner{grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch}
+.bottom-nav .bn-more{appearance:none;-webkit-appearance:none;border:0;background:transparent;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:7px 4px;font-size:.6rem;font-weight:800;color:var(--txt-mute);border-radius:10px;line-height:1.2}
+.bottom-nav .bn-more .bico{font-size:1.25rem;line-height:1}
+.bottom-nav .bn-more[aria-expanded="true"]{color:var(--gold-2);background:rgba(255,255,255,.07)}
+.bottom-nav .bn-more-menu{position:absolute;right:8px;bottom:calc(100% + 10px);width:min(310px,calc(100vw - 16px));max-height:min(60vh,440px);overflow:auto;padding:9px;border:1px solid var(--border-strong);border-radius:18px;background:rgba(8,12,24,.98);backdrop-filter:blur(18px);box-shadow:0 18px 50px #0009;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.bottom-nav .bn-more-menu[hidden]{display:none}
+.bottom-nav .bn-more-menu a{min-height:42px;justify-content:center;padding:9px 7px;background:rgba(255,255,255,.055);color:var(--txt-2);font-size:.72rem;line-height:1.45;text-align:center}
+.bottom-nav .bn-more-menu a:active{background:rgba(245,158,11,.16);color:#fff}
+@media(max-width:920px){
+  .bottom-nav{padding:5px 5px calc(5px + env(safe-area-inset-bottom,0px))}
+  body{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+  .back-top{bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+  .pwa-banner{bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+}
+@media(max-width:420px){
+  .bottom-nav a,.bottom-nav .bn-more{font-size:.58rem;padding-inline:2px}
+  .bottom-nav .bn-more-menu{grid-template-columns:1fr}
+}
