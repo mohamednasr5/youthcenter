@@ -359,8 +359,8 @@ function renderDonations() {
       </div></td></tr>`;
   }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--txt-mute)">لا توجد مساهمات — سجّل أول مساهمة</td></tr>`;
 
-  $('#donationsTable [data-edit-contribution]').forEach(b => b.addEventListener('click', () => openContributionModal(b.dataset.editContribution)));
-  $('#donationsTable [data-approve]').forEach(b => b.addEventListener('click', async () => {
+  $$('#donationsTable [data-edit-contribution]').forEach(b => b.addEventListener('click', () => openContributionModal(b.dataset.editContribution)));
+  $$('#donationsTable [data-approve]').forEach(b => b.addEventListener('click', async () => {
     b.disabled = true;
     try {
       await approveContribution(b.dataset.approve);
