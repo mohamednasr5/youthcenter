@@ -105,14 +105,24 @@ button{font-family:inherit}
 .cw-tool.on{background:linear-gradient(135deg,var(--gold),#d97706);color:#1a1206;border-color:transparent}
 
 /* بطاقة المتبرع عند الضغط على طوبة */
-.cw-brick-card{position:fixed;z-index:80;width:min(320px,88vw);display:none;
-  background:linear-gradient(160deg,rgba(15,24,48,.97),rgba(7,11,22,.97));
-  border:1px solid var(--border-strong);border-radius:var(--r-md);box-shadow:var(--sh);
-  padding:18px 18px 14px;direction:rtl;overflow:hidden}
-/* البطاقة شفافة للنقر: الطرق المتكرر بالمطرقة يصل للطوبة حتى لو غطّتها البطاقة،
-   وزر الإغلاق فقط يستقبل النقر */
-.cw-brick-card.show{display:block;animation:cwCardIn .3s cubic-bezier(.2,1.4,.4,1);pointer-events:none}
+.cw-brick-card{position:fixed;z-index:100000;width:min(360px,calc(100vw - 24px));max-height:min(72vh,560px);overflow-y:auto;overscroll-behavior:contain;display:none;
+  background:linear-gradient(155deg,rgba(255,255,255,.98),rgba(241,245,249,.98));
+  color:#172033;border:1px solid rgba(210,170,90,.85);border-radius:18px;
+  box-shadow:0 18px 55px rgba(8,15,30,.32),0 4px 14px rgba(8,15,30,.16);
+  padding:18px 18px 16px;direction:rtl;scrollbar-width:thin}
+.cw-brick-card.show{display:block;animation:cwCardIn .25s cubic-bezier(.2,1.2,.4,1);pointer-events:auto}
 .cw-brick-card.show .cw-bc-close{pointer-events:auto}
+.cw-bc-heading{font-size:.78rem;font-weight:900;color:#a56b12;margin:0 42px 8px 0}
+.cw-brick-card .cw-bc-name{color:#152238;font-size:1.15rem;margin-bottom:7px}
+.cw-brick-card .cw-bc-tier{color:#80530b;background:rgba(245,190,80,.16);border-color:rgba(180,130,35,.25)}
+.cw-brick-card .cw-bc-grid>div{background:#fff;border-color:#e2e8f0}
+.cw-brick-card .cw-bc-grid .k{color:#64748b}
+.cw-brick-card .cw-bc-grid .v{color:#152238}
+.cw-brick-card .cw-bc-contributions{border-top-color:#dbe3ed}
+.cw-brick-card .cw-bc-contributions>strong{color:#98620c}
+.cw-brick-card .cw-bc-contribution{background:#fff;border:1px solid #e2e8f0;color:#172033}
+.cw-brick-card .cw-bc-contribution>span,.cw-brick-card .cw-bc-contribution>small{color:#526174}
+.cw-brick-card .cw-bc-contribution>em{color:#98620c}
 @keyframes cwCardIn{from{opacity:0;transform:translateY(14px) scale(.92)}to{opacity:1;transform:none}}
 .cw-bc-bar{position:absolute;top:0;right:0;left:0;height:5px}
 .cw-bc-close{position:absolute;top:10px;left:10px;width:28px;height:28px;border-radius:9px;border:1px solid var(--border);
