@@ -1342,39 +1342,31 @@ export class Wall3D {
     entry._breaking = false;
 
     const group = this.tierGroups[entry.tierId] || this.tierGroups.clay;
-    const restoreExactState = () => {
-      if (this._disposed || !this.bricks.has(entry.record.id)) return;
 
-      /* لا نكتفي بإظهار لوحة الاسم: نعيد مصفوفة جسم الطوبة الأصلية كاملة
-         (الموضع + الدوران + المقياس) إلى نفس خانتها داخل InstancedMesh. */
-      group.setMatrixAt(entry.groupIdx, entry.matrix);
-      group.mesh.instanceMatrix.needsUpdate = true;
-      group.mesh.boundingSphere = null;
-      group.mesh.boundingBox = null;
+    /* إعادة جسم الطوبة فورًا بالمصفوفة الأصلية؛ لا نتركه على مقياس صفر
+       ولا نعتمد على انتهاء Tween كي يظهر مجددًا. */
+    group.setMatrixAt(entry.groupIdx, entry.matrix);
+    group.mesh.instanceMatrix.needsUpdate = true;
+    group.mesh.boundingSphere = null;
+    group.mesh.boundingBox = null;
 
-      if (entry.namePlane) {
-        entry.namePlane.position.set(
-          entry.position.x,
-          entry.position.y,
-          entry.labelBaseZ != null ? entry.labelBaseZ : B.d / 2 + 0.02
-        );
-        entry.namePlane.visible = true;
-        entry.namePlane.material.opacity = 1;
-        entry.namePlane.material.needsUpdate = true;
-      }
-    };
+    if (entry.namePlane) {
+      entry.namePlane.position.set(
+        entry.position.x,
+        entry.position.y,
+        entry.labelBaseZ != null ? entry.labelBaseZ : B.d / 2 + 0.02
+      );
+      entry.namePlane.visible = true;
+      entry.namePlane.material.opacity = 1;
+      entry.namePlane.material.needsUpdate = true;
+    }
 
-    /* إعادة بناء مرئية، ثم تثبيت المصفوفة الأصلية كضمان نهائي */
-    const rebuilding = rebuildBrick(this.scene, group, entry, { low: this.quality === 'low' });
-    Promise.resolve(rebuilding).then(restoreExactState).catch(error => {
-      console.warn('[Charity Wall] تعذرت إعادة الحركة الانتقالية للطوبة؛ تم تثبيت حالتها الأصلية:', error);
-      restoreExactState();
-    });
-
+    /* تنظيف أي أثر بصري متبقٍ ثم إعادة ضبط حالة الطوبة */
+    entry._breaking = false;
+    entry._broken = false;
     dustBurst(this.scene, entry.position.clone().add(new THREE.Vector3(0, 0, B.d / 2)), {
       low: this.quality === 'low', count: this.quality === 'low' ? 10 : 22
     });
-    lightFlash(this.scene, entry.position, 0x9edcff);
     sounds.thud();
   }
 
