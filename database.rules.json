@@ -112,6 +112,13 @@
         ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true || auth.token.ycKarate === true"
       }
     },
+    "kungfu_academy": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycKungfu === true",
+      "schedules": {
+        ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true || auth.token.ycKungfu === true"
+      }
+    },
     "pitch_booking": {
       "settings": {
         ".read": true,

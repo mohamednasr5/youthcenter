@@ -11,7 +11,7 @@
   const me = document.currentScript;
   const path = location.pathname;
   const section = (me && me.dataset.section) ||
-    (/football-academy/.test(path) ? "football" : /karate-academy/.test(path) ? "karate" : /pitch-booking/.test(path) ? "pitch" : "home");
+    (/football-academy/.test(path) ? "football" : /karate-academy/.test(path) ? "karate" : /kungfu-academy/.test(path) ? "kungfu" : /pitch-booking/.test(path) ? "pitch" : /charity-wall/.test(path) ? "wall" : "home");
   const mq = q => window.matchMedia && window.matchMedia(q).matches;
   const reduce = mq("(prefers-reduced-motion: reduce)");
   const finePointer = mq("(hover:hover) and (pointer:fine)");
@@ -30,7 +30,8 @@
   ].join(",");
   const TILT = [
     ".info-card", ".step-card", ".coach-card", ".cert-card", ".pitch-info-card", ".chairman-contact-card",
-    ".schedule-card", ".trophy-card", ".player-card", ".match-card", ".lv-card", ".kl-card", ".news-card", ".match-result-card"
+    ".schedule-card", ".trophy-card", ".player-card", ".match-card", ".lv-card", ".kl-card", ".news-card", ".match-result-card",
+    ".move-card", ".animal-card"
   ].join(",");
   const PARALLAX = ".hero-visual, .hero-jp, .hero-logo-frame, [data-fx-parallax]";
   const COUNT = "[data-fx-count], .stat-num";

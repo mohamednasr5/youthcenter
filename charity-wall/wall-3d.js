@@ -6,13 +6,21 @@
    - InstancedMesh لكل فئة: الحائط يتوسع بلا حد مع أداء عالٍ
    - هرم جانبي بالأنواع الخمسة + عدادات حية، ومنه تنطلق الطوبات الجديدة
    - تحكم كامل بالكاميرا: سحب للدوران، عجلة/قرصة للتقريب، سحب بإصبعين للتحريك
-   - الضغط على طوبة → فرقعة + بيانات المتبرع، والطوبات تبقى بعد إعادة التحميل (Firestore)
+   - المطرقة (الشاكوش) تظهر عند الاقتراب من أي طوبة أو توجيه المؤشر إليها:
+     • ضغطة واحدة → بيانات المتبرع
+     • الاستمرار بالضغط/النقر المتكرر → طرق متتالٍ وتشقق ثم تحطيم
+     • بعد التحطيم يظهر مكان الطوبة «المبلغ المدفوع» ثلاثي الأبعاد مع نوعها
+     • بعد 5 ثوانٍ تُعاد بناء الطوبة ويمكن تكرار الدورة
+   - الطوبات تبقى بعد إعادة التحميل (Firestore)
    - وضع أداء منخفض للأجهزة الضعيفة + إيقاف الرسم عند خروج الصفحة عن الشاشة */
 
 import * as THREE from './vendor/three.module.js';
-import { TIERS, tierById } from './firebase-config.js';
+import { TIERS, tierById, egp } from './firebase-config.js';
 import { sounds } from './sounds.js';
-import { flyBrick, dustBurst, lightFlash, breakBrick, flyCamera } from './animations.js';
+import {
+  flyBrick, dustBurst, lightFlash, breakBrick, popBrick, flyCamera,
+  brickShake, debrisBurst, smashBrick, rebuildBrick, bezierPoint
+} from './animations.js';
 
 /* ─── أبعاد البناء ─── */
 export const PER_ROW = 10;
@@ -20,6 +28,14 @@ const B = { w: 2.3, h: 1.05, d: 1.15, gap: 0.14 };
 const S = B.w + B.gap;           /* خطوة الطوبة أفقياً */
 export const WALL_HALF = 4.5 * S + B.w / 2; /* نصف عرض الحائط */
 const PYRAMID_X = WALL_HALF + 11.5;         /* موضع الهرم جانب الحائط */
+
+/* ─── إعدادات المطرقة والكسر ─── */
+const HITS_TO_BREAK = 4;     /* عدد الضربات لتحطيم الطوبة (الأولى تفتح بيانات المتبرع) */
+const COMBO_MS = 1700;      /* مهلة بقاء «وضع الكسر» بين الضغطات المتتالية */
+const HOLD_MS = 480;        /* الاستمرار بالضغط هذه المدة يبدأ الطرق التلقائي */
+const HAMMER_PERIOD = 430;  /* فاصل ضربات الطرق التلقائي أثناء الاستمرار بالضغط */
+const CLOSE_RADIUS = 17;    /* اقتراب الكاميرا هذه المسافة يُظهر المطرقة فوق أقرب طوبة */
+const RESTORE_MS = 5000;    /* عودة الطوبة بعد التحطيم (تظهر خلالها قيمة المساهمة) */
 
 /* ─── نسيج ضجيج إجرائي (خشونة الطوب والأسمنت) ─── */
 function noiseTexture(base = 128, variation = 46, size = 256) {
@@ -103,6 +119,137 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+/* ─── نسيج شقوق الطوبة (يتصاعد مع ضربات المطرقة) ─── */
+const crackCache = new Map();
+function crackTexture(level, variant = 0) {
+  const key = level + '|' + variant;
+  if (crackCache.has(key)) return crackCache.get(key);
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 512, 256);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const lines = level === 1 ? 5 : 9;
+  /* شقوق متعرجة تنطلق من نقطة الارتطام أعلى منتصف الواجهة */
+  for (let i = 0; i < lines; i++) {
+    let x = 256 + (Math.random() - 0.5) * 90;
+    let y = 34 + Math.random() * 26;
+    const segs = 4 + Math.floor(Math.random() * 4);
+    const angle = (Math.PI * (0.25 + 0.5 * Math.random())) + (Math.random() < 0.5 ? 0 : Math.PI);
+    const pts = [[x, y]];
+    for (let s = 0; s < segs; s++) {
+      const len = (level === 1 ? 18 : 26) + Math.random() * 34;
+      const a = angle + (Math.random() - 0.5) * 0.9;
+      x += Math.cos(a) * len;
+      y += Math.sin(Math.abs(a)) * len * (Math.random() < 0.85 ? 1 : -0.35);
+      x = Math.max(14, Math.min(498, x));
+      y = Math.max(14, Math.min(242, y));
+      pts.push([x, y]);
+    }
+    /* حافة مضيئة خلف الشق (إحساس العمق) ثم الشق الداكن العريض */
+    ctx.strokeStyle = 'rgba(255,240,214,.28)';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0] + 3, pts[0][1] + 3);
+    pts.slice(1).forEach(p => ctx.lineTo(p[0] + 3, p[1] + 3));
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(6,3,1,.95)';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    pts.slice(1).forEach(p => ctx.lineTo(p[0], p[1]));
+    ctx.stroke();
+  }
+
+  /* المستوى الثاني: حفر وتفتت إضافي حول نقطة الارتطام */
+  if (level >= 2) {
+    for (let i = 0; i < 12; i++) {
+      const cx = 256 + (Math.random() - 0.5) * 230;
+      const cy = 44 + Math.random() * 200;
+      const r = 4 + Math.random() * 10;
+      ctx.fillStyle = 'rgba(6,3,1,.9)';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, r, r * (0.55 + Math.random() * 0.5), Math.random() * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  crackCache.set(key, tex);
+  return tex;
+}
+
+/* ─── لوحة «المبلغ المدفوع» ثلاثية الأبعاد (Sprite بألوان الفئة) ─── */
+const amountCache = new Map();
+function amountTexture(record, tier) {
+  const value = egp(record && (record.totalDonation || record.amount) || 0);
+  const key = value + '|' + tier.id;
+  if (amountCache.has(key)) return amountCache.get(key);
+  const c = document.createElement('canvas');
+  c.width = 640; c.height = 320;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 640, 320);
+  ctx.direction = 'rtl';
+
+  /* خلفية اللوحة بإطار بلون الفئة */
+  ctx.shadowColor = tier.cssColor;
+  ctx.shadowBlur = 26;
+  ctx.fillStyle = 'rgba(7,11,20,.93)';
+  roundRect(ctx, 14, 14, 612, 292, 30);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = tier.cssColor;
+  ctx.lineWidth = 6;
+  roundRect(ctx, 14, 14, 612, 292, 30);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.14)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 28, 28, 584, 264, 22);
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#f2d998';
+  ctx.shadowColor = 'rgba(0,0,0,.8)';
+  ctx.shadowBlur = 8;
+  ctx.font = '800 46px Cairo, Tajawal, sans-serif';
+  ctx.fillText('المبلغ المدفوع', 320, 84);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 96px Cairo, Tajawal, sans-serif';
+  ctx.shadowBlur = 14;
+  ctx.fillText(value, 320, 176, 560);
+
+  /* شريحة نوع الطوبة */
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,255,255,.06)';
+  roundRect(ctx, 205, 234, 230, 54, 18);
+  ctx.fill();
+  ctx.strokeStyle = tier.cssColor;
+  ctx.lineWidth = 2;
+  roundRect(ctx, 205, 234, 230, 54, 18);
+  ctx.stroke();
+  ctx.fillStyle = tier.cssColor;
+  ctx.shadowColor = 'rgba(255,255,255,.45)';
+  ctx.shadowBlur = 9;
+  ctx.font = '800 38px Cairo, Tajawal, sans-serif';
+  ctx.fillText('طوبة ' + tier.label, 320, 262);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  if (amountCache.size > 120) {
+    const first = amountCache.keys().next().value;
+    const old = amountCache.get(first);
+    old.dispose(); amountCache.delete(first);
+  }
+  amountCache.set(key, tex);
+  return tex;
+}
+
 /* ═══ تحكم مداري مخصص (فأرة + لمس) ═══ */
 class SimpleOrbit {
   constructor(camera, dom) {
@@ -112,20 +259,33 @@ class SimpleOrbit {
     this.spherical = { theta: 0.42, phi: 1.18, radius: 30 };
     this.desired = { ...this.spherical };
     this.minRadius = 7; this.maxRadius = 150;
+    this._minRadiusDefault = this.minRadius;
     this.enabled = true;
+    this.autoRotate = false;        /* دوران هادئ عند الخمول */
+    this.autoRotateSpeed = 0.05;    /* راديان/ثانية */
+    this._idleTimer = null;
     this._pointers = new Map();
     this._lastPinch = 0;
     this._lastPan = null;
     this._moved = 0;
 
     dom.style.touchAction = 'none';
-    dom.addEventListener('pointerdown', e => this._down(e));
+    dom.addEventListener('pointerdown', e => { this._down(e); this._wake(); });
     dom.addEventListener('pointermove', e => this._move(e));
-    dom.addEventListener('pointerup', e => this._up(e));
-    dom.addEventListener('pointercancel', e => this._up(e));
-    dom.addEventListener('wheel', e => this._wheel(e), { passive: false });
+    dom.addEventListener('pointerup', e => { this._up(e); this._wake(); });
+    dom.addEventListener('pointercancel', e => { this._up(e); this._wake(); });
+    dom.addEventListener('wheel', e => { this._wheel(e); this._wake(); }, { passive: false });
     dom.addEventListener('contextmenu', e => e.preventDefault());
   }
+  /* إيقاف الدوران التلقائي عند أي تفاعل واستئنافه بعد خمول 7 ثوانٍ */
+  _wake() {
+    this._pauseAuto();
+    clearTimeout(this._idleTimer);
+    this._idleTimer = setTimeout(() => {
+      if (this.enabled && this._pointers.size === 0) this.autoRotate = this.autoRotateEnabled !== false;
+    }, 7000);
+  }
+  _pauseAuto() { this.autoRotate = false; }
   _down(e) {
     this._pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, button: e.button });
     this._moved = 0;
@@ -173,7 +333,10 @@ class SimpleOrbit {
     const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrix, 1);
     this.target.addScaledVector(right, -dx * scale);
     this.target.addScaledVector(up, dy * scale);
-    this.target.y = Math.max(this.target.y, 0.5);
+    /* إبقاء الهدف داخل ساحة الحائط حتى لا يضيع المشهد بعيداً */
+    this.target.x = THREE.MathUtils.clamp(this.target.x, -34, 34);
+    this.target.z = THREE.MathUtils.clamp(this.target.z, -26, 40);
+    this.target.y = THREE.MathUtils.clamp(this.target.y, 0.5, 26);
   }
   _wheel(e) {
     e.preventDefault();
@@ -181,8 +344,12 @@ class SimpleOrbit {
     this.desired.radius = THREE.MathUtils.clamp(
       this.desired.radius * (1 + Math.sign(e.deltaY) * 0.11), this.minRadius, this.maxRadius);
   }
-  update() {
+  update(dt = 0.016) {
     if (this.flying) { this.camera.lookAt(this.target); return; } /* طيران مُبرمَج: لا مقاومة */
+    /* دوران هادئ حول الحائط عند الخمول */
+    if (this.autoRotate && this.enabled && this._pointers.size === 0) {
+      this.desired.theta += this.autoRotateSpeed * dt;
+    }
     const k = this.enabled ? 0.14 : 1;
     this.spherical.theta += (this.desired.theta - this.spherical.theta) * k;
     this.spherical.phi += (this.desired.phi - this.spherical.phi) * k;
@@ -196,6 +363,168 @@ class SimpleOrbit {
     this.camera.lookAt(this.target);
   }
   wasDrag() { return this._moved > 7; }
+}
+
+/* ═══ المطرقة (الشاكوش) ثلاثية الأبعاد ═══
+   تظهر فوق الطوبة المستهدفة عند الاقتراب أو توجيه المؤشر،
+   تتأرجح للأسفل عند كل ضربة ثم تعود لوضع الاستعداد.
+   البنية: group (الموضع/الدوران العالمي) ← bob (طفو هادئ) ← القبضة والرأس */
+const HAMMER_SCALE = 0.72; /* حجم المطرقة نسبة إلى الطوبة — يظهر كاملًا في اللقطة القريبة */
+class Hammer3D {
+  constructor(scene) {
+    this.scene = scene;
+    this.target = null;
+    this.swinging = false;
+
+    const group = new THREE.Group();
+    const bob = new THREE.Group();
+    group.add(bob);
+
+    /* القبضة الخشبية — تمتد من الرأس للأعلى */
+    const handleMat = new THREE.MeshStandardMaterial({
+      color: 0xa97444, roughness: 0.6, metalness: 0.02,
+      emissive: 0x3a2410, emissiveIntensity: 1.1,
+      envMapIntensity: 1.3
+    });
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.07, 1.78, 10), handleMat);
+    handle.position.y = 0.95;
+    handle.castShadow = true;
+    bob.add(handle);
+    /* مقبض مطاطي أسفل القبضة */
+    const grip = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.075, 0.075, 0.3, 10),
+      new THREE.MeshStandardMaterial({ color: 0x2c313c, roughness: 0.8, metalness: 0.1, emissive: 0x10141c, emissiveIntensity: 1.2 })
+    );
+    grip.position.y = 0.14;
+    bob.add(grip);
+
+    /* الرأس المعدني عند أصل المجموعة (نقطة الارتطام) — إضاءة ذاتية كافية
+       حتى لا يبدو أسود وهو يعكس سماء المشهد الليلية الداكنة */
+    const headMat = new THREE.MeshStandardMaterial({
+      color: 0xcfd9e3, metalness: 0.55, roughness: 0.32,
+      emissive: 0x2b3c44, emissiveIntensity: 1.15,
+      envMapIntensity: 1.5
+    });
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.36, 0.42), headMat);
+    head.castShadow = true;
+    bob.add(head);
+    /* وجهاه معدنية بارزة قليلاً (مطرقة تكسير مسطحة الوجهين) */
+    const faceGeo = new THREE.BoxGeometry(0.1, 0.3, 0.36);
+    const faceL = new THREE.Mesh(faceGeo, headMat);
+    faceL.position.set(0.43, 0, 0);
+    const faceR = new THREE.Mesh(faceGeo, headMat);
+    faceR.position.set(-0.43, 0, 0);
+    bob.add(faceL, faceR);
+
+    group.visible = false;
+    group.scale.setScalar(0.001);
+    scene.add(group);
+    this.group = group;
+    this.bob = bob;
+
+    /* طفو هادئ في وضع الاستعداد */
+    this._bobTween = gsap.to(bob.position, {
+      y: 0.07, duration: 1.15, yoyo: true, repeat: -1, ease: 'sine.inOut'
+    });
+  }
+
+  /* نقطة الارتطام على واجهة الطوبة (أعلى منتصف الواجهة) */
+  impactOf(entry) {
+    return new THREE.Vector3(
+      entry.position.x,
+      entry.position.y + B.h * 0.28,
+      entry.position.z + B.d / 2
+    );
+  }
+
+  /* وضع الاستعداد: المطرقة جانب الطوبة (يمينها) بميل مائل نحو الكاميرا —
+     يظهر كاملًا في اللقطة القريبة دون أن يقطعه إطار الشاشة */
+  restPose(entry) {
+    const impact = this.impactOf(entry);
+    return {
+      pos: impact.clone().add(new THREE.Vector3(1.42, 0.34, 1.14)),
+      rotX: 1.05,
+      rotZ: -0.5
+    };
+  }
+
+  setTarget(entry) {
+    if (this.target === entry) return;
+    this.target = entry;
+    const rest = this.restPose(entry);
+    this.group.visible = true;
+    if (this._moveTl) this._moveTl.kill();
+    this._moveTl = gsap.timeline();
+    this._moveTl.to(this.group.position, { x: rest.pos.x, y: rest.pos.y, z: rest.pos.z, duration: 0.32, ease: 'power2.out' }, 0)
+      .to(this.group.rotation, { x: rest.rotX, y: 0, z: rest.rotZ, duration: 0.32, ease: 'power2.out' }, 0)
+      .to(this.group.scale, { x: HAMMER_SCALE, y: HAMMER_SCALE, z: HAMMER_SCALE, duration: 0.3, ease: 'back.out(2.2)' }, 0);
+  }
+
+  clearTarget() {
+    if (!this.target && !this.group.visible) return;
+    this.target = null;
+    if (this._moveTl) this._moveTl.kill();
+    this._moveTl = gsap.to(this.group.scale, {
+      x: 0.001, y: 0.001, z: 0.001, duration: 0.22, ease: 'back.in(1.8)',
+      onComplete: () => { this.group.visible = false; }
+    });
+  }
+
+  /* رفعة سريعة ثم ارتطام على قوس بيزيه أمام الحائط ثم عودة للاستعداد
+     onImpact: يُنادى لحظة الارتطام (مؤثرات وصوت الكسر) */
+  swing(entry, onImpact) {
+    const impact = this.impactOf(entry);
+    const rest = this.restPose(entry);
+    const raise = impact.clone().add(new THREE.Vector3(0.55, 1.62, 1.5));
+    const hit = impact.clone().add(new THREE.Vector3(0.02, 0.06, 0.12));
+    const control = impact.clone().add(new THREE.Vector3(0.85, 1.1, 1.72));
+
+    this.group.visible = true;
+    if (this._swingTl) this._swingTl.kill();
+    this.swinging = true;
+    const self = this;
+    const state = { t: 0 };
+
+    this._swingTl = gsap.timeline({
+      onComplete() { self.swinging = false; }
+    });
+    /* 1) التهيئة السريعة للأعلى مع استعادة الوجه الأفقي للرأس */
+    this._swingTl.to(this.group.position, { x: raise.x, y: raise.y, z: raise.z, duration: 0.1, ease: 'power2.out' }, 0)
+      .to(this.group.rotation, { x: 1.12, z: 0, duration: 0.1 }, 0)
+      .to(this.group.scale, { x: HAMMER_SCALE, y: HAMMER_SCALE, z: HAMMER_SCALE, duration: 0.08 }, 0)
+      /* 2) الهبوط على قوس أمام الحائط */
+      .to(state, {
+        t: 1, duration: 0.11, ease: 'power3.in',
+        onUpdate() {
+          const p = bezierPoint(raise, control, hit, state.t);
+          self.group.position.copy(p);
+          self.group.rotation.x = 1.12 - 0.8 * state.t;
+        }
+      })
+      /* 3) لحظة الارتطام: ارتداد صغير + المؤثرات */
+      .call(() => {
+        sounds.clank();
+        if (onImpact) onImpact();
+      })
+      .to(this.group.position, {
+        x: hit.x, y: hit.y + 0.16, z: hit.z + 0.22, duration: 0.06, ease: 'power2.out'
+      })
+      /* 4) العودة لوضع الاستعداد */
+      .to(this.group.position, { x: rest.pos.x, y: rest.pos.y, z: rest.pos.z, duration: 0.26, ease: 'power2.inOut' })
+      .to(this.group.rotation, { x: rest.rotX, z: rest.rotZ, duration: 0.26, ease: 'power2.inOut' }, '<');
+    return this._swingTl;
+  }
+
+  dispose() {
+    if (this._bobTween) this._bobTween.kill();
+    if (this._moveTl) this._moveTl.kill();
+    if (this._swingTl) this._swingTl.kill();
+    this.group.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) o.material.dispose();
+    });
+    this.scene.remove(this.group);
+  }
 }
 
 /* ═══ حاوية فئة واحدة داخل InstancedMesh تتوسع تلقائياً ═══ */
@@ -272,6 +601,7 @@ export class Wall3D {
     this.quality = opts.quality === 'low' ? 'low' : 'high';
     this.onPick = opts.onPick || (() => {});
     this.onHold = opts.onHold || (() => {});
+    this.onCloseCard = opts.onCloseCard || (() => {});
     this.onEmpty = opts.onEmpty || (() => {});
     this.onStats = opts.onStats || (() => {});
     this.onAutoLow = opts.onAutoLow || (() => {});
@@ -279,6 +609,12 @@ export class Wall3D {
     this.bricks = new Map();      /* brickId → {record, tierId, groupIdx, matrix, namePlane} */
     this.byDonor = new Map();     /* donorId → brickId */
     this.count = 0;
+    this.hammer = null;           /* المطرقة ثلاثية الأبعاد */
+    this._hoverBrickId = null;    /* الطوبة تحت المؤشر (لغة المطرقة) */
+    this._autoHammer = null;      /* مؤقت الطرق التلقائي عند الاستمرار بالضغط */
+    this._hammerT = 0;            /* خنق فحص اقتراب الكاميرا */
+    this._rayTmp = new THREE.Raycaster();
+    this._ndcTmp = new THREE.Vector2();
     this._raf = null;
     this._visible = true;
     this._fps = { frames: 0, t0: performance.now(), lowNotified: false };
@@ -315,10 +651,15 @@ export class Wall3D {
     this._buildMaterials();
     this._buildWallBase();
     this._buildPyramid();
+    this.hammer = new Hammer3D(this.scene);
 
     this._resize();
     this._ro = new ResizeObserver(() => this._resize());
     this._ro.observe(c);
+
+    /* دوران هادئ حول الحائط عند الخمول (يُعطّل مع تفضيل تقليل الحركة) */
+    this.controls.autoRotateEnabled = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (this.controls.autoRotateEnabled) this.controls._wake();
 
     /* إيقاف الرسم عند خروج الحائط عن الشاشة (توفير المعالج) */
     this._io = new IntersectionObserver(en => { this._visible = en[0].isIntersecting; }, { threshold: 0.02 });
@@ -647,9 +988,12 @@ export class Wall3D {
     /* إعادة بناء كاملة (التحميل الأولي) */
     for (const [, b] of this.bricks) {
       if (b.namePlane) { this.wallGroup.remove(b.namePlane); b.namePlane.material.dispose(); }
+      this._cleanupEntry(b);
     }
     this.bricks.clear();
     this.byDonor.clear();
+    this.hammer && this.hammer.clearTarget();
+    this._hoverBrickId = null;
     for (const id of Object.keys(this.tierGroups)) this.tierGroups[id].clear();
     this.count = 0;
     this._closerRows = 0;
@@ -792,12 +1136,23 @@ export class Wall3D {
 
   resetView() {
     this.controls.enabled = false;
-    const target = new THREE.Vector3(0, Math.min(this.wallHeight * 0.45, 14), 0);
-    return flyCamera(this.camera, this.controls, target, new THREE.Vector3(14, 9, 34), 1.3)
+    /* استعادة مدى التقريب الافتراضي بعد لقطات الطوبات القريبة */
+    this.controls.minRadius = this.controls._minRadiusDefault || 7;
+    const h = Math.max(this.wallHeight || 4, 4);
+    const target = new THREE.Vector3(0, Math.min(h * 0.45, 14), 0);
+    const radius = THREE.MathUtils.clamp(WALL_HALF * 2.0 + 8 + h * 0.6, 26, 130);
+    const theta = 0.5, phi = 1.12;
+    const camPos = new THREE.Vector3(
+      target.x + radius * Math.sin(phi) * Math.sin(theta),
+      target.y + radius * Math.cos(phi),
+      target.z + radius * Math.sin(phi) * Math.cos(theta)
+    );
+    return flyCamera(this.camera, this.controls, target, camPos, 1.3)
       .then(() => {
         this._syncControls();
         this.controls.flying = false;
         this.controls.enabled = true;
+        this.controls._wake();
       });
   }
 
@@ -828,6 +1183,7 @@ export class Wall3D {
     this.controls.minRadius = 3.2;
     this.controls.enabled = false;
     this.controls.flying = true;
+    this.controls._pauseAuto();
 
     return flyCamera(this.camera, this.controls, target, camPos, 1.85).then(() => {
       this.controls.target.copy(target);
@@ -851,6 +1207,222 @@ export class Wall3D {
     return this.flyToBrick(brickId).then(ok => ok);
   }
 
+  /* ───── ضربة مطرقة على الطوبة ─────
+     الضغطة الأولى من السلسلة تفتح بيانات المتبرع،
+     والاستمرار في الضغط/النقر يتراكم حتى التحطيم الكامل */
+  _hitBrick(entry, screen) {
+    if (!entry || entry._broken || entry._breaking || this._disposed) return;
+    const now = performance.now();
+    const st = entry._hits || (entry._hits = { count: 0, t: 0 });
+    if (st.count > 0 && now - st.t > COMBO_MS) {
+      st.count = 0;
+      this._hideCracks(entry);
+    }
+    st.t = now;
+    st.count++;
+    const hitNo = st.count;
+
+    if (this.hammer && this.hammer.target !== entry) this.hammer.setTarget(entry);
+
+    const onImpact = () => {
+      if (entry._broken || entry._breaking || this._disposed) return;
+      const pos = entry.position;
+      const group = this.tierGroups[entry.tierId] || this.tierGroups.clay;
+      const tier = tierById(entry.tierId, this.tiers);
+      const hitPoint = this.hammer ? this.hammer.impactOf(entry) : pos.clone().add(new THREE.Vector3(0, 0, B.d / 2));
+      debrisBurst(this.scene, hitPoint, tier.color, { low: this.quality === 'low' });
+      brickShake(group, entry, hitNo === 1 ? 0.8 : 1.5);
+      if (hitNo === 1) {
+        /* ضغطة واحدة → بيانات المتبرع */
+        this.onPick(entry.record, screen || this.worldToScreen(pos));
+      } else {
+        /* ضربات متتالية → إغلاق البطاقة وتشقق متصاعد */
+        this.onCloseCard();
+        sounds.crack();
+        this._showCracks(entry, hitNo >= 3 ? 2 : 1);
+        if (entry.crackPlane) {
+          gsap.fromTo(entry.crackPlane.scale, { x: 1.06, y: 1.06 }, { x: 1, y: 1, duration: 0.32, ease: 'power2.out' });
+        }
+      }
+      if (hitNo >= HITS_TO_BREAK) this._smashBrick(entry);
+    };
+
+    if (this.hammer) this.hammer.swing(entry, onImpact);
+    else { sounds.clank(); onImpact(); }
+  }
+
+  /* ───── تحطيم الطوبة: شظايا ثم «المبلغ المدفوع» ثلاثي الأبعاد ───── */
+  _smashBrick(entry) {
+    if (!entry || entry._broken) return;
+    entry._broken = true;
+    this._hideCracks(entry);
+    const group = this.tierGroups[entry.tierId] || this.tierGroups.clay;
+    sounds.crash();
+    smashBrick(this.scene, group, entry, { low: this.quality === 'low' });
+    this._showAmount3D(entry);
+    entry._restoreTimer = setTimeout(() => this._restoreBrick(entry), RESTORE_MS);
+  }
+
+  /* ───── لوحة «المبلغ المدفوع» + طوبة مصغرة بنفس الفئة تدور ───── */
+  _showAmount3D(entry) {
+    const tier = tierById(entry.tierId, this.tiers);
+    const record = entry.record;
+    const g = new THREE.Group();
+    g.position.copy(entry.position);
+    g.position.z = 0.35;
+
+    /* طوبة مصغرة من نوع الطوبة نفسه — تدور أمام مكان الطوبة */
+    const mini = new THREE.Mesh(this.brickGeo, this.materials[entry.tierId] || this.materials.clay);
+    mini.scale.setScalar(0.5);
+    mini.position.set(0, -0.78, 0.6);
+    mini.castShadow = this.quality === 'high';
+    g.add(mini);
+
+    /* لوحة المبلغ المدفوع (تواجه الكاميرا دائمًا) */
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: amountTexture(record, tier), transparent: true, depthWrite: false
+    }));
+    sprite.scale.set(3.9, 1.95, 1);
+    sprite.position.set(0, 0.62, 1.45);
+    g.add(sprite);
+
+    /* هالة ضوئية بلون الفئة */
+    const light = new THREE.PointLight(tier.color, 7, 9, 2);
+    light.position.set(0, 0.3, 1.7);
+    g.add(light);
+
+    this.scene.add(g);
+
+    /* دخول لافت + طفو وتدور مستمران */
+    g.scale.setScalar(0.001);
+    sprite.material.opacity = 0;
+    const baseY = g.position.y;
+    const tweens = [
+      gsap.to(g.scale, { x: 1, y: 1, z: 1, duration: 0.5, ease: 'back.out(1.8)' }),
+      gsap.to(sprite.material, { opacity: 1, duration: 0.22, delay: 0.05 }),
+      gsap.to(g.position, { y: baseY + 0.22, duration: 1.5, yoyo: true, repeat: -1, ease: 'sine.inOut' }),
+      gsap.to(mini.rotation, { y: Math.PI * 2, duration: 3.4, repeat: -1, ease: 'none' }),
+      gsap.to(light, { intensity: 11, duration: 0.9, yoyo: true, repeat: -1, ease: 'sine.inOut' })
+    ];
+    sounds.chime();
+
+    const amountObj = { group: g, sprite, mini, light, tweens };
+    entry._amount = amountObj;
+    /* اختفاء لطيف قبيل عودة الطوبة مباشرة */
+    entry._amountFade = setTimeout(() => {
+      if (entry._amount !== amountObj || this._disposed) return;
+      gsap.to(g.scale, { x: 0.001, y: 0.001, z: 0.001, duration: 0.4, ease: 'back.in(1.6)' });
+      gsap.to(sprite.material, { opacity: 0, duration: 0.35 });
+    }, Math.max(400, RESTORE_MS - 620));
+  }
+
+  _removeAmount(entry) {
+    const a = entry._amount;
+    if (!a) return;
+    if (entry._amountFade) { clearTimeout(entry._amountFade); entry._amountFade = null; }
+    (a.tweens || []).forEach(t => t && t.kill());
+    this.scene.remove(a.group);
+    if (a.sprite) a.sprite.material.dispose(); /* نسيج اللوحة مُخزَّن مشتركًا */
+    entry._amount = null;
+  }
+
+  /* ───── عودة الطوبة بعد 5 ثوانٍ وتصفير حالة الكسر ───── */
+  _restoreBrick(entry) {
+    entry._restoreTimer = null;
+    if (this._disposed || !this.bricks.has(entry.record.id)) return;
+    entry._broken = false;
+    entry._breaking = false;
+    if (entry._hits) entry._hits.count = 0;
+    this._removeAmount(entry);
+    const group = this.tierGroups[entry.tierId] || this.tierGroups.clay;
+    rebuildBrick(this.scene, group, entry, { low: this.quality === 'low' });
+    if (entry.namePlane) {
+      entry.namePlane.visible = true;
+      entry.namePlane.material.opacity = 0;
+      gsap.to(entry.namePlane.material, { opacity: 1, duration: 0.5 });
+    }
+    dustBurst(this.scene, entry.position.clone().add(new THREE.Vector3(0, 0, B.d / 2)), {
+      low: this.quality === 'low', count: this.quality === 'low' ? 10 : 22
+    });
+    lightFlash(this.scene, entry.position, 0x9edcff);
+    sounds.thud();
+  }
+
+  /* ───── شقوق متصاعدة على واجهة الطوبة ───── */
+  _showCracks(entry, level) {
+    if (!entry || entry._broken) return;
+    if (entry._crackVariant == null) entry._crackVariant = Math.floor(Math.random() * 3);
+    if (!entry.crackPlane) {
+      entry.crackPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(B.w * 0.98, B.h * 0.98),
+        new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0 })
+      );
+      entry.crackPlane.position.set(entry.position.x, entry.position.y, B.d / 2 + 0.05);
+      entry.crackPlane.renderOrder = 3;
+      this.wallGroup.add(entry.crackPlane);
+    }
+    entry.crackPlane.material.map = crackTexture(level, entry._crackVariant);
+    entry.crackPlane.material.needsUpdate = true;
+    entry.crackPlane.visible = true;
+    gsap.fromTo(entry.crackPlane.material, { opacity: 0 }, { opacity: level === 1 ? 0.9 : 1, duration: 0.2 });
+  }
+
+  _hideCracks(entry) {
+    if (!entry || !entry.crackPlane) return;
+    this.wallGroup.remove(entry.crackPlane);
+    entry.crackPlane.geometry.dispose();
+    entry.crackPlane.material.dispose(); /* النسيج مشترك مخزَّن — لا يُتلف */
+    entry.crackPlane = null;
+  }
+
+  /* ───── تنظيف حالة طوبة (إعادة تحميل الحائط) ───── */
+  _cleanupEntry(entry) {
+    if (entry._shakeTween) { entry._shakeTween.kill(); entry._shakeTween = null; }
+    if (entry._restoreTimer) { clearTimeout(entry._restoreTimer); entry._restoreTimer = null; }
+    this._removeAmount(entry);
+    this._hideCracks(entry);
+    entry._broken = false;
+    entry._breaking = false;
+    entry._hits = null;
+  }
+
+  _stopAutoHammer() {
+    if (this._autoHammer) { clearInterval(this._autoHammer); this._autoHammer = null; }
+  }
+
+  /* ───── استهداف المطرقة: مؤشر فوق طوبة أو اقتراب الكاميرا ───── */
+  _updateHammerTarget(now) {
+    if (!this.hammer || this._disposed) return;
+    if (now - this._hammerT < 130) return;
+    this._hammerT = now;
+    const radius = this.controls.spherical.radius;
+
+    let entry = null;
+    /* 1) الطوبة تحت مؤشر الفأرة (على مسافة معقولة) */
+    if (this._hoverBrickId && radius < 26) {
+      const e = this.bricks.get(this._hoverBrickId);
+      if (e && !e._broken && !e._breaking) entry = e;
+    }
+    /* 2) اقتراب الكاميرا: المطرقة فوق الطوبة عند مركز الشاشة (يعمل مع اللمس) */
+    if (!entry && radius < CLOSE_RADIUS) {
+      const rect = this.renderer.domElement.getBoundingClientRect();
+      const center = { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 };
+      const hit = this._pick(center, this._rayTmp, this._ndcTmp);
+      if (hit) {
+        const e = this.bricks.get(hit.recordId);
+        if (e && !e._broken && !e._breaking) entry = e;
+      }
+    }
+
+    if (entry && this.hammer.target !== entry) {
+      this.hammer.setTarget(entry);
+    } else if (!entry && this.hammer.target) {
+      const t = this.hammer.target;
+      const gone = t._broken || t._breaking || !this.bricks.has(t.record.id);
+      if (gone || radius >= CLOSE_RADIUS) this.hammer.clearTarget();
+    }
+  }
+
   /* ───── التقاط الطوبة والضغط عليها ┐ */
   _bindPick() {
     const dom = this.renderer.domElement;
@@ -864,28 +1436,34 @@ export class Wall3D {
 
     dom.addEventListener('pointerdown', e => {
       downX = e.clientX; downY = e.clientY; pressed = true; longPressed = false;
+      this._hoverBrickId = null;
       const downHit = this._pick(e, ray, ndc);
       downEntry = downHit ? this.bricks.get(downHit.recordId) : null;
       latestPointer = null;
       if (hoverFrame) cancelAnimationFrame(hoverFrame);
       hoverFrame = 0;
       if (this._brickTooltip) this._brickTooltip.style.display = 'none';
-      if (!downEntry) return;
+      if (!downEntry || downEntry._broken) return;
+      /* الاستمرار بالضغط على الطوبة → طرق تلقائي متتالٍ بالمطرقة */
       holdTimer = setTimeout(() => {
-        if (!pressed || !downEntry) return;
+        if (!pressed || !downEntry || downEntry._broken) { clearHold(); return; }
         longPressed = true;
-        const entry = downEntry;
-        const screen = this.worldToScreen(entry.position);
-        this.onHold(entry.record, screen);
-        sounds.pop();
-        const group = this.tierGroups[entry.tierId];
-        breakBrick(this.scene, group, entry, 5);
-      }, 520);
+        this._hitBrick(downEntry, this.worldToScreen(downEntry.position));
+        this._stopAutoHammer();
+        this._autoHammer = setInterval(() => {
+          if (!pressed || !downEntry || this._disposed || downEntry._broken) {
+            this._stopAutoHammer();
+            return;
+          }
+          this._hitBrick(downEntry, this.worldToScreen(downEntry.position));
+        }, HAMMER_PERIOD);
+      }, HOLD_MS);
     }, { passive: true });
 
     dom.addEventListener('pointerup', e => {
       pressed = false;
       clearHold();
+      this._stopAutoHammer();
       const moved = Math.hypot(e.clientX - downX, e.clientY - downY) > 7;
       if (moved || longPressed) { downEntry = null; return; }
       const hit = this._pick(e, ray, ndc);
@@ -893,21 +1471,23 @@ export class Wall3D {
       const entry = this.bricks.get(hit.recordId);
       downEntry = null;
       if (!entry) return;
-      const screen = this.worldToScreen(entry.position);
-      this.onPick(entry.record, screen);
-      sounds.pop();
-      /* نقرة قصيرة: بروز خفيف للطوبة مع العودة */
-      const group = this.tierGroups[entry.tierId];
-      popBrick(
-        m => group.getMatrixAt(entry.groupIdx, m),
-        m => group.setMatrixAt(entry.groupIdx, m),
-        entry.matrix,
-        0.42,
-        0.15
-      );
+      /* ضغطة واحدة → بيانات المتبرع، والاستمرار في الضغط → الكسر بالمطرقة */
+      this._hitBrick(entry, this.worldToScreen(entry.position));
     }, { passive: true });
 
-    dom.addEventListener('pointercancel', () => { pressed = false; clearHold(); downEntry = null; }, { passive: true });
+    dom.addEventListener('pointercancel', () => {
+      pressed = false; clearHold(); this._stopAutoHammer(); downEntry = null;
+    }, { passive: true });
+
+    /* إيقاف الطرق التلقائي فور بدء السحب (تدوير الكاميرا) */
+    dom.addEventListener('pointermove', e => {
+      if (!pressed) return;
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) > 9) {
+        clearHold();
+        this._stopAutoHammer();
+        longPressed = true; /* سحب: لا تُحسب نقرة عند الإفلات */
+      }
+    }, { passive: true });
 
     const tip = document.createElement('div');
     tip.className = 'cw-brick-tooltip';
@@ -925,7 +1505,10 @@ export class Wall3D {
     this._brickTooltip = tip;
 
     const hideTip = () => {
-      lastHoverId = null; tip.style.display = 'none'; dom.style.cursor = 'grab';
+      lastHoverId = null;
+      this._hoverBrickId = null;
+      tip.style.display = 'none';
+      dom.style.cursor = 'grab';
     };
     dom.addEventListener('pointerleave', hideTip, { passive: true });
     dom.addEventListener('pointermove', e => {
@@ -942,11 +1525,12 @@ export class Wall3D {
         const hit = this._pick(p, ray, ndc);
         if (!hit) { hideTip(); return; }
         const entry = this.bricks.get(hit.recordId);
-        if (!entry) { hideTip(); return; }
+        if (!entry || entry._broken) { hideTip(); return; }
         dom.style.cursor = hammerCursor;
+        this._hoverBrickId = hit.recordId;
         if (lastHoverId !== hit.recordId) {
           const tier = tierById(entry.tierId, this.tiers);
-          tip.textContent = 'نوع الطوبة: ' + tier.label + ' • اضغط مطولًا للكسر';
+          tip.textContent = 'نوع الطوبة: ' + tier.label + ' • اضغط مرة لبيانات المتبرع • استمر في الضغط لكسرها بالمطرقة';
           lastHoverId = hit.recordId;
         }
         tip.style.left = Math.min(p.clientX, window.innerWidth - 230) + 'px';
@@ -1007,7 +1591,11 @@ export class Wall3D {
     this._raf = requestAnimationFrame(() => this._loop());
     if (!this._visible || document.hidden) return;
 
-    this.controls.update();
+    const now = performance.now();
+    const frameDt = Math.min((now - (this._lastT || now)) / 1000, 0.05);
+    this._lastT = now;
+    this.controls.update(frameDt);
+    this._updateHammerTarget(now);
     this.renderer.render(this.scene, this.camera);
 
     /* مراقبة الأداء: هبوط الإطارات → وضع خفيف تلقائي */
@@ -1035,9 +1623,12 @@ export class Wall3D {
 
   dispose() {
     this._disposed = true;
+    this._stopAutoHammer();
     cancelAnimationFrame(this._raf);
     this._ro && this._ro.disconnect();
     this._io && this._io.disconnect();
+    this.hammer && this.hammer.dispose();
+    if (this._brickTooltip) { this._brickTooltip.remove(); this._brickTooltip = null; }
     this.renderer && this.renderer.dispose();
     this.renderer && this.renderer.domElement.remove();
   }

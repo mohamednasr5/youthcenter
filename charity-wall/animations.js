@@ -3,6 +3,10 @@
    - dustBurst: مؤثر غبار عند استقرار الطوبة
    - lightFlash: وميض ضوء عند الاستقرار
    - popBrick: فرقعة الطوبة للأمام عند الضغط وعودتها
+   - brickShake: اهتزاز الطوبة عند ضربة المطرقة
+   - debrisBurst: شظايا صغيرة تتناثر مع كل ضربة
+   - smashBrick: تحطيم الطوبة بشظايا تسقط بجاذبية (إعادة البناء تُجدولها wall-3d)
+   - rebuildBrick: عودة الطوبة بعد الكسر بمرونة (elastic)
    - طيران الكاميرا نحو طوبة متبرع */
 
 import * as THREE from './vendor/three.module.js';
@@ -235,6 +239,200 @@ export function breakBrick(scene, group, entry, holdSec = 5) {
     scene.add(glow);
     gsap.to(glow, { intensity: 0, duration: .5, onComplete: () => scene.remove(glow) });
   }, Math.max(1, holdSec) * 1000);
+}
+
+/* ═══ اهتزاز الطوبة عند ضربة المطرقة ═══
+   intensity: شدة الاهتزاز (تزداد مع تقدم الكسر) */
+export function brickShake(group, entry, intensity = 1) {
+  if (!group || !entry || entry._breaking || entry._broken) return;
+  if (entry._shakeTween) entry._shakeTween.kill();
+  const base = entry.matrix;
+  const pos = new THREE.Vector3(), quat = new THREE.Quaternion(), scl = new THREE.Vector3();
+  base.decompose(pos, quat, scl);
+  const dummy = new THREE.Object3D();
+  const state = { k: 0 };
+  entry._shakeTween = gsap.to(state, {
+    k: 1, duration: 0.42, ease: 'power2.out',
+    onUpdate() {
+      const decay = 1 - state.k;
+      dummy.position.copy(pos);
+      dummy.position.x += Math.sin(state.k * 46) * 0.03 * intensity * decay;
+      dummy.position.z += Math.cos(state.k * 39) * 0.07 * intensity * decay;
+      dummy.quaternion.copy(quat);
+      dummy.rotateZ(Math.sin(state.k * 42) * 0.05 * intensity * decay);
+      dummy.scale.copy(scl);
+      dummy.updateMatrix();
+      group.setMatrixAt(entry.groupIdx, dummy.matrix);
+      group.mesh.instanceMatrix.needsUpdate = true;
+    },
+    onComplete() {
+      if (entry._breaking || entry._broken) return; /* التحطيم أخفى الطوبة بالفعل */
+      group.setMatrixAt(entry.groupIdx, base);
+      group.mesh.instanceMatrix.needsUpdate = true;
+      entry._shakeTween = null;
+    }
+  });
+}
+
+/* ═══ شظايا صغيرة تتناثر عند كل ضربة مطرقة ═══ */
+export function debrisBurst(scene, position, color = 0xcfc3a8, opts = {}) {
+  const count = opts.count || (opts.low ? 6 : 13);
+  const mat = new THREE.MeshStandardMaterial({
+    color, roughness: 0.8, metalness: 0.25,
+    emissive: new THREE.Color(color).multiplyScalar(0.2)
+  });
+  const chips = [];
+  for (let i = 0; i < count; i++) {
+    const s = new THREE.Mesh(
+      new THREE.BoxGeometry(0.05 + Math.random() * 0.12, 0.03 + Math.random() * 0.07, 0.04 + Math.random() * 0.1),
+      mat
+    );
+    s.position.copy(position);
+    scene.add(s);
+    chips.push({
+      mesh: s,
+      v: new THREE.Vector3(
+        (Math.random() - 0.5) * 3.4,
+        1.1 + Math.random() * 2.4,
+        0.8 + Math.random() * 2.6
+      )
+    });
+  }
+  const state = { t: 0 };
+  gsap.to(state, {
+    t: 1, duration: 0.8, ease: 'none',
+    onUpdate() {
+      const dt = 1 / 60;
+      for (const c of chips) {
+        c.v.y -= 9.4 * dt;
+        c.mesh.position.addScaledVector(c.v, dt);
+        c.mesh.rotation.x += 7 * dt;
+        c.mesh.rotation.z += 5 * dt;
+        const fade = 1 - Math.max(0, (state.t - 0.6) / 0.4);
+        c.mesh.scale.setScalar(Math.max(0.001, fade));
+      }
+    },
+    onComplete() {
+      chips.forEach(c => { scene.remove(c.mesh); c.mesh.geometry.dispose(); });
+      mat.dispose();
+    }
+  });
+}
+
+/* ═══ تحطيم الطوبة: شظايا كبيرة بجاذبية وارتداد + غبار + وميض ═══
+   تُخفي الطوبة فورًا (instance scale ~ 0) — إعادة البناء مسؤولية wall-3d بعد 5 ثوانٍ */
+export function smashBrick(scene, group, entry, opts = {}) {
+  if (!scene || !group || !entry || entry._breaking) return;
+  entry._breaking = true;
+  if (entry._shakeTween) { entry._shakeTween.kill(); entry._shakeTween = null; }
+  const low = !!opts.low;
+  const base = entry.matrix;
+  const pos = new THREE.Vector3(), quat = new THREE.Quaternion(), scale = new THREE.Vector3();
+  base.decompose(pos, quat, scale);
+  const hidden = new THREE.Matrix4().compose(
+    pos, quat, new THREE.Vector3(0.0001, 0.0001, 0.0001)
+  );
+  group.setMatrixAt(entry.groupIdx, hidden);
+  group.mesh.instanceMatrix.needsUpdate = true;
+  if (entry.namePlane) entry.namePlane.visible = false;
+
+  /* شظايا بلون فئة الطوبة تسقط وتنبثق */
+  const src = group.mesh.material;
+  const color = src && src.color ? src.color.clone() : new THREE.Color(0xb8c5d1);
+  const mat = new THREE.MeshStandardMaterial({
+    color, metalness: 0.82, roughness: 0.32,
+    emissive: color.clone().multiplyScalar(0.22), side: THREE.DoubleSide
+  });
+  const N = low ? 10 : 18;
+  const shards = [];
+  for (let i = 0; i < N; i++) {
+    const s = new THREE.Mesh(
+      new THREE.BoxGeometry(0.16 + Math.random() * 0.42, 0.06 + Math.random() * 0.24, 0.1 + Math.random() * 0.22),
+      mat
+    );
+    s.position.copy(pos).add(new THREE.Vector3(
+      (Math.random() - 0.5) * 1.6,
+      (Math.random() - 0.5) * 0.72,
+      (Math.random() - 0.5) * 0.5 + 0.3
+    ));
+    s.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+    s.castShadow = !low;
+    scene.add(s);
+    shards.push({
+      mesh: s,
+      v: new THREE.Vector3(
+        (Math.random() - 0.5) * 5.4,
+        1.7 + Math.random() * 3.8,
+        1.1 + Math.random() * 3.6
+      ),
+      rv: new THREE.Vector3((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12)
+    });
+  }
+
+  const state = { t: 0 };
+  gsap.to(state, {
+    t: 1, duration: 1.5, ease: 'none',
+    onUpdate() {
+      const dt = 1 / 60;
+      for (const sh of shards) {
+        sh.v.y -= 9.6 * dt;
+        sh.mesh.position.addScaledVector(sh.v, dt);
+        sh.mesh.rotation.x += sh.rv.x * dt;
+        sh.mesh.rotation.y += sh.rv.y * dt;
+        /* ارتداد بسيط على القاعدة الخرسانية */
+        if (sh.mesh.position.y < 0.12 && sh.v.y < 0) {
+          sh.mesh.position.y = 0.12;
+          sh.v.y *= -0.32; sh.v.x *= 0.7; sh.v.z *= 0.72;
+          sh.rv.multiplyScalar(0.55);
+        }
+        const fade = 1 - Math.max(0, (state.t - 0.8) / 0.2);
+        sh.mesh.scale.setScalar(Math.max(0.001, fade));
+      }
+    },
+    onComplete() {
+      shards.forEach(sh => { scene.remove(sh.mesh); sh.mesh.geometry.dispose(); });
+      mat.dispose();
+      entry._breaking = false;
+    }
+  });
+
+  /* غبار ووميض قوي عند التحطيم */
+  dustBurst(scene, pos.clone().add(new THREE.Vector3(0, 0, 1)), { low, count: low ? 16 : 40 });
+  lightFlash(scene, pos, 0xffe2b0);
+  const flash = new THREE.PointLight(0xcceaff, 9, 8, 2);
+  flash.position.copy(pos).add(new THREE.Vector3(0, 0.2, 1.1));
+  scene.add(flash);
+  gsap.to(flash, { intensity: 0, duration: 0.6, onComplete: () => scene.remove(flash) });
+}
+
+/* ═══ إعادة بناء الطوبة بعد الكسر (scale 0 → 1 بمرونة) ═══ */
+export function rebuildBrick(scene, group, entry, opts = {}) {
+  if (!group || !entry) return;
+  const base = entry.matrix;
+  const pos = new THREE.Vector3(), quat = new THREE.Quaternion(), scl = new THREE.Vector3();
+  base.decompose(pos, quat, scl);
+  const dummy = new THREE.Object3D();
+  const state = { s: 0.001 };
+  const apply = () => {
+    dummy.position.copy(pos);
+    dummy.quaternion.copy(quat);
+    dummy.scale.setScalar(Math.max(0.001, state.s));
+    dummy.updateMatrix();
+    group.setMatrixAt(entry.groupIdx, dummy.matrix);
+    group.mesh.instanceMatrix.needsUpdate = true;
+  };
+  apply();
+  return new Promise(resolve => {
+    gsap.to(state, {
+      s: 1, duration: opts.fast ? 0.55 : 0.9, ease: 'elastic.out(1, 0.5)',
+      onUpdate: apply,
+      onComplete() {
+        group.setMatrixAt(entry.groupIdx, base);
+        group.mesh.instanceMatrix.needsUpdate = true;
+        resolve();
+      }
+    });
+  });
 }
 
 /* ═══ تحريك الكاميرا والهدف بسلاسة نحو طوبة ═══ */

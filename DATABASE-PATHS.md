@@ -9,6 +9,7 @@
 | `players, coaches, trophies, schedules, news, upcomingMatches, matchResults, registrationRequests` | أكاديمية كرة القدم (مسارات الجذر كما هي حفاظاً على البيانات) | عام (عدا registrationRequests) | `ycAdmin` / `ycFootball` |
 | `academy_meta/state` | أكاديمية كرة القدم | عام (عدا adminPasswordHash) | `ycFootball` |
 | `karate_academy/{news,players,coaches,belts,achievements,tournaments,schedules,settings}` | الكاراتيه | عام | `ycAdmin` / `ycKarate` |
+| `kungfu_academy/{news,players,coaches,achievements,schedules,settings}` | الكونغ فو | عام | `ycAdmin` / `ycKungfu` |
 | `pitch_booking/{matchResults/<date>/<id>, expenses, payments, settings, auditLogs, telegramSubscribers, telegramResultSessions, adminUsers}` | الملعب الخماسي | النتائج والإعدادات: عام؛ الباقي للمسؤول | `ycAdmin` / `ycPitch` |
 | `pitch_booking/bookings/<date>/<id>` | الملعب الخماسي (السجل الكامل: اسم العميل وهاتفه وملاحظاته ومدفوعاته) | مسؤول فقط | `ycAdmin` / `ycPitch` (إنشاء حجز `pending` مسموح للزائر) |
 | `pitch_booking/availability/<date>/<id>` | الملعب الخماسي (نسخة عامة مصغّرة: الموعد والحالة والفرق فقط — بلا هاتف/ملاحظات/مدفوعات) | عام | `ycAdmin` / `ycPitch` (إنشاء سجل `pending` مسموح للزائر) |

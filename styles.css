@@ -248,7 +248,7 @@ img{max-width:100%;display:block}
 .bcard .info .pos{font-size:.74rem;color:var(--gold-2);font-weight:700}
 
 /* ACADEMIES */
-.academy-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.academy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px;margin-bottom:18px}
 @media(max-width:760px){.academy-grid{grid-template-columns:1fr}}
 .acard{position:relative;border-radius:var(--r-lg);overflow:hidden;min-height:300px;display:flex;align-items:flex-end;border:1px solid var(--border);transition:transform .4s,box-shadow .4s;transform-style:preserve-3d}
 .acard:hover{transform:translateY(-6px);box-shadow:0 24px 60px rgba(0,0,0,.6)}
@@ -257,13 +257,17 @@ img{max-width:100%;display:block}
 .acard.football .bg::after{content:"⚽";position:absolute;font-size:14rem;opacity:.08;bottom:-3rem;left:-1rem;transform:rotate(-15deg)}
 .acard.karate .bg{background:linear-gradient(135deg,#1a0a14,#2d0a17 60%,#0a0408)}
 .acard.karate .bg::after{content:"🥋";position:absolute;font-size:14rem;opacity:.08;bottom:-3rem;left:-1rem;transform:rotate(-10deg)}
+.acard.kungfu .bg{background:linear-gradient(135deg,#1c0909,#3b0d0d 55%,#12060a)}
+.acard.kungfu .bg::after{content:"🐉";position:absolute;font-size:14rem;opacity:.09;bottom:-3rem;left:-1rem;transform:rotate(-8deg)}
 .acard .bg-orb{position:absolute;width:240px;height:240px;border-radius:50%;filter:blur(60px);top:-80px;left:-60px;opacity:.5}
 .acard.football .bg-orb{background:#34d399}
 .acard.karate .bg-orb{background:#f43f5e}
+.acard.kungfu .bg-orb{background:#dc2626}
 .acard .content{position:relative;z-index:2;padding:24px;width:100%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.6))}
 .acard .tag{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:900;letter-spacing:1px;padding:5px 11px;border-radius:var(--r-full);margin-bottom:10px}
 .acard.football .tag{background:rgba(52,211,153,.2);color:#6ee7b7;border:1px solid rgba(52,211,153,.4)}
 .acard.karate .tag{background:rgba(244,63,94,.2);color:#fda4af;border:1px solid rgba(244,63,94,.4)}
+.acard.kungfu .tag{background:rgba(220,38,38,.22);color:#fca5a5;border:1px solid rgba(220,38,38,.45)}
 .acard h3{font-size:1.5rem;font-weight:900;color:#fff;margin-bottom:6px}
 .acard p{font-size:.88rem;color:var(--txt-2);margin-bottom:14px}
 .acard .pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
@@ -600,3 +604,21 @@ img{max-width:100%;display:block}
 .messenger-contact-btn{background:linear-gradient(115deg,#0875e1,#0866c6 55%,#174ea6);border-color:rgba(96,165,250,.42);box-shadow:0 8px 22px rgba(8,102,198,.22),inset 0 1px 0 rgba(255,255,255,.16)}
 .messenger-contact-btn:hover{box-shadow:0 13px 28px rgba(8,102,198,.34),0 0 18px rgba(59,130,246,.2)}
 @media(prefers-reduced-motion:reduce){.footer-contact-btn{transition:none}}
+
+/* ==== تحسينات التمرير والأنيميشن (طبقة 2026-11) ==== */
+/* الروابط الداخلية تهبط تحت الهيدر الثابت بدل اختفاء العنوان خلفه */
+section[id],main [id]{scroll-margin-top:96px}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* بطاقة الكونغ فو: لمعة حمراء خفيفة عند المرور عليها */
+.acard.kungfu{border-color:rgba(220,38,38,.35)}
+.acard.kungfu:hover{box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 34px rgba(220,38,38,.22)}
+
+/* أزرار الانضمام: نبض خفيف لجذب العين عبر خاصية translate المستقلة
+   حتى لا يتعارض مع transform الخاص بتأثير المرور hover (يُلغى لمن يفضل تقليل الحركة) */
+@keyframes btnBreath{0%,100%{translate:0 0}50%{translate:0 -3px}}
+.hero-cta .btn{animation:btnBreath 3.6s ease-in-out infinite}
+.hero-cta .btn:nth-child(2){animation-delay:.4s}
+.hero-cta .btn:nth-child(3){animation-delay:.8s}
+@media(prefers-reduced-motion:reduce){.hero-cta .btn{animation:none}}

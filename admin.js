@@ -166,7 +166,7 @@
     activities: { title: "النشاطات القادمة", sub: "جدول الفعاليات" },
     finance: { title: "الإحصائيات المالية", sub: "إيرادات ومصروفات الشهر" },
     charity: { title: "حائط الخير والتبرعات", sub: "تسجيل التبرعات النقدية والمساهمات العينية وإدارة المتبرعين" },
-    academies: { title: "الأكاديميات والحجز", sub: "كرة القدم، الكاراتيه، الملعب" },
+    academies: { title: "الأكاديميات والحجز", sub: "كرة القدم، الكاراتيه، الكونغ فو، الملعب" },
     "karate-schedule": { title: "مواعيد أكاديمية الكاراتيه", sub: "إدارة أيام التدريب والتواريخ والساعات" },
     "football-schedule": { title: "مواعيد أكاديمية كرة القدم", sub: "إدارة أيام التدريب والتواريخ والساعات والفئات" },
     "football-schedule": { title: "مواعيد أكاديمية كرة القدم", sub: "إدارة أيام التدريب والتواريخ والساعات والفئات" },
@@ -385,7 +385,7 @@
   /* ---------- RENDER: ACADEMIES ---------- */
   function renderAcademies() {
     const A = state.academies;
-    const f = A.football, k = A.karate, p = A.pitch;
+    const f = A.football, k = A.karate, kf = A.kungfu || {}, p = A.pitch;
     $("#academiesForm").innerHTML = `
       <div class="admin-card"><h3>⚽ أكاديمية كرة القدم</h3>
         ${field("الرابط", "academies.football.href", f.href)}
@@ -400,6 +400,13 @@
         ${field("الوصف", "academies.karate.desc", k.desc, { type: "textarea" })}
         ${field("المميزات (بفاصلة)", "academies.karate.pills", (k.pills || []).join("، "))}
         ${field("نص الزر", "academies.karate.cta", k.cta)}
+      </div>
+      <div class="admin-card"><h3>🐉 أكاديمية الكونغ فو</h3>
+        ${field("الرابط", "academies.kungfu.href", kf.href)}
+        <div class="grid-2">${field("الوسم", "academies.kungfu.tag", kf.tag)}${field("العنوان", "academies.kungfu.title", kf.title)}</div>
+        ${field("الوصف", "academies.kungfu.desc", kf.desc, { type: "textarea" })}
+        ${field("المميزات (بفاصلة)", "academies.kungfu.pills", (kf.pills || []).join("، "))}
+        ${field("نص الزر", "academies.kungfu.cta", kf.cta)}
       </div>
       <div class="admin-card"><h3>🏟️ حجز الملعب الخماسي</h3>
         ${field("الرابط", "academies.pitch.href", p.href)}

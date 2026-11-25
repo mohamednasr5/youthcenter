@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>إدارة أكاديمية الكونغ فو — مركز شباب الأحمدية</title>
+<style>
+:root{--bg:#0b0507;--card:#170d0f;--line:rgba(255,255,255,.1);--red:#dc2626;--gold:#e8a020;--txt:#f6f1ee;--mut:#b8a79b}
+*{box-sizing:border-box;margin:0}body{font-family:'Cairo','Tajawal',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;padding:16px}
+.wrap{max-width:980px;margin:0 auto}h1{font-size:1.3rem;margin-bottom:4px}.sub{color:var(--mut);font-size:.85rem;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+input,select,textarea{width:100%;background:#0e0709;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;margin-top:4px}
+label{display:block;font-size:.82rem;color:var(--mut);margin-bottom:10px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 12px}
+button{font:inherit;font-weight:800;border:0;border-radius:10px;padding:9px 16px;cursor:pointer;background:var(--red);color:#fff}
+button.g{background:transparent;border:1px solid var(--line);color:var(--txt)}button.d{background:#3a1216;color:#fda4af}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}.tabs button{background:transparent;border:1px solid var(--line);color:var(--mut)}.tabs button.on{background:var(--gold);color:#1a1200;border-color:var(--gold)}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+.item b{display:block}.item small{color:var(--mut)}.msg{min-height:22px;font-size:.85rem;margin-top:8px}.ok{color:#34d399}.er{color:#fda4af}
+#app{display:none}
+.back{display:inline-block;margin-bottom:12px;color:var(--mut);text-decoration:none;font-size:.85rem;font-weight:700}
+.back:hover{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← العودة لصفحة الأكاديمية</a>
+  <h1>🐉 إدارة أكاديمية الكونغ فو</h1>
+  <div class="sub">تُحفظ البيانات في قاعدة Firebase الموحدة تحت <code>kungfu_academy/</code> وتظهر مباشرة في صفحة الأكاديمية لحظياً.</div>
+
+  <div class="card" id="login">
+    <label>البريد الإلكتروني (حسابات Firebase الجديدة)<input type="email" id="em" autocomplete="username"></label>
+    <label>كلمة المرور<input type="password" id="pw" autocomplete="current-password"></label>
+    <button id="go">دخول</button>
+    <div style="display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--mut);font-size:.75rem;font-weight:700"><span style="flex:1;height:1px;background:var(--line)"></span>أو<span style="flex:1;height:1px;background:var(--line)"></span></div>
+    <button id="ggo" type="button" class="g" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:8px">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.87c2.26-2.09 3.57-5.16 3.57-8.81z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3c-1.07.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.29v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28v-3.1H1.29a12 12 0 0 0 0 10.76l3.98-3.1z"/><path fill="#EA4335" d="M12 4.77c1.76 0 3.35.61 4.6 1.8l3.45-3.45A11.98 11.98 0 0 0 12 0 12 12 0 0 0 1.29 6.62l3.98 3.1C6.22 6.88 8.87 4.77 12 4.77z"/></svg>
+      دخول بحساب Google
+    </button>
+    <div class="msg er" id="loginMsg"></div>
+  </div>
+
+  <div id="app">
+    <div class="tabs" id="tabs"></div>
+    <div class="card"><h3 id="formTitle" style="margin-bottom:10px"></h3><form id="f"></form><div class="msg" id="msg"></div></div>
+    <div class="card"><h3 style="margin-bottom:10px">السجلات الحالية <small id="cnt" style="color:var(--mut)"></small></h3><div id="list"></div></div>
+  </div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="../yc-auth-config.js"></script>
+<script src="../data.js"></script>
+<script>
+(function(){
+  "use strict";
+  const $=s=>document.querySelector(s);
+  const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const BELTS=["أبيض","أصفر","ذهبي","برتقالي","أخضر","أزرق","بنفسجي","بني","أحمر","أسود"];
+  const COLS={
+    news:{label:"الأخبار",title:"title",sub:"date",fields:[["title","العنوان","text",1],["date","التاريخ","date"],["text","النص","textarea"],["image","رابط صورة (اختياري)","url"]]},
+    players:{label:"اللاعبون",title:"name",sub:"belt",fields:[["name","الاسم","text",1],["belt","الحزام","select",0,BELTS],["age","السن","number"],["photo","رابط الصورة (اختياري)","url"],["notes","ملاحظات","textarea"]]},
+    coaches:{label:"المدربون",title:"name",sub:"rank",fields:[["name","الاسم","text",1],["rank","الدرجة (دان)","text"],["bio","نبذة","textarea"],["photo","رابط الصورة (اختياري)","url"]]},
+    achievements:{label:"الإنجازات",title:"title",sub:"athlete",fields:[["title","الإنجاز / البطولة","text",1],["athlete","اللاعب","text"],["date","التاريخ","date"],["details","التفاصيل","textarea"]]},
+    schedules:{label:"مواعيد التدريب",title:"day",sub:"fromTime",fields:[["day","اليوم","select",1,["السبت","الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"]],["date","التاريخ (اختياري)","date"],["fromTime","من الساعة","time",1],["toTime","إلى الساعة","time",1],["location","المكان","text"],["gender","الفئة","text"],["age","السن المطلوب","text"],["active","الحالة","select",0,["نشط","موقوف"]]]},
+    settings:{label:"إعدادات الأكاديمية",single:true,fields:[["tagline","الشعار النصي (يظهر في الواجهة)","text"],["phone","هاتف التواصل","text"],["registrationOpen","التسجيل مفتوح؟","select",0,["نعم","لا"]]]}
+  };
+  let db,cur="news",editing=null,ref=null,cb=null;
+  const SKEY="kungfu_admin_ok";
+
+  function fieldHtml([k,l,t,req,opts],v){
+    v=v==null?"":v;
+    if(t==="textarea")return `<label>${l}<textarea name="${k}" rows="3">${esc(v)}</textarea></label>`;
+    if(t==="select")return `<label>${l}<select name="${k}">${opts.map(o=>`<option ${o===v?"selected":""}>${esc(o)}</option>`).join("")}</select></label>`;
+    return `<label>${l}${req?" *":""}<input name="${k}" type="${t}" value="${esc(v)}" ${req?"required":""}></label>`;
+  }
+  function renderForm(rec){
+    const c=COLS[cur];
+    if(cur==="schedules"&&rec)rec=Object.assign({},rec,{active:rec.active===false?"موقوف":"نشط"});
+    $("#formTitle").textContent=(editing?"تعديل — ":c.single?"":"إضافة — ")+c.label;
+    $("#f").innerHTML=`<div class="row">${c.fields.map(f=>fieldHtml(f,rec&&rec[f[0]])).join("")}</div><button>${editing?"حفظ التعديل":"حفظ"}</button> ${editing?'<button type="button" class="g" id="cancel">إلغاء</button>':""}`;
+    const cn=$("#cancel"); if(cn)cn.onclick=()=>{editing=null;renderForm()};
+  }
+  function say(t,ok){const m=$("#msg");m.textContent=t;m.className="msg "+(ok?"ok":"er")}
+  function listen(){
+    if(ref&&cb)ref.off("value",cb);
+    const c=COLS[cur];
+    ref=db.ref("kungfu_academy/"+cur);
+    cb=snap=>{
+      const v=snap.val()||{};
+      if(c.single){ renderForm(v); $("#list").innerHTML=""; $("#cnt").textContent=""; return; }
+      const rows=Object.entries(v).map(([id,x])=>({id,...x})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+      $("#cnt").textContent="("+rows.length+")";
+      $("#list").innerHTML=rows.length?rows.map(r=>`<div class="item"><div><b>${esc(r[c.title])}</b><small>${esc(r[c.sub]||"")}</small></div><div><button class="g" data-e="${esc(r.id)}">تعديل</button> <button class="d" data-d="${esc(r.id)}">حذف</button></div></div>`).join(""):'<small style="color:var(--mut)">لا توجد سجلات بعد — أضف أول سجل من النموذج أعلاه.</small>';
+      $("#list").querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{editing=b.dataset.e;renderForm(v[editing]);window.scrollTo({top:0,behavior:"smooth"})});
+      $("#list").querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{ if(!confirm("حذف هذا السجل؟"))return; try{await db.ref("kungfu_academy/"+cur+"/"+b.dataset.d).remove();say("تم الحذف",1)}catch(e){say("تعذر الحذف: "+e.message)} });
+    };
+    ref.on("value",cb,e=>say("تعذر قراءة البيانات: "+e.message));
+  }
+  function tabs(){
+    $("#tabs").innerHTML=Object.entries(COLS).map(([k,c])=>`<button class="${k===cur?"on":""}" data-k="${k}">${c.label}</button>`).join("");
+    $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{cur=b.dataset.k;editing=null;tabs();renderForm();listen()});
+  }
+  $("#f").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const c=COLS[cur],fd=new FormData(e.target),item={};
+    c.fields.forEach(([k,,t])=>{let v=String(fd.get(k)||"").trim(); item[k]=t==="number"?(v===""?"":Number(v)):v;});
+    if(cur==="schedules"){ item.active=(item.active!=="موقوف"); if(!item.location)item.location="مركز شباب الأحمدية"; if(!item.gender)item.gender="بنين وبنات"; if(!item.age)item.age="من 5 سنوات فأكثر"; }
+    try{
+      if(c.single){ item.updatedAt=Date.now(); await db.ref("kungfu_academy/settings").update(item); }
+      else{
+        const r=editing?db.ref("kungfu_academy/"+cur+"/"+editing):db.ref("kungfu_academy/"+cur).push();
+        if(editing) item.updatedAt=Date.now(); else { item.createdAt=Date.now(); }
+        await (editing?r.update(item):r.set(item));
+        editing=null; renderForm();
+      }
+      say("تم الحفظ في قاعدة البيانات الموحدة — سيظهر التحديث في صفحة الأكاديمية فوراً",1);
+    }catch(err){say("فشل الحفظ (راجع قواعد الأمان): "+err.message)}
+  });
+  async function open(){ db=SiteData.db(); $("#login").style.display="none"; $("#app").style.display="block"; tabs(); renderForm(); listen(); }
+  async function login(){
+    $("#loginMsg").textContent="";
+    const strict=SiteData.requireFirebaseAuth(), email=$("#em").value.trim();
+    try{
+      if(email){ await SiteData.signIn(email,$("#pw").value,"kungfu"); open(); }
+      else if(strict){ $("#loginMsg").textContent="أدخل البريد الإلكتروني وكلمة المرور."; }
+      else if(await SiteData.verifyAdminPassword($("#pw").value)){sessionStorage.setItem(SKEY,"1");open();}
+      else $("#loginMsg").textContent="كلمة المرور غير صحيحة";
+    }catch(e){ $("#loginMsg").textContent=(e&&e.code&&/auth\//.test(e.code))?"بيانات الدخول غير صحيحة.":(e.message||"تعذر التحقق"); }
+  }
+  $("#go").onclick=login; $("#pw").onkeydown=e=>{if(e.key==="Enter")login()};
+  $("#ggo").onclick=async()=>{
+    const b=$("#ggo"); if(b.disabled)return;
+    if(typeof SiteData.signInWithGoogle!=="function"){ $("#loginMsg").textContent="الصفحة محمّلة بنسخة قديمة. اقفلها وافتحها من جديد."; return; }
+    b.disabled=true; $("#loginMsg").textContent="";
+    try{ const u=await SiteData.signInWithGoogle("kungfu"); if(u) open(); else b.disabled=false; }
+    catch(e){ $("#loginMsg").textContent=(e&&e.message)||"تعذر تسجيل الدخول عبر Google."; b.disabled=false; }
+  };
+  window.addEventListener("load",async()=>{
+    try{ const u=await SiteData.completeGoogleRedirect("kungfu"); if(u){ open(); return; } }
+    catch(e){ $("#loginMsg").textContent=(e&&e.message)||"تعذر تسجيل الدخول عبر Google."; }
+    if(await SiteData.restoreSession("kungfu")){ open(); return; }
+    if(!SiteData.requireFirebaseAuth()&&sessionStorage.getItem(SKEY)==="1") open();
+  });
+})();
+</script>
+</body>
+</html>

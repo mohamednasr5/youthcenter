@@ -46,10 +46,36 @@
     document.title = a.title + " | مركز شباب الأحمدية";
     const descMeta = document.querySelector('meta[name="description"]');
     if (descMeta) descMeta.setAttribute("content", a.excerpt || a.title);
-    const bodyHtml = (a.body || []).map(p => `<p>${esc(p)}</p>`).join("");
+    /* SEO ديناميكي: OG/Twitter/canonical + بيانات منظمة Article لكل مقال */
     const articleUrl = new URL(location.href);
     articleUrl.hash = "";
-    const shareUrl = articleUrl.href;
+    const pageUrl = articleUrl.href;
+    const setMeta = (sel, attr, val) => { const el = document.head.querySelector(sel); if (el && val) el.setAttribute(attr, val); };
+    setMeta('meta[property="og:title"]', "content", a.title + " | مركز شباب الأحمدية");
+    setMeta('meta[property="og:description"]', "content", a.excerpt || a.title);
+    setMeta('meta[property="og:url"]', "content", pageUrl);
+    setMeta('meta[name="twitter:title"]', "content", a.title + " | مركز شباب الأحمدية");
+    setMeta('meta[name="twitter:description"]', "content", a.excerpt || a.title);
+    setMeta('link[rel="canonical"]', "href", pageUrl);
+    const oldLd = document.getElementById("articleJsonLd");
+    if (oldLd) oldLd.remove();
+    const ld = document.createElement("script");
+    ld.id = "articleJsonLd";
+    ld.type = "application/ld+json";
+    ld.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": a.title,
+      "description": a.excerpt || "",
+      "inLanguage": "ar-EG",
+      "mainEntityOfPage": pageUrl,
+      "image": "https://mohamednasr5.github.io/youthcenter/assets/og-image.jpg",
+      "author": { "@type": "Organization", "name": "مركز شباب الأحمدية", "url": "https://mohamednasr5.github.io/youthcenter/" },
+      "publisher": { "@type": "Organization", "name": "مركز شباب الأحمدية", "logo": { "@type": "ImageObject", "url": "https://mohamednasr5.github.io/youthcenter/assets/logo.png" } }
+    });
+    document.head.appendChild(ld);
+    const bodyHtml = (a.body || []).map(p => `<p>${esc(p)}</p>`).join("");
+    const shareUrl = pageUrl;
     const encodedUrl = encodeURIComponent(shareUrl);
     const encodedText = encodeURIComponent(a.title + " — مركز شباب الأحمدية");
     const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=12&format=png&data=" + encodedUrl;

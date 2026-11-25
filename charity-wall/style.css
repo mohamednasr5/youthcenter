@@ -109,7 +109,10 @@ button{font-family:inherit}
   background:linear-gradient(160deg,rgba(15,24,48,.97),rgba(7,11,22,.97));
   border:1px solid var(--border-strong);border-radius:var(--r-md);box-shadow:var(--sh);
   padding:18px 18px 14px;direction:rtl;overflow:hidden}
-.cw-brick-card.show{display:block;animation:cwCardIn .3s cubic-bezier(.2,1.4,.4,1)}
+/* البطاقة شفافة للنقر: الطرق المتكرر بالمطرقة يصل للطوبة حتى لو غطّتها البطاقة،
+   وزر الإغلاق فقط يستقبل النقر */
+.cw-brick-card.show{display:block;animation:cwCardIn .3s cubic-bezier(.2,1.4,.4,1);pointer-events:none}
+.cw-brick-card.show .cw-bc-close{pointer-events:auto}
 @keyframes cwCardIn{from{opacity:0;transform:translateY(14px) scale(.92)}to{opacity:1;transform:none}}
 .cw-bc-bar{position:absolute;top:0;right:0;left:0;height:5px}
 .cw-bc-close{position:absolute;top:10px;left:10px;width:28px;height:28px;border-radius:9px;border:1px solid var(--border);

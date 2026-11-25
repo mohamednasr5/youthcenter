@@ -1,6 +1,6 @@
 /* sw.js — service worker لمركز شباب الأحمدية
    caching: app-shell precache + stale-while-revalidate للأصول + network-first للتنقل */
-const CACHE = "ahmadiah-v12";
+const CACHE = "ahmadiah-v13";
 const CORE = [
   "./", "./index.html", "./article.html", "./admin.html",
   "./styles.css", "./admin.css",
@@ -10,7 +10,10 @@ const CORE = [
   "./assets/icons/icon-192.png", "./assets/icons/icon-512.png",
   "./assets/icons/icon-192-maskable.png", "./assets/icons/icon-512-maskable.png", "./assets/icons/apple-touch-icon.png",
   "./gallery/gallery-manifest.json",
-  "./gallery/01.jpg", "./gallery/02.jpg", "./gallery/03.jpg", "./gallery/04.jpg", "./gallery/05.jpg", "./gallery/06.jpg"
+  "./gallery/01.jpg", "./gallery/02.jpg", "./gallery/03.jpg", "./gallery/04.jpg", "./gallery/05.jpg", "./gallery/06.jpg",
+  "./kungfu-academy/index.html", "./kungfu-academy/assets/css/kungfu.css", "./kungfu-academy/assets/js/kungfu.js", "./kungfu-academy/assets/js/kungfu-live.js", "./kungfu-academy/assets/images/logo.png",
+  "./karate-academy/index.html", "./karate-academy/assets/css/karate.css", "./karate-academy/assets/js/karate.js", "./karate-academy/assets/js/karate-live.js", "./karate-academy/assets/images/logo.png",
+  "./charity-wall/index.html", "./charity-wall/style.css", "./charity-wall/app.js", "./charity-wall/embed.js"
 ];
 
 self.addEventListener("install", e => {

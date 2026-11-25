@@ -50,7 +50,8 @@ async function main() {
       quality: isLow ? 'low' : 'high',
       animateOnLoad: !reduceMotion,
       onPick: showBrickPopup,
-      onHold: showAmountOnly,
+      /* عند بدء الطرق المتتالي بالمطرقة تُغلق بطاقة المتبرع لتظهر مؤثرات الكسر */
+      onCloseCard: hidePopup,
       onEmpty: empty => {
         $('#cwEmptyHint').classList.toggle('show', empty && !TEST_MODE);
       },
@@ -134,6 +135,8 @@ async function main() {
     applyDonors();
     refreshStats();
     transparency.setTiers(tiers);
+    /* وضع المعاينة لا يلمس Firebase إطلاقًا — لا بيانات شفافية ولا إنذار اتصال */
+    if (TEST_MODE) return;
     loadExpenses().then(ex => transparency.setExpenses(ex)).catch(e => {
       console.warn('[Charity Wall] تعذر تحميل بيانات الشفافية:', e);
       offlineNotice(e);
@@ -209,7 +212,7 @@ async function main() {
         <div><span class="k">منها نقدي محصّل</span><span class="v">${escapeHtml(egp(record.cashContribution||0))}</span></div>
         <div><span class="k">قيمة عينية تقديرية</span><span class="v">${escapeHtml(egp(record.inKindContribution||0))}</span></div>
         <div><span class="k">تاريخ الاعتماد</span><span class="v">${escapeHtml(fmtDate(record.createdAt))}</span></div>
-        <div><span class="k">الموضع في الحائط</span><span class="v">صف ${Number(record.row)+1} • طوبة ${Number(record.column)+1}</span></div>
+        <div><span class="k">الموضع في الحائط</span><span class="v">${Number.isFinite(Number(record.row)) && Number.isFinite(Number(record.column)) ? `صف ${Number(record.row)+1} • طوبة ${Number(record.column)+1}` : '—'}</span></div>
       </div>
       ${Array.isArray(record.contributionDetails)&&record.contributionDetails.length?`
         <div class="cw-bc-contributions"><strong>ماذا قدّم صاحب الطوبة؟</strong>${record.contributionDetails.map(x=>`
@@ -236,23 +239,6 @@ async function main() {
     clearTimeout(popupTimer);
     popupTimer = setTimeout(hidePopup, 5000); /* تختفي بعد 5 ثوانٍ */
     card.querySelector('.cw-bc-close').addEventListener('click', hidePopup);
-  }
-  function showAmountOnly(record, screen) {
-    const card = $('#cwBrickCard');
-    card.innerHTML = `
-      <div class="cw-bc-bar" style="background:#d5e5f2"></div>
-      <div class="cw-hold-amount" dir="rtl">${escapeHtml(egp(record.totalDonation || 0))}</div>
-      <div class="cw-bc-timer"></div>`;
-    card.classList.add('show', 'cw-amount-only');
-    const w = card.offsetWidth || 240, h = card.offsetHeight || 100, pad = 14;
-    let x = screen.x - w / 2, y = screen.y - h - 24;
-    if (y < pad) y = screen.y + 24;
-    card.style.left = Math.max(pad, Math.min(x, innerWidth - w - pad)) + 'px';
-    card.style.top = Math.max(pad, Math.min(y, innerHeight - h - pad)) + 'px';
-    const timerBar = card.querySelector('.cw-bc-timer');
-    if (window.gsap) gsap.fromTo(timerBar, { scaleX: 1 }, { scaleX: 0, duration: 5, ease: 'none' });
-    clearTimeout(popupTimer);
-    popupTimer = setTimeout(hidePopup, 5000);
   }
   function hidePopup() {
     clearTimeout(popupTimer);

@@ -2,7 +2,9 @@
 html[data-fx-theme="home"]{--fx-a:#f59e0b;--fx-b:#10b981}
 html[data-fx-theme="football"]{--fx-a:#10b981;--fx-b:#fbbf24}
 html[data-fx-theme="karate"]{--fx-a:#f43f5e;--fx-b:#fb923c}
+html[data-fx-theme="kungfu"]{--fx-a:#dc2626;--fx-b:#e8a020}
 html[data-fx-theme="pitch"]{--fx-a:#fbbf24;--fx-b:#22d3ee}
+html[data-fx-theme="wall"]{--fx-a:#eab308;--fx-b:#f59e0b}
 
 /* ---- Scroll progress ---- */
 .fx-progress{position:fixed;inset:0 0 auto 0;height:3px;z-index:9999;pointer-events:none;transform-origin:100% 50%;transform:scaleX(0);

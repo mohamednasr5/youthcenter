@@ -6,6 +6,10 @@
    - whoosh  : طيران الطوبة من الهرم إلى الحائط
    - gold    : نغمة خاصة بالطوب الذهبي
    - diamond : رنين خاص بالطوب الماسي
+   - clank   : ضربة المطرقة على الطوبة
+   - crack   : تشقق الطوبة بعد الضربات المتكررة
+   - crash   : تحطيم الطوبة بالكامل
+   - chime   : ظهور المبلغ المدفوع ثلاثي الأبعاد
    الوضع الاختياري: ألقِ ملفات صوتية في assets/sounds وسمّها في manifest.json
    فتُستخدم تلقائيًا بدل التركيب البرمجي (مع الرجوع إليه إن غاب الملف).
    لا يُشغَّل أي صوت قبل أول تفاعل من المستخدم (سياسة المتصفحات)،
@@ -202,6 +206,45 @@ class Sounds {
     if (tierId === 'gold') return this.gold();
     if (tierId === 'diamond') return this.diamond();
     return this.place();
+  }
+
+  /* ═══ أصوات المطرقة والكسر ═══ */
+
+  /* ضربة المطرقة على الطوبة (صدمة + طنّة معدنية) */
+  clank() {
+    if (!this._canPlay() || this._playFile('clank')) return;
+    const t = this.ctx.currentTime;
+    this._thump(t, 175, 0.1, 0.5);
+    this._scrape(t, 0.06, 0.22, 2800);
+    this._bell(t, 1720, 0.14, 0.08);
+  }
+
+  /* تشقق الطوبة بعد الضربات المتكررة */
+  crack() {
+    if (!this._canPlay() || this._playFile('crack')) return;
+    const t = this.ctx.currentTime;
+    this._thump(t, 120, 0.12, 0.4);
+    this._scrape(t, 0.16, 0.3, 1300);
+    this._scrape(t + 0.05, 0.1, 0.18, 700);
+  }
+
+  /* تحطيم الطوبة بالكامل */
+  crash() {
+    if (!this._canPlay() || this._playFile('crash')) return;
+    const t = this.ctx.currentTime;
+    this._thump(t, 62, 0.32, 0.6);
+    this._scrape(t, 0.34, 0.42, 620);
+    this._scrape(t + 0.08, 0.22, 0.25, 1400);
+    this._bell(t + 0.02, 520, 0.4, 0.1);
+  }
+
+  /* ظهور المبلغ المدفوع ثلاثي الأبعاد */
+  chime() {
+    if (!this._canPlay() || this._playFile('chime')) return;
+    const t = this.ctx.currentTime;
+    this._bell(t, 660, 0.5, 0.14);
+    this._bell(t + 0.1, 880, 0.5, 0.12);
+    this._bell(t + 0.2, 1320, 0.7, 0.1);
   }
 
   dispose() {

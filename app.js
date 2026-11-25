@@ -90,7 +90,7 @@
   // ===== ACADEMIES =====
   function renderAcademies() {
     const A = D.academies || {};
-    const f = A.football || {}, k = A.karate || {}, p = A.pitch || {};
+    const f = A.football || {}, k = A.karate || {}, kf = A.kungfu || {}, p = A.pitch || {};
     $("#academyGrid").innerHTML = `
       <a href="${esc(f.href)}" class="acard football tilt">
         <div class="bg"><div class="bg-orb"></div></div>
@@ -110,6 +110,16 @@
           <p>${esc(k.desc)}</p>
           <div class="pills">${(k.pills || []).map(x => `<span class="pill">${esc(x)}</span>`).join("")}</div>
           <span class="btn btn-gold">${esc(k.cta)}</span>
+        </div>
+      </a>
+      <a href="${esc(kf.href)}" class="acard kungfu tilt">
+        <div class="bg"><div class="bg-orb"></div></div>
+        <div class="content">
+          <span class="tag">${esc(kf.tag)}</span>
+          <h3>${esc(kf.title)}</h3>
+          <p>${esc(kf.desc)}</p>
+          <div class="pills">${(kf.pills || []).map(x => `<span class="pill">${esc(x)}</span>`).join("")}</div>
+          <span class="btn btn-red" style="background:linear-gradient(135deg,#dc2626,#7f1d1d);border-color:#ef4444;color:#fff">${esc(kf.cta)}</span>
         </div>
       </a>`;
     $("#pitchSlot").innerHTML = `

@@ -7,6 +7,7 @@
  *   ycAdmin    = مدير عام لكل الأقسام
  *   ycCenter   = المنصة الرئيسية      ycFootball = أكاديمية كرة القدم
  *   ycKarate   = أكاديمية الكاراتيه    ycPitch    = الملعب الخماسي
+ *   ycKungfu   = أكاديمية الكونغ فو
  *
  * الاستخدام:
  *   npm i firebase-admin
@@ -37,7 +38,7 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, arr) =>
 }, []));
 const die = m => { console.error('✖', m); process.exit(1); };
 
-const ROLE_CLAIM = { center: 'ycCenter', football: 'ycFootball', karate: 'ycKarate', pitch: 'ycPitch' };
+const ROLE_CLAIM = { center: 'ycCenter', football: 'ycFootball', karate: 'ycKarate', kungfu: 'ycKungfu', pitch: 'ycPitch' };
 if (!args.key) die('مفتاح الخدمة مطلوب: --key service-account.json');
 if (!args['from-config'] && (!args.email || args.email === true)) die('البريد مطلوب: --email user@example.com (أو --from-config)');
 
@@ -65,7 +66,7 @@ const auth = admin.auth();
 function claimsFromRoles(roles) {
   const claims = {};
   const list = Array.isArray(roles) ? roles : String(roles || '').split(',').map(s => s.trim()).filter(Boolean);
-  if (!list.length) die('حدّد --roles (center,football,karate,pitch أو all) أو استخدم --revoke');
+  if (!list.length) die('حدّد --roles (center,football,karate,kungfu,pitch أو all) أو استخدم --revoke');
   if (list.includes('all')) claims.ycAdmin = true;
   for (const r of list) {
     if (r === 'all') continue;

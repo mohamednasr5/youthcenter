@@ -1,5 +1,11 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
+Disallow: /football-academy/admin.html
+Disallow: /karate-academy/admin.html
+Disallow: /kungfu-academy/admin.html
+Disallow: /charity-wall/admin.html
+Disallow: /charity-wall/admin/
 
+# ملفات اكتشاف المحتوى لمحركات البحث وأوضاع بحث الذكاء الاصطناعي
 Sitemap: https://mohamednasr5.github.io/youthcenter/sitemap.xml

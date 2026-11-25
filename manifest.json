@@ -20,6 +20,7 @@
   "shortcuts": [
     { "name": "أكاديمية كرة القدم", "url": "football-academy/index.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "أكاديمية الكاراتيه", "url": "karate-academy/index.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "أكاديمية الكونغ فو", "url": "kungfu-academy/index.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "حجز الملعب الخماسي", "url": "pitch-booking/index.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "حائط الخير", "url": "charity-wall/index.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
   ]
