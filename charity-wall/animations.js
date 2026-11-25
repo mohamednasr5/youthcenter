@@ -190,7 +190,7 @@ export function popBrick(group, entry, opts = {}) {
   entry._popTl = gsap.timeline({ onComplete() { entry._popTl = null; } });
   entry._popTl
     .to(state, { k: 1, duration: 0.3, ease: 'back.out(2.2)', onUpdate: apply })
-    .to(state, { k: 0, duration: 0.5, ease: 'power2.inOut', onUpdate: apply, delay: Math.max(0, holdSec) })
+    .to(state, { k: 0, duration: 0.5, ease: 'power2.inOut', onUpdate: apply, delay: Math.max(0, holdSec - 0.8) })
     .call(rest);
   return entry._popTl;
 }
