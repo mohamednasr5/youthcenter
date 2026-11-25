@@ -140,37 +140,59 @@ export function lightFlash(scene, position, color = 0xffd27a) {
   });
 }
 
-/* ═══ فرقعة الطوبة عند الضغط (تتحرك للأمام ثم تعود) ═══
-   getMatrix / setMatrix: قراءة/كتابة مصفوفة الطوبة داخل InstancedMesh
-   base: المصفوفة الأصلية، normalZ: اتجاه الأمام (وحدة z للواجهة) */
-export function popBrick(getMatrix, setMatrix, base, frontOffset = 0.75, holdSec = 5) {
-  const dummy = new THREE.Object3D();
-  const m = new THREE.Matrix4();
-  getMatrix(m);
-  dummy.matrix.decompose ? null : null;
-  // تفكيك المصفوفة الأساسية
-  const pos = new THREE.Vector3();
-  const quat = new THREE.Quaternion();
-  const scl = new THREE.Vector3();
-  base.decompose(pos, quat, scl);
+/* ═══ فرقعة الطوبة عند الضغط (تتحرك للأمام ثم تعود) ═══ */
+export function popBrick(group, entry, opts = {}) {
+  if (!group || !entry || entry._broken || entry._breaking) return;
+  killPop(entry);
 
-  const state = { k: 0, s: 1 };
+  const holdSec = opts.holdSec != null ? opts.holdSec : 3;
+  const frontOffset = opts.frontOffset != null ? opts.frontOffset : 0.75;
+  const base = entry.matrix;
+  const pos = new THREE.Vector3(), quat = new THREE.Quaternion(), scl = new THREE.Vector3();
+  base.decompose(pos, quat, scl);
+  if (scl.x < 0.5 || scl.y < 0.5 || scl.z < 0.5) scl.set(1, 1, 1);
+  const restMatrix = new THREE.Matrix4().compose(pos, quat, scl);
+
+  const dummy = new THREE.Object3D();
+  const label = entry.namePlane;
+  const labelZ0 = entry.labelBaseZ != null ? entry.labelBaseZ : (entry.position ? entry.position.z + 1.15 / 2 + 0.02 : 0.6);
+
+  const state = { k: 0 };
   const apply = () => {
     dummy.position.copy(pos);
-    dummy.position.z += frontOffset * state.k;         /* تقدّم للأمام */
+    dummy.position.z += frontOffset * state.k;
     dummy.quaternion.copy(quat);
-    const sc = 1 + 0.16 * Math.sin(state.k * Math.PI); /* انتفاخ خفيف */
-    dummy.scale.set(sc, sc, sc);
+    const sc = 1 + 0.08 * Math.sin(state.k * Math.PI);
+    dummy.scale.set(scl.x * sc, scl.y * sc, scl.z * sc);
     dummy.updateMatrix();
-    setMatrix(dummy.matrix);
+    group.setMatrixAt(entry.groupIdx, dummy.matrix);
+    group.mesh.instanceMatrix.needsUpdate = true;
+    if (label) {
+      label.position.z = labelZ0 + frontOffset * state.k;
+    }
   };
 
-  return new Promise(resolve => {
-    const tl = gsap.timeline({ onComplete: resolve });
-    tl.to(state, { k: 1, s: 1.16, duration: 0.28, ease: 'back.out(2.4)', onUpdate: apply })
-      .to(state, { s: 1, duration: 0.18, ease: 'power1.out', onUpdate: apply })
-      .to(state, { k: 0, s: 1, duration: 0.5, ease: 'power2.inOut', onUpdate: apply, delay: holdSec });
-  });
+  const rest = () => {
+    group.setMatrixAt(entry.groupIdx, restMatrix);
+    group.mesh.instanceMatrix.needsUpdate = true;
+    if (label) label.position.z = labelZ0;
+    entry._popTl = null;
+  };
+
+  entry._popTl = gsap.timeline({ onComplete: rest });
+  entry._popTl
+    .to(state, { k: 1, duration: 0.32, ease: 'back.out(2)', onUpdate: apply })
+    .to(state, { k: 0, duration: 0.45, ease: 'power2.inOut', onUpdate: apply, delay: Math.max(0, holdSec - 0.77) });
+
+  return entry._popTl;
+}
+
+export function killPop(entry) {
+  if (!entry) return;
+  if (entry._popTl) {
+    entry._popTl.kill();
+    entry._popTl = null;
+  }
 }
 
 /* ═══ كسر الطوبة وتناثر شظايا معدنية ثم إعادة بنائها ═══ */

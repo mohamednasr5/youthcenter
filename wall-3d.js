@@ -19,7 +19,7 @@ import { TIERS, tierById, egp } from './firebase-config.js';
 import { sounds } from './sounds.js';
 import {
   flyBrick, dustBurst, lightFlash, breakBrick, popBrick, flyCamera,
-  brickShake, debrisBurst, smashBrick, rebuildBrick, bezierPoint
+  brickShake, debrisBurst, smashBrick, rebuildBrick, bezierPoint, killPop
 } from './animations.js';
 
 /* ─── أبعاد البناء ─── */
@@ -30,12 +30,12 @@ export const WALL_HALF = 4.5 * S + B.w / 2; /* نصف عرض الحائط */
 const PYRAMID_X = WALL_HALF + 11.5;         /* موضع الهرم جانب الحائط */
 
 /* ─── إعدادات المطرقة والكسر ─── */
-const HITS_TO_BREAK = 4;     /* عدد الضربات لتحطيم الطوبة (الأولى تفتح بيانات المتبرع) */
-const COMBO_MS = 1700;      /* مهلة بقاء «وضع الكسر» بين الضغطات المتتالية */
+const HITS_TO_BREAK = 5;     /* الضغطة الخامسة تكسر الطوبة؛ الأولى تعرض بيانات المتبرع */
+const COMBO_MS = 3500;      /* مهلة 3.5 ثوانٍ لتجميع خمس ضغطات متتالية */
 const HOLD_MS = 480;        /* الاستمرار بالضغط هذه المدة يبدأ الطرق التلقائي */
 const HAMMER_PERIOD = 430;  /* فاصل ضربات الطرق التلقائي أثناء الاستمرار بالضغط */
 const CLOSE_RADIUS = 17;    /* اقتراب الكاميرا هذه المسافة يُظهر المطرقة فوق أقرب طوبة */
-const RESTORE_MS = 5000;    /* عودة الطوبة بعد التحطيم (تظهر خلالها قيمة المساهمة) */
+const RESTORE_MS = 5000;    /* مهلة موحدة: إغلاق الطوبة المفتوحة أو إعادة بناء المكسورة بعد 5 ثوانٍ */
 
 /* ─── نسيج ضجيج إجرائي (خشونة الطوب والأسمنت) ─── */
 function noiseTexture(base = 128, variation = 46, size = 256) {
@@ -60,44 +60,28 @@ function nameLabelTexture(name, tier) {
   const key = name + '|' + tier.id;
   if (labelCache.has(key)) return labelCache.get(key);
   const c = document.createElement('canvas');
-  /* دقة مضاعفة (640×280) لتظل الأسماء حادة عند التقريب وفي وضع الأداء الخفيف */
-  c.width = 640; c.height = 280;
+  c.width = 320; c.height = 140;
   const ctx = c.getContext('2d');
-  ctx.clearRect(0, 0, 640, 280);
+  ctx.clearRect(0, 0, 320, 140);
 
-  /* شريط خلفي أدكن وأكثر عتمة لقراءة الاسم فوق أي خامة وفي لقطات الشاشة الداكنة */
-  ctx.fillStyle = 'rgba(6,9,15,.88)';
-  roundRect(ctx, 16, 60, 608, 160, 36);
+  /* شريط خلفي خفيف لقراءة الاسم فوق أي خامة */
+  ctx.fillStyle = 'rgba(8,10,16,.42)';
+  roundRect(ctx, 8, 30, 304, 80, 18);
   ctx.fill();
-  /* لمعة داخلية خفيفة تبرز اللوحة عن سطح الطوبة */
-  const sheen = ctx.createLinearGradient(0, 60, 0, 220);
-  sheen.addColorStop(0, 'rgba(255,255,255,.12)');
-  sheen.addColorStop(1, 'rgba(255,255,255,.03)');
-  ctx.fillStyle = sheen;
-  roundRect(ctx, 16, 60, 608, 160, 36);
-  ctx.fill();
-
-  /* إطار بلون الفئة مع توهج خارجي يحسّن التباين ويجذب العين */
-  ctx.save();
-  ctx.shadowColor = tier.cssColor;
-  ctx.shadowBlur = 22;
   ctx.strokeStyle = tier.cssColor;
-  ctx.lineWidth = 8;
-  roundRect(ctx, 16, 60, 608, 160, 36);
+  ctx.lineWidth = 3;
+  roundRect(ctx, 8, 30, 304, 80, 18);
   ctx.stroke();
-  ctx.restore();
 
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.direction = 'rtl';
-  ctx.shadowColor = 'rgba(0,0,0,.9)';
-  ctx.shadowBlur = 14;
-  /* إصلاح: \\s+ (شرطة مزدوجة) كانت تمنع تقسيم الاسم إلى كلمات
-     فيُرسم الاسم الطويل كاملاً في سطر واحد مضغوط؛ الآن يتقسم طبيعياً ويُلف على أسطر */
-  const words = String(name || 'متبرع').trim().split(/\s+/);
-  let fontSize = 76, lines = [];
-  const maxWidth = 556;
+  ctx.shadowColor = 'rgba(0,0,0,.85)';
+  ctx.shadowBlur = 7;
+  const words = String(name || 'متبرع').trim().split(/\\s+/);
+  let fontSize = 38, lines = [];
+  const maxWidth = 278;
   const wrap = () => {
     ctx.font = `700 ${fontSize}px Cairo, Tajawal, sans-serif`;
     const result = [];
@@ -110,13 +94,13 @@ function nameLabelTexture(name, tier) {
     if (line) result.push(line);
     return result;
   };
-  do { lines = wrap(); if (lines.length <= 3) break; fontSize -= 4; } while (fontSize > 36);
-  const lineHeight = Math.min(76, fontSize + 8);
-  const startY = 140 - ((lines.length - 1) * lineHeight) / 2;
-  lines.forEach((line, i) => ctx.fillText(line, 320, startY + i * lineHeight, maxWidth));
+  do { lines = wrap(); if (lines.length <= 3) break; fontSize -= 2; } while (fontSize > 18);
+  const lineHeight = Math.min(38, fontSize + 4);
+  const startY = 70 - ((lines.length - 1) * lineHeight) / 2;
+  lines.forEach((line, i) => ctx.fillText(line, 160, startY + i * lineHeight, maxWidth));
 
   const tex = new THREE.CanvasTexture(c);
-  tex.anisotropy = 8;
+  tex.anisotropy = 4;
   if (labelCache.size > 600) { /* حماية الذاكرة عند آلاف الأسماء */
     const first = labelCache.keys().next().value;
     const old = labelCache.get(first);
@@ -626,6 +610,7 @@ export class Wall3D {
     this.byDonor = new Map();     /* donorId → brickId */
     this.count = 0;
     this.hammer = null;           /* المطرقة ثلاثية الأبعاد */
+    this._activeBrickEntry = null; /* يسمح بفتح/كسر طوبة واحدة فقط في كل مرة */
     this._hoverBrickId = null;    /* الطوبة تحت المؤشر (لغة المطرقة) */
     this._autoHammer = null;      /* مؤقت الطرق التلقائي عند الاستمرار بالضغط */
     this._hammerT = 0;            /* خنق فحص اقتراب الكاميرا */
@@ -1080,8 +1065,8 @@ export class Wall3D {
     this.wallGroup.add(plane);
 
     this.bricks.set(record.id, {
-      record, tierId, groupIdx: idx, matrix: dummy.matrix.clone(),
-      namePlane: plane, position: pos.clone()
+      record, tierId, groupIdx: idx, matrix: finalMatrix.clone(),
+      namePlane: plane, position: pos.clone(), labelBaseZ: plane.position.z
     });
     this.byDonor.set(record.donorId, record.id);
     this.count = Math.max(this.count, index + 1);
@@ -1228,6 +1213,24 @@ export class Wall3D {
      والاستمرار في الضغط/النقر يتراكم حتى التحطيم الكامل */
   _hitBrick(entry, screen) {
     if (!entry || entry._broken || entry._breaking || this._disposed) return;
+
+    /* طوبة نشطة واحدة فقط: عند الانتقال لطوبة أخرى نغلق البطاقة
+       ونعيد الطوبة السابقة فورًا، سواء كانت مفتوحة أو مكسورة. */
+    const previous = this._activeBrickEntry;
+    if (previous && previous !== entry) {
+      this.onCloseCard();
+      if (this.hammer && this.hammer._swingTl) {
+        this.hammer._swingTl.kill();
+        this.hammer.swinging = false;
+      }
+      if (previous._restoreTimer) {
+        clearTimeout(previous._restoreTimer);
+        previous._restoreTimer = null;
+      }
+      this._restoreBrick(previous);
+    }
+    this._activeBrickEntry = entry;
+
     const now = performance.now();
     const st = entry._hits || (entry._hits = { count: 0, t: 0 });
     if (st.count > 0 && now - st.t > COMBO_MS) {
@@ -1249,7 +1252,9 @@ export class Wall3D {
       debrisBurst(this.scene, hitPoint, tier.color, { low: this.quality === 'low' });
       brickShake(group, entry, hitNo === 1 ? 0.8 : 1.5);
       if (hitNo === 1) {
-        /* ضغطة واحدة → بيانات المتبرع */
+        /* ضغطة واحدة → فتح الطوبة: تتقدم من الحائط مع بيانات المتبرع
+           ثم تعود إلى مكانها بعد 5 ثوانٍ (بذات مهلة إخفاء البطاقة) */
+        popBrick(group, entry, { holdSec: 5 });
         this.onPick(entry.record, screen || this.worldToScreen(pos));
       } else {
         /* ضربات متتالية → إغلاق البطاقة وتشقق متصاعد */
@@ -1337,30 +1342,69 @@ export class Wall3D {
     if (!a) return;
     if (entry._amountFade) { clearTimeout(entry._amountFade); entry._amountFade = null; }
     (a.tweens || []).forEach(t => t && t.kill());
-    this.scene.remove(a.group);
-    if (a.sprite) a.sprite.material.dispose(); /* نسيج اللوحة مُخزَّن مشتركًا */
+    if (a.light) {
+      a.light.intensity = 0;
+      a.light.visible = false;
+      if (a.group) a.group.remove(a.light);
+      this.scene.remove(a.light);
+      if (a.light.dispose) a.light.dispose();
+    }
+    if (a.group) {
+      this.scene.remove(a.group);
+      a.group.traverse(o => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) {
+          if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+          else o.material.dispose();
+        }
+      });
+    }
     entry._amount = null;
   }
 
   /* ───── عودة الطوبة بعد 5 ثوانٍ وتصفير حالة الكسر ───── */
   _restoreBrick(entry) {
-    entry._restoreTimer = null;
+    if (entry._restoreTimer) {
+      clearTimeout(entry._restoreTimer);
+      entry._restoreTimer = null;
+    }
     if (this._disposed || !this.bricks.has(entry.record.id)) return;
+    if (this._activeBrickEntry === entry) this._activeBrickEntry = null;
+
+    /* إيقاف أي حركة سابقة وإزالة آثار الكسر قبل إعادة الحالة الأصلية */
+    killPop(entry);
+    this._hideCracks(entry);
+    this._removeAmount(entry);
+    if (entry._hits) entry._hits.count = 0;
     entry._broken = false;
     entry._breaking = false;
-    if (entry._hits) entry._hits.count = 0;
-    this._removeAmount(entry);
+
     const group = this.tierGroups[entry.tierId] || this.tierGroups.clay;
-    rebuildBrick(this.scene, group, entry, { low: this.quality === 'low' });
+
+    /* إعادة جسم الطوبة فورًا بالمصفوفة الأصلية؛ لا نتركه على مقياس صفر
+       ولا نعتمد على انتهاء Tween كي يظهر مجددًا. */
+    group.setMatrixAt(entry.groupIdx, entry.matrix);
+    group.mesh.instanceMatrix.needsUpdate = true;
+    group.mesh.boundingSphere = null;
+    group.mesh.boundingBox = null;
+
     if (entry.namePlane) {
+      entry.namePlane.position.set(
+        entry.position.x,
+        entry.position.y,
+        entry.labelBaseZ != null ? entry.labelBaseZ : B.d / 2 + 0.02
+      );
       entry.namePlane.visible = true;
-      entry.namePlane.material.opacity = 0;
-      gsap.to(entry.namePlane.material, { opacity: 1, duration: 0.5 });
+      entry.namePlane.material.opacity = 1;
+      entry.namePlane.material.needsUpdate = true;
     }
+
+    /* تنظيف أي أثر بصري متبقٍ ثم إعادة ضبط حالة الطوبة */
+    entry._breaking = false;
+    entry._broken = false;
     dustBurst(this.scene, entry.position.clone().add(new THREE.Vector3(0, 0, B.d / 2)), {
       low: this.quality === 'low', count: this.quality === 'low' ? 10 : 22
     });
-    lightFlash(this.scene, entry.position, 0x9edcff);
     sounds.thud();
   }
 
@@ -1509,18 +1553,21 @@ export class Wall3D {
     tip.className = 'cw-brick-tooltip';
     Object.assign(tip.style, {
       position: 'fixed', zIndex: '10050', display: 'none',
-      padding: '8px 13px', borderRadius: '10px',
-      background: 'rgba(8, 14, 27, .96)', color: '#fff',
-      border: '1px solid rgba(255,255,255,.2)',
-      boxShadow: '0 8px 24px rgba(0,0,0,.35)',
-      font: '800 13px/1.4 system-ui, sans-serif',
+      padding: '7px 12px', borderRadius: '12px',
+      background: 'rgba(248, 250, 252, .94)', color: '#182235',
+      border: '1px solid rgba(245, 190, 80, .9)',
+      boxShadow: '0 5px 18px rgba(20, 25, 35, .18)',
+      font: '800 12px/1.35 system-ui, sans-serif',
       whiteSpace: 'nowrap', pointerEvents: 'none',
-      transform: 'translate(12px, 12px)'
+      transform: 'translate(-50%, -100%)',
+      backdropFilter: 'blur(8px)'
     });
     document.body.appendChild(tip);
     this._brickTooltip = tip;
+    let tipTimer = null;
 
     const hideTip = () => {
+      clearTimeout(tipTimer);
       lastHoverId = null;
       this._hoverBrickId = null;
       tip.style.display = 'none';
@@ -1546,11 +1593,18 @@ export class Wall3D {
         this._hoverBrickId = hit.recordId;
         if (lastHoverId !== hit.recordId) {
           const tier = tierById(entry.tierId, this.tiers);
-          tip.textContent = 'نوع الطوبة: ' + tier.label + ' • اضغط مرة لبيانات المتبرع • استمر في الضغط لكسرها بالمطرقة';
+          tip.textContent = 'طوبة ' + tier.label + ' • اضغط لعرض التفاصيل';
           lastHoverId = hit.recordId;
+          clearTimeout(tipTimer);
+          tipTimer = setTimeout(hideTip, 2000);
         }
-        tip.style.left = Math.min(p.clientX, window.innerWidth - 230) + 'px';
-        tip.style.top = Math.min(p.clientY, window.innerHeight - 55) + 'px';
+        /* تثبيت التلميح فوق المطرقة بدلًا من مكان مؤشر الفأرة */
+        const anchor = this.hammer && this.hammer.group && this.hammer.group.visible
+          ? this.hammer.group.position
+          : entry.position;
+        const point = this.worldToScreen(anchor);
+        tip.style.left = Math.max(110, Math.min(point.x, window.innerWidth - 110)) + 'px';
+        tip.style.top = Math.max(48, point.y - 22) + 'px';
         tip.style.display = 'block';
       });
     }, { passive: true });

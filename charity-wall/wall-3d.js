@@ -19,7 +19,7 @@ import { TIERS, tierById, egp } from './firebase-config.js';
 import { sounds } from './sounds.js';
 import {
   flyBrick, dustBurst, lightFlash, breakBrick, popBrick, flyCamera,
-  brickShake, debrisBurst, smashBrick, rebuildBrick, bezierPoint
+  brickShake, debrisBurst, smashBrick, rebuildBrick, bezierPoint, killPop
 } from './animations.js';
 
 /* ─── أبعاد البناء ─── */
@@ -1065,8 +1065,8 @@ export class Wall3D {
     this.wallGroup.add(plane);
 
     this.bricks.set(record.id, {
-      record, tierId, groupIdx: idx, matrix: dummy.matrix.clone(),
-      namePlane: plane, position: pos.clone()
+      record, tierId, groupIdx: idx, matrix: finalMatrix.clone(),
+      namePlane: plane, position: pos.clone(), labelBaseZ: plane.position.z
     });
     this.byDonor.set(record.donorId, record.id);
     this.count = Math.max(this.count, index + 1);
@@ -1254,7 +1254,7 @@ export class Wall3D {
       if (hitNo === 1) {
         /* ضغطة واحدة → فتح الطوبة: تتقدم من الحائط مع بيانات المتبرع
            ثم تعود إلى مكانها بعد 5 ثوانٍ (بذات مهلة إخفاء البطاقة) */
-        popBrick(group, entry, { holdSec: 3 });
+        popBrick(group, entry, { holdSec: 5 });
         this.onPick(entry.record, screen || this.worldToScreen(pos));
       } else {
         /* ضربات متتالية → إغلاق البطاقة وتشقق متصاعد */
@@ -1342,8 +1342,23 @@ export class Wall3D {
     if (!a) return;
     if (entry._amountFade) { clearTimeout(entry._amountFade); entry._amountFade = null; }
     (a.tweens || []).forEach(t => t && t.kill());
-    this.scene.remove(a.group);
-    if (a.sprite) a.sprite.material.dispose(); /* نسيج اللوحة مُخزَّن مشتركًا */
+    if (a.light) {
+      a.light.intensity = 0;
+      a.light.visible = false;
+      if (a.group) a.group.remove(a.light);
+      this.scene.remove(a.light);
+      if (a.light.dispose) a.light.dispose();
+    }
+    if (a.group) {
+      this.scene.remove(a.group);
+      a.group.traverse(o => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) {
+          if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+          else o.material.dispose();
+        }
+      });
+    }
     entry._amount = null;
   }
 
