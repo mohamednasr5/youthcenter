@@ -30,7 +30,7 @@ export const WALL_HALF = 4.5 * S + B.w / 2; /* نصف عرض الحائط */
 const PYRAMID_X = WALL_HALF + 11.5;         /* موضع الهرم جانب الحائط */
 
 /* ─── إعدادات المطرقة والكسر ─── */
-const HITS_TO_BREAK = 4;     /* عدد الضربات لتحطيم الطوبة (الأولى تفتح بيانات المتبرع) */
+const HITS_TO_BREAK = 5;     /* الضغطة الخامسة تكسر الطوبة؛ الأولى تعرض بيانات المتبرع */
 const COMBO_MS = 1700;      /* مهلة بقاء «وضع الكسر» بين الضغطات المتتالية */
 const HOLD_MS = 480;        /* الاستمرار بالضغط هذه المدة يبدأ الطرق التلقائي */
 const HAMMER_PERIOD = 430;  /* فاصل ضربات الطرق التلقائي أثناء الاستمرار بالضغط */
@@ -1235,7 +1235,7 @@ export class Wall3D {
       if (hitNo === 1) {
         /* ضغطة واحدة → فتح الطوبة: تتقدم من الحائط مع بيانات المتبرع
            ثم تعود إلى مكانها بعد 5 ثوانٍ (بذات مهلة إخفاء البطاقة) */
-        popBrick(group, entry, { holdSec: 5 });
+        popBrick(group, entry, { holdSec: 3 });
         this.onPick(entry.record, screen || this.worldToScreen(pos));
       } else {
         /* ضربات متتالية → إغلاق البطاقة وتشقق متصاعد */
@@ -1523,18 +1523,21 @@ export class Wall3D {
     tip.className = 'cw-brick-tooltip';
     Object.assign(tip.style, {
       position: 'fixed', zIndex: '10050', display: 'none',
-      padding: '8px 13px', borderRadius: '10px',
-      background: 'rgba(8, 14, 27, .96)', color: '#fff',
-      border: '1px solid rgba(255,255,255,.2)',
-      boxShadow: '0 8px 24px rgba(0,0,0,.35)',
-      font: '800 13px/1.4 system-ui, sans-serif',
+      padding: '7px 12px', borderRadius: '12px',
+      background: 'rgba(248, 250, 252, .94)', color: '#182235',
+      border: '1px solid rgba(245, 190, 80, .9)',
+      boxShadow: '0 5px 18px rgba(20, 25, 35, .18)',
+      font: '800 12px/1.35 system-ui, sans-serif',
       whiteSpace: 'nowrap', pointerEvents: 'none',
-      transform: 'translate(12px, 12px)'
+      transform: 'translate(-50%, -100%)',
+      backdropFilter: 'blur(8px)'
     });
     document.body.appendChild(tip);
     this._brickTooltip = tip;
+    let tipTimer = null;
 
     const hideTip = () => {
+      clearTimeout(tipTimer);
       lastHoverId = null;
       this._hoverBrickId = null;
       tip.style.display = 'none';
@@ -1560,11 +1563,18 @@ export class Wall3D {
         this._hoverBrickId = hit.recordId;
         if (lastHoverId !== hit.recordId) {
           const tier = tierById(entry.tierId, this.tiers);
-          tip.textContent = 'نوع الطوبة: ' + tier.label + ' • اضغط مرة لبيانات المتبرع • استمر في الضغط لكسرها بالمطرقة';
+          tip.textContent = 'طوبة ' + tier.label + ' • اضغط لعرض التفاصيل';
           lastHoverId = hit.recordId;
+          clearTimeout(tipTimer);
+          tipTimer = setTimeout(hideTip, 2000);
         }
-        tip.style.left = Math.min(p.clientX, window.innerWidth - 230) + 'px';
-        tip.style.top = Math.min(p.clientY, window.innerHeight - 55) + 'px';
+        /* تثبيت التلميح فوق المطرقة بدلًا من مكان مؤشر الفأرة */
+        const anchor = this.hammer && this.hammer.group && this.hammer.group.visible
+          ? this.hammer.group.position
+          : entry.position;
+        const point = this.worldToScreen(anchor);
+        tip.style.left = Math.max(110, Math.min(point.x, window.innerWidth - 110)) + 'px';
+        tip.style.top = Math.max(48, point.y - 22) + 'px';
         tip.style.display = 'block';
       });
     }, { passive: true });
