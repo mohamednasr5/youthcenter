@@ -165,12 +165,17 @@ export function popBrick(getMatrix, setMatrix, base, frontOffset = 0.75, holdSec
     setMatrix(dummy.matrix);
   };
 
-  return new Promise(resolve => {
-    const tl = gsap.timeline({ onComplete: resolve });
-    tl.to(state, { k: 1, s: 1.16, duration: 0.28, ease: 'back.out(2.4)', onUpdate: apply })
-      .to(state, { s: 1, duration: 0.18, ease: 'power1.out', onUpdate: apply })
-      .to(state, { k: 0, s: 1, duration: 0.5, ease: 'power2.inOut', onUpdate: apply, delay: holdSec });
-  });
+  const rest = () => {
+    group.setMatrixAt(entry.groupIdx, restMatrix);
+    if (label) label.position.z = labelZ0;
+  };
+
+  entry._popTl = gsap.timeline({ onComplete() { entry._popTl = null; } });
+  entry._popTl
+    .to(state, { k: 1, duration: 0.3, ease: 'back.out(2.2)', onUpdate: apply })
+    .to(state, { k: 0, duration: 0.5, ease: 'power2.inOut', onUpdate: apply, delay: Math.max(0, holdSec - 0.8) })
+    .call(rest);
+  return entry._popTl;
 }
 
 /* ═══ كسر الطوبة وتناثر شظايا معدنية ثم إعادة بنائها ═══ */

@@ -35,7 +35,7 @@ const COMBO_MS = 1700;      /* مهلة بقاء «وضع الكسر» بين ا
 const HOLD_MS = 480;        /* الاستمرار بالضغط هذه المدة يبدأ الطرق التلقائي */
 const HAMMER_PERIOD = 430;  /* فاصل ضربات الطرق التلقائي أثناء الاستمرار بالضغط */
 const CLOSE_RADIUS = 17;    /* اقتراب الكاميرا هذه المسافة يُظهر المطرقة فوق أقرب طوبة */
-const RESTORE_MS = 5000;    /* عودة الطوبة بعد التحطيم (تظهر خلالها قيمة المساهمة) */
+const RESTORE_MS = 5000;    /* مهلة موحدة: إغلاق الطوبة المفتوحة أو إعادة بناء المكسورة بعد 5 ثوانٍ */
 
 /* ─── نسيج ضجيج إجرائي (خشونة الطوب والأسمنت) ─── */
 function noiseTexture(base = 128, variation = 46, size = 256) {
@@ -1233,7 +1233,9 @@ export class Wall3D {
       debrisBurst(this.scene, hitPoint, tier.color, { low: this.quality === 'low' });
       brickShake(group, entry, hitNo === 1 ? 0.8 : 1.5);
       if (hitNo === 1) {
-        /* ضغطة واحدة → بيانات المتبرع */
+        /* ضغطة واحدة → فتح الطوبة: تتقدم من الحائط مع بيانات المتبرع
+           ثم تعود إلى مكانها بعد 5 ثوانٍ (بذات مهلة إخفاء البطاقة) */
+        popBrick(group, entry, { holdSec: 5 });
         this.onPick(entry.record, screen || this.worldToScreen(pos));
       } else {
         /* ضربات متتالية → إغلاق البطاقة وتشقق متصاعد */
@@ -1330,17 +1332,45 @@ export class Wall3D {
   _restoreBrick(entry) {
     entry._restoreTimer = null;
     if (this._disposed || !this.bricks.has(entry.record.id)) return;
+
+    /* إيقاف أي حركة سابقة وإزالة آثار الكسر قبل إعادة الحالة الأصلية */
+    killPop(entry);
+    this._hideCracks(entry);
+    this._removeAmount(entry);
+    if (entry._hits) entry._hits.count = 0;
     entry._broken = false;
     entry._breaking = false;
-    if (entry._hits) entry._hits.count = 0;
-    this._removeAmount(entry);
+
     const group = this.tierGroups[entry.tierId] || this.tierGroups.clay;
-    rebuildBrick(this.scene, group, entry, { low: this.quality === 'low' });
-    if (entry.namePlane) {
-      entry.namePlane.visible = true;
-      entry.namePlane.material.opacity = 0;
-      gsap.to(entry.namePlane.material, { opacity: 1, duration: 0.5 });
-    }
+    const restoreExactState = () => {
+      if (this._disposed || !this.bricks.has(entry.record.id)) return;
+
+      /* لا نكتفي بإظهار لوحة الاسم: نعيد مصفوفة جسم الطوبة الأصلية كاملة
+         (الموضع + الدوران + المقياس) إلى نفس خانتها داخل InstancedMesh. */
+      group.setMatrixAt(entry.groupIdx, entry.matrix);
+      group.mesh.instanceMatrix.needsUpdate = true;
+      group.mesh.boundingSphere = null;
+      group.mesh.boundingBox = null;
+
+      if (entry.namePlane) {
+        entry.namePlane.position.set(
+          entry.position.x,
+          entry.position.y,
+          entry.labelBaseZ != null ? entry.labelBaseZ : B.d / 2 + 0.02
+        );
+        entry.namePlane.visible = true;
+        entry.namePlane.material.opacity = 1;
+        entry.namePlane.material.needsUpdate = true;
+      }
+    };
+
+    /* إعادة بناء مرئية، ثم تثبيت المصفوفة الأصلية كضمان نهائي */
+    const rebuilding = rebuildBrick(this.scene, group, entry, { low: this.quality === 'low' });
+    Promise.resolve(rebuilding).then(restoreExactState).catch(error => {
+      console.warn('[Charity Wall] تعذرت إعادة الحركة الانتقالية للطوبة؛ تم تثبيت حالتها الأصلية:', error);
+      restoreExactState();
+    });
+
     dustBurst(this.scene, entry.position.clone().add(new THREE.Vector3(0, 0, B.d / 2)), {
       low: this.quality === 'low', count: this.quality === 'low' ? 10 : 22
     });

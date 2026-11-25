@@ -237,7 +237,7 @@ async function main() {
     gsap.fromTo(timerBar, { scaleX: 1 }, { scaleX: 0, duration: 5, ease: 'none' });
 
     clearTimeout(popupTimer);
-    popupTimer = setTimeout(hidePopup, 5000); /* تختفي بعد 5 ثوانٍ */
+    popupTimer = setTimeout(hidePopup, 5000); /* البطاقة والطوبة المفتوحة تنتهيان معًا بعد 5 ثوانٍ */
     card.querySelector('.cw-bc-close').addEventListener('click', hidePopup);
   }
   function hidePopup() {
