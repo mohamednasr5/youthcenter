@@ -2,7 +2,7 @@
    - flyBrick: طيران الطوبة من الهرم إلى موضعها في الحائط على مسار منحني مع دورانها
    - dustBurst: مؤثر غبار عند استقرار الطوبة
    - lightFlash: وميض ضوء عند الاستقرار
-   - popBrick: فتح الطوبة — تتقدم للأمام عند الضغط ثم تعود لمكانها بعد 5 ثوانٍ
+   - popBrick: فرقعة الطوبة للأمام عند الضغط وعودتها
    - brickShake: اهتزاز الطوبة عند ضربة المطرقة
    - debrisBurst: شظايا صغيرة تتناثر مع كل ضربة
    - smashBrick: تحطيم الطوبة بشظايا تسقط بجاذبية (إعادة البناء تُجدولها wall-3d)
@@ -140,59 +140,37 @@ export function lightFlash(scene, position, color = 0xffd27a) {
   });
 }
 
-/* ═══ إيقاف أنيميشن فتح الطوبة وإعادة لوحة الاسم لموضعها الأصلي ═══ */
-export function killPop(entry) {
-  if (!entry) return;
-  if (entry._popTl) { entry._popTl.kill(); entry._popTl = null; }
-  if (entry.namePlane && entry.labelBaseZ != null) entry.namePlane.position.z = entry.labelBaseZ;
-}
-
-/* ═══ فتح الطوبة عند الضغطة الأولى: تتقدم نحو المشاهد ثم تعود لمكانها بعد مهلة ═══
-   group/entry: مجموعة الفئة وسجل الطوبة (مثل brickShake/smashBrick)
-   opts.frontOffset: مقدار التقدم (افتراضي 0.75)
-   opts.holdSec: مدة البقاء خارج الحائط قبل العودة (افتراضي 5 ثوانٍ) */
-export function popBrick(group, entry, opts = {}) {
-  if (!group || !entry || entry._breaking || entry._broken) return;
-  killPop(entry); /* ضغطة جديدة على نفس الطوبة تعيد بدء المؤقت من الصفر */
-  const frontOffset = opts.frontOffset != null ? opts.frontOffset : 0.75;
-  const holdSec = opts.holdSec != null ? opts.holdSec : 5;
-
-  const base = entry.matrix;
+/* ═══ فرقعة الطوبة عند الضغط (تتحرك للأمام ثم تعود) ═══
+   getMatrix / setMatrix: قراءة/كتابة مصفوفة الطوبة داخل InstancedMesh
+   base: المصفوفة الأصلية، normalZ: اتجاه الأمام (وحدة z للواجهة) */
+export function popBrick(getMatrix, setMatrix, base, frontOffset = 0.75, holdSec = 5) {
+  const dummy = new THREE.Object3D();
+  const m = new THREE.Matrix4();
+  getMatrix(m);
+  dummy.matrix.decompose ? null : null;
+  // تفكيك المصفوفة الأساسية
   const pos = new THREE.Vector3();
   const quat = new THREE.Quaternion();
   const scl = new THREE.Vector3();
   base.decompose(pos, quat, scl);
-  /* درع: مصفوفة تالفة بمقياس شبه صفري لا تبتلع الطوبة */
-  if (scl.x < 0.5 || scl.y < 0.5 || scl.z < 0.5) scl.set(1, 1, 1);
 
-  const label = entry.namePlane || null;
-  const labelZ0 = entry.labelBaseZ != null ? entry.labelBaseZ : (label ? label.position.z : 0);
-  const restMatrix = new THREE.Matrix4().compose(pos, quat, scl);
-  const dummy = new THREE.Object3D();
-  const state = { k: 0 };
+  const state = { k: 0, s: 1 };
   const apply = () => {
     dummy.position.copy(pos);
-    dummy.position.z += frontOffset * state.k;         /* تقدّم نحو المشاهد */
+    dummy.position.z += frontOffset * state.k;         /* تقدّم للأمام */
     dummy.quaternion.copy(quat);
-    const sc = 1 + 0.12 * Math.sin(state.k * Math.PI); /* انتفاخ خفيف */
-    dummy.scale.set(scl.x * sc, scl.y * sc, scl.z * sc);
+    const sc = 1 + 0.16 * Math.sin(state.k * Math.PI); /* انتفاخ خفيف */
+    dummy.scale.set(sc, sc, sc);
     dummy.updateMatrix();
-    group.setMatrixAt(entry.groupIdx, dummy.matrix);
-    /* لوحة الاسم تواكب الطوبة حتى لا تبقى معلقة على واجهة الحائط */
-    if (label) label.position.z = labelZ0 + frontOffset * state.k;
+    setMatrix(dummy.matrix);
   };
 
-  const rest = () => {
-    group.setMatrixAt(entry.groupIdx, restMatrix);
-    if (label) label.position.z = labelZ0;
-  };
-
-  entry._popTl = gsap.timeline({ onComplete() { entry._popTl = null; } });
-  entry._popTl
-    .to(state, { k: 1, duration: 0.3, ease: 'back.out(2.2)', onUpdate: apply })
-    .to(state, { k: 0, duration: 0.5, ease: 'power2.inOut', onUpdate: apply, delay: Math.max(0, holdSec) })
-    .call(rest);
-  return entry._popTl;
+  return new Promise(resolve => {
+    const tl = gsap.timeline({ onComplete: resolve });
+    tl.to(state, { k: 1, s: 1.16, duration: 0.28, ease: 'back.out(2.4)', onUpdate: apply })
+      .to(state, { s: 1, duration: 0.18, ease: 'power1.out', onUpdate: apply })
+      .to(state, { k: 0, s: 1, duration: 0.5, ease: 'power2.inOut', onUpdate: apply, delay: holdSec });
+  });
 }
 
 /* ═══ كسر الطوبة وتناثر شظايا معدنية ثم إعادة بنائها ═══ */
@@ -267,14 +245,10 @@ export function breakBrick(scene, group, entry, holdSec = 5) {
    intensity: شدة الاهتزاز (تزداد مع تقدم الكسر) */
 export function brickShake(group, entry, intensity = 1) {
   if (!group || !entry || entry._breaking || entry._broken) return;
-  killPop(entry); /* الطرق المتتالي يلغي فتح الطوبة المتقدمة */
   if (entry._shakeTween) entry._shakeTween.kill();
   const base = entry.matrix;
   const pos = new THREE.Vector3(), quat = new THREE.Quaternion(), scl = new THREE.Vector3();
   base.decompose(pos, quat, scl);
-  /* درع: مصفوفة تالفة بمقياس شبه صفري لا تجعل الاهتزاز يخفي الطوبة */
-  if (scl.x < 0.5 || scl.y < 0.5 || scl.z < 0.5) scl.set(1, 1, 1);
-  const restMatrix = new THREE.Matrix4().compose(pos, quat, scl);
   const dummy = new THREE.Object3D();
   const state = { k: 0 };
   entry._shakeTween = gsap.to(state, {
@@ -293,7 +267,7 @@ export function brickShake(group, entry, intensity = 1) {
     },
     onComplete() {
       if (entry._breaking || entry._broken) return; /* التحطيم أخفى الطوبة بالفعل */
-      group.setMatrixAt(entry.groupIdx, restMatrix);
+      group.setMatrixAt(entry.groupIdx, base);
       group.mesh.instanceMatrix.needsUpdate = true;
       entry._shakeTween = null;
     }
@@ -349,7 +323,6 @@ export function debrisBurst(scene, position, color = 0xcfc3a8, opts = {}) {
    تُخفي الطوبة فورًا (instance scale ~ 0) — إعادة البناء مسؤولية wall-3d بعد 5 ثوانٍ */
 export function smashBrick(scene, group, entry, opts = {}) {
   if (!scene || !group || !entry || entry._breaking) return;
-  killPop(entry); /* التحطيم ينهي فتح الطوبة فورًا */
   entry._breaking = true;
   if (entry._shakeTween) { entry._shakeTween.kill(); entry._shakeTween = null; }
   const low = !!opts.low;
@@ -435,24 +408,15 @@ export function smashBrick(scene, group, entry, opts = {}) {
 /* ═══ إعادة بناء الطوبة بعد الكسر (scale 0 → 1 بمرونة) ═══ */
 export function rebuildBrick(scene, group, entry, opts = {}) {
   if (!group || !entry) return;
-  killPop(entry); /* لا فتح معلق أثناء إعادة البناء */
   const base = entry.matrix;
   const pos = new THREE.Vector3(), quat = new THREE.Quaternion(), scl = new THREE.Vector3();
   base.decompose(pos, quat, scl);
-  /* درع حرج: لو تسللت مصفوفة بمقياس شبه صفري (خلل قديم) تعود الطوبة كاملة 
-     لا أن تُعاد إلى حالة الاختفاء الأبدية بعد أنيميشن الإصلاح */
-  if (scl.x < 0.5 || scl.y < 0.5 || scl.z < 0.5) scl.set(1, 1, 1);
-  const restMatrix = new THREE.Matrix4().compose(pos, quat, scl);
   const dummy = new THREE.Object3D();
   const state = { s: 0.001 };
   const apply = () => {
     dummy.position.copy(pos);
     dummy.quaternion.copy(quat);
-    dummy.scale.set(
-      Math.max(0.001, scl.x * state.s),
-      Math.max(0.001, scl.y * state.s),
-      Math.max(0.001, scl.z * state.s)
-    );
+    dummy.scale.setScalar(Math.max(0.001, state.s));
     dummy.updateMatrix();
     group.setMatrixAt(entry.groupIdx, dummy.matrix);
     group.mesh.instanceMatrix.needsUpdate = true;
@@ -463,7 +427,7 @@ export function rebuildBrick(scene, group, entry, opts = {}) {
       s: 1, duration: opts.fast ? 0.55 : 0.9, ease: 'elastic.out(1, 0.5)',
       onUpdate: apply,
       onComplete() {
-        group.setMatrixAt(entry.groupIdx, restMatrix);
+        group.setMatrixAt(entry.groupIdx, base);
         group.mesh.instanceMatrix.needsUpdate = true;
         resolve();
       }

@@ -1,60 +1,226 @@
 {
   "rules": {
-    "charityWall": {
-      "bricks": {
-        ".read": true,
-        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
-        ".indexOn": [
-          "index"
-        ]
-      },
-      "donors": {
-        ".read": true,
-        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
-      },
-      "expenses": {
-        ".read": true,
-        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
-        ".indexOn": [
-          "date"
-        ]
-      },
+    ".read": false,
+    ".write": false,
+    "center_settings": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+    },
+    "center_news": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+    },
+    "center_announcements": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+    },
+    "center_board": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+    },
+    "center_activities": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+    },
+    "center_articles": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+    },
+    "center_finance": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+    },
+    "center_academies": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+    },
+    "center_quickLinks": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+    },
+    "center_gallery": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+    },
+    "center_private": {
+      ".read": "auth.token.ycAdmin === true || auth.token.ycCenter === true",
+      ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+    },
+    "players": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycFootball === true"
+    },
+    "coaches": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycFootball === true"
+    },
+    "trophies": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycFootball === true"
+    },
+    "schedules": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycFootball === true"
+    },
+    "news": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycFootball === true"
+    },
+    "upcomingMatches": {
+      ".read": true,
+      ".indexOn": [
+        "date"
+      ],
+      ".write": "auth.token.ycAdmin === true || auth.token.ycFootball === true"
+    },
+    "matchResults": {
+      ".read": true,
+      ".indexOn": [
+        "date"
+      ],
+      ".write": "auth.token.ycAdmin === true || auth.token.ycFootball === true"
+    },
+    "registrationRequests": {
+      ".read": "auth.token.ycAdmin === true || auth.token.ycFootball === true",
+      "$id": {
+        ".write": "auth.token.ycAdmin === true || auth.token.ycFootball === true || (!data.exists() && newData.child('status').val() === 'pending')"
+      }
+    },
+    "academy_meta": {
+      "state": {
+        "tickerNews": {
+          ".read": true
+        },
+        "playerOfTheDay": {
+          ".read": true
+        },
+        "activity": {
+          ".read": true
+        },
+        "settings": {
+          "$k": {
+            ".read": "$k !== 'adminPasswordHash'"
+          }
+        },
+        ".write": "auth.token.ycAdmin === true || auth.token.ycFootball === true"
+      }
+    },
+    "karate_academy": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycKarate === true",
+      "schedules": {
+        ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true || auth.token.ycKarate === true"
+      }
+    },
+    "kungfu_academy": {
+      ".read": true,
+      ".write": "auth.token.ycAdmin === true || auth.token.ycKungfu === true",
+      "schedules": {
+        ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true || auth.token.ycKungfu === true"
+      }
+    },
+    "pitch_booking": {
       "settings": {
-        "public_summary": {
-          ".read": true,
-          ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
-        },
-        "tiers": {
-          ".read": true,
-          ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
-        },
-        "admins": {
-          ".read": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
-          ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
-        },
-        "counters": {
-          ".read": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
-          ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
+        ".read": true,
+        ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true"
+      },
+      "bookings": {
+        ".read": "auth.token.ycAdmin === true || auth.token.ycPitch === true",
+        "$date": {
+          "$bookingId": {
+            ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true || (!data.exists() && newData.child('status').val() === 'pending')",
+            ".validate": "newData.hasChildren(['customerName', 'startTime', 'endTime', 'durationMinutes', 'totalPrice', 'status'])",
+            "status": {
+              ".validate": "newData.val() === 'pending' || newData.val() === 'confirmed' || newData.val() === 'cancelled'"
+            },
+            "durationMinutes": {
+              ".validate": "newData.isNumber() && newData.val() >= 30 && newData.val() <= 720 && newData.val() % 30 === 0"
+            },
+            "totalPrice": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+            },
+            "customerName": {
+              ".validate": "newData.isString() && newData.val().length <= 120"
+            },
+            "customerPhone": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "teamOneName": {
+              ".validate": "newData.isString() && newData.val().length <= 80"
+            },
+            "teamTwoName": {
+              ".validate": "newData.isString() && newData.val().length <= 80"
+            }
+          }
         }
       },
-      "donations": {
-        ".read": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
-        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
-        ".indexOn": [
-          "createdAt"
-        ]
+      "availability": {
+        ".read": true,
+        "$date": {
+          "$bookingId": {
+            ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true || (!data.exists() && newData.child('status').val() === 'pending')",
+            ".validate": "newData.hasChildren(['startTime', 'endTime', 'durationMinutes', 'status']) && !newData.hasChildren(['customerPhone', 'phone', 'notes', 'totalPrice', 'paidAmount', 'remainingAmount'])",
+            "status": {
+              ".validate": "newData.val() === 'pending' || newData.val() === 'confirmed' || newData.val() === 'cancelled'"
+            },
+            "customerName": {
+              ".validate": "newData.isString() && newData.val().length <= 120"
+            },
+            "teamOneName": {
+              ".validate": "newData.isString() && newData.val().length <= 80"
+            },
+            "teamTwoName": {
+              ".validate": "newData.isString() && newData.val().length <= 80"
+            }
+          }
+        }
       },
-      "donors_private": {
-        ".read": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
-        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')"
+      "matchResults": {
+        ".read": true,
+        ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true"
       },
-      "adminLogs": {
-        ".read": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
-        ".write": "auth != null && (auth.uid == '7ceFcM1t0FdKzEYHxLvbePOv9bF3' || auth.uid == 'wC5JGSd1RTMwOfAfvzRGbgIri2H2' || auth.uid == '8wqUL2P6f8hbxKhSNoHZ6PRa8tl1' || auth.uid == 'UcQsP5BhEXRKlEfGMr5v5WgN2hn1' || auth.uid == 'iS6zXQSf9SbgsFmk78pXkUjcSQ33')",
-        ".indexOn": [
-          "ts"
-        ]
+      "expenses": {
+        ".read": "auth.token.ycAdmin === true || auth.token.ycPitch === true",
+        ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true"
+      },
+      "payments": {
+        ".read": "auth.token.ycAdmin === true || auth.token.ycPitch === true",
+        ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true"
+      },
+      "auditLogs": {
+        ".read": "auth.token.ycAdmin === true || auth.token.ycPitch === true",
+        ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true"
+      },
+      "telegramSubscribers": {
+        ".read": "auth.token.ycAdmin === true || auth.token.ycPitch === true",
+        ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true"
+      },
+      "telegramResultSessions": {
+        ".read": "auth.token.ycAdmin === true || auth.token.ycPitch === true",
+        ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true"
+      },
+      "adminUsers": {
+        ".read": "auth.token.ycAdmin === true || auth.token.ycPitch === true",
+        ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true"
       }
+    },
+    "pitch_private": {
+      ".read": "auth.token.ycAdmin === true || auth.token.ycPitch === true",
+      ".write": "auth.token.ycAdmin === true || auth.token.ycPitch === true"
+    },
+    "youthcenter": {
+      "state": {
+        ".read": true,
+        ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true"
+      },
+      "adminAuth": {
+        ".read": false,
+        ".write": false
+      }
+    },
+    "platform_meta": {
+      ".read": "auth.token.ycAdmin === true",
+      ".write": "auth.token.ycAdmin === true"
     }
   }
 }

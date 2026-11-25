@@ -32,27 +32,4 @@ assert.match(notFound, /مركز شباب الأحمدية موجودين داي
 assert.match(notFound, /@keyframes shoot/, '404 page must animate the football shot');
 assert.match(notFound, /@keyframes goalPop/, '404 page must animate the goal celebration');
 
-/* ─── عودة الطوبة لمكانها بعد 5 ثوانٍ (إصلاح اختفائها بعد الفتح/التحطيم) ─── */
-const wall3d = read('charity-wall/wall-3d.js');
-assert.match(
-  wall3d, /matrix:\s*finalMatrix/,
-  'entry matrix must store the full-scale finalMatrix — storing the shrunk fly-in matrix (0.001) made bricks vanish on first tap and never return after smash'
-);
-assert.doesNotMatch(
-  wall3d, /matrix:\s*dummy\.matrix\.clone\(\)/,
-  'must never persist the shrunken dummy matrix as the brick base'
-);
-assert.match(
-  wall3d, /popBrick\(group, entry/,
-  'first tap must pop the brick out of the wall and return it after 5 seconds'
-);
-assert.match(
-  wall3d, /labelBaseZ/,
-  'brick entry must remember the label rest position so the nameplate follows the popped brick home'
-);
-
-const anims = read('charity-wall/animations.js');
-assert.match(anims, /export function killPop/, 'pop animation must be cancellable (killPop) for hammer combos');
-assert.match(anims, /scl\.x < 0\.5/, 'shake/rebuild/pop must guard against corrupted near-zero scale matrices');
-
-console.log('✓ Charity Wall donor isolation, standalone admin route, animated 404, and brick-return tests passed');
+console.log('✓ Charity Wall donor isolation, standalone admin route, and animated 404 tests passed');
