@@ -8,4 +8,4 @@ Disallow: /charity-wall/admin.html
 Disallow: /charity-wall/admin/
 
 # ملفات اكتشاف المحتوى لمحركات البحث وأوضاع بحث الذكاء الاصطناعي
-Sitemap: https://mohamednasr5.github.io/youthcenter/sitemap.xml
+Sitemap: https://ahmadiya.online/sitemap.xml
