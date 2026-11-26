@@ -154,11 +154,13 @@ async function parentStatus(req,env){
 async function ensurePlayerBarcode(env,a,p,contact){
  const indexKey=PRIVATE+"barcode-player:"+a+":"+p.id;
  let saved=await get(env,indexKey);
- if(saved?.token&&saved?.barcodeId)return saved;
- const bytes=crypto.getRandomValues(new Uint8Array(32));let raw="";bytes.forEach(x=>raw+=String.fromCharCode(x));
- const token=b64(raw),barcodeId="YC-"+crypto.randomUUID().replace(/-/g,"").slice(0,16).toUpperCase();
- const record={barcodeId,token,academy:a,playerId:String(p.id),playerName:p.name||p.fullName||"لاعب",guardianPhone:contact?.display||"",createdAt:new Date().toISOString(),active:true};
- await put(env,PRIVATE+"barcode-token:"+await tokenHash(token),record);
+ if(!saved?.token||!saved?.barcodeId){
+  const bytes=crypto.getRandomValues(new Uint8Array(32));let raw="";bytes.forEach(x=>raw+=String.fromCharCode(x));
+  const token=b64(raw),barcodeId="YC-"+crypto.randomUUID().replace(/-/g,"").slice(0,16).toUpperCase();
+  saved={barcodeId,token,academy:a,playerId:String(p.id),createdAt:new Date().toISOString(),active:true};
+ }
+ const record={...saved,academy:a,playerId:String(p.id),playerName:p.name||p.fullName||"لاعب",guardianPhone:contact?.display||saved.guardianPhone||"",active:true};
+ await put(env,PRIVATE+"barcode-token:"+await tokenHash(record.token),record);
  await put(env,indexKey,record);
  return record;
 }
