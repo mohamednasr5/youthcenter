@@ -98,7 +98,7 @@ async function mount(a){
   await QRCode.toCanvas(canvas,payload,{width:300,margin:3,errorCorrectionLevel:"H"});$(".yc-qr-holder",view).appendChild(canvas);
   $("#yc-qr-download",view).onclick=()=>{const link=document.createElement("a");link.href=canvas.toDataURL("image/png");link.download="Ahmadiya-"+a+"-"+p.barcodeId+".png";link.click();};
   $("#yc-qr-print",view).onclick=()=>{document.body.classList.add("yc-print-qr");const done=()=>{document.body.classList.remove("yc-print-qr");window.removeEventListener("afterprint",done);};window.addEventListener("afterprint",done);window.print();setTimeout(done,1800);};
-  $("#yc-qr-whatsapp",view).onclick=()=>{const text="بطاقة QR الخاصة باللاعب: "+p.name+"\nالأكاديمية: "+academyNames[a]+"\nولي الأمر: "+(p.guardianPhone||"غير مسجل")+"\nرقم الهوية: "+p.barcodeId+"\nيرجى الاحتفاظ بصورة البطاقة وإظهارها عند الحضور.";window.open("https://wa.me/?text="+encodeURIComponent(text),"_blank","noopener");};
+  $("#yc-qr-whatsapp",view).onclick=()=>{const text="بطاقة QR الخاصة باللاعب: "+p.name+"\\nالأكاديمية: "+academyNames[a]+"\\nولي الأمر: "+(p.guardianPhone||"غير مسجل")+"\\nرقم الهوية: "+p.barcodeId;canvas.toBlob(async blob=>{if(blob&&navigator.canShare&&navigator.share){const file=new File([blob],"QR-"+p.barcodeId+".png",{type:"image/png"});try{if(navigator.canShare({files:[file]})){await navigator.share({title:"بطاقة اللاعب",text,files:[file]});return;}}catch{}}window.open("https://wa.me/?text="+encodeURIComponent(text+"\\nيمكن إرفاق صورة البطاقة بعد تنزيلها."),"_blank","noopener");},"image/png");};
   panel.scrollIntoView({behavior:"smooth",block:"center"});
  }
  sel.addEventListener("change",()=>{const p=players.find(x=>String(x.id)===String(sel.value));$("#yc-phone",box).value=p?.guardianPhone||"";});
