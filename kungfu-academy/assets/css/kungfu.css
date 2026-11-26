@@ -875,3 +875,79 @@ body {
   .kungfu-players-carousel .players-carousel-bottom{gap:7px}
 }
 @media(prefers-reduced-motion:reduce){.kungfu-players-carousel .players-carousel-slide{transition:none!important}}
+
+
+/* ============ KUNG FU LANDSCAPE PHOTO FORMAT ============ */
+/* Keep the original horizontal composition; never crop player photographs into portrait/reels cards. */
+.kungfu-players-carousel {
+  --carousel-card-width: clamp(320px, 64vw, 820px);
+  min-height: clamp(260px, 42vw, 510px);
+  padding-top: 14px;
+}
+.kungfu-players-carousel .players-carousel-track {
+  height: clamp(230px, 39vw, 470px);
+}
+.kungfu-players-carousel .players-carousel-slide {
+  top: 50%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  max-height: 100%;
+  transform: translate(-50%, -50%) scale(.72);
+  border-radius: 16px;
+}
+.kungfu-players-carousel .players-carousel-image-frame,
+.kungfu-players-carousel .players-carousel-image-frame img {
+  width: 100%;
+  height: 100%;
+}
+.kungfu-players-carousel .players-carousel-image-frame {
+  background: #080808;
+}
+.kungfu-players-carousel .players-carousel-image-frame img {
+  object-fit: contain;
+  object-position: center;
+  background: #080808;
+}
+.kungfu-players-carousel .players-carousel-slide::after {
+  inset: 62% 0 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.78) 100%);
+}
+.kungfu-players-carousel .players-carousel-slide.is-active {
+  transform: translate(-50%, -50%) scale(1);
+}
+.kungfu-players-carousel .players-carousel-slide.is-prev {
+  transform: translate(calc(-50% - var(--carousel-card-width) * .78), -50%) scale(.74) rotateY(5deg);
+}
+.kungfu-players-carousel .players-carousel-slide.is-next {
+  transform: translate(calc(-50% + var(--carousel-card-width) * .78), -50%) scale(.74) rotateY(-5deg);
+}
+.kungfu-players-carousel .players-carousel-slide.is-far {
+  transform: translate(calc(-50% + var(--carousel-card-width) * var(--side,1) * 1.48), -50%) scale(.58);
+}
+.kungfu-players-carousel .players-carousel-slide.is-hidden {
+  transform: translate(-50%, -50%) scale(.48);
+}
+.kungfu-players-carousel .players-carousel-arrow { top: 44%; }
+@media(max-width:767px) {
+  .kungfu-players-carousel {
+    --carousel-card-width: min(82vw, 520px);
+    min-height: 270px;
+    padding-top: 8px;
+  }
+  .kungfu-players-carousel .players-carousel-track { height: 230px; }
+  .kungfu-players-carousel .players-carousel-slide { border-radius: 12px; }
+  .kungfu-players-carousel .players-carousel-slide.is-prev {
+    transform: translate(calc(-50% - var(--carousel-card-width) * .72), -50%) scale(.72);
+  }
+  .kungfu-players-carousel .players-carousel-slide.is-next {
+    transform: translate(calc(-50% + var(--carousel-card-width) * .72), -50%) scale(.72);
+  }
+  .kungfu-players-carousel .players-carousel-slide.is-far {
+    transform: translate(calc(-50% + var(--carousel-card-width) * var(--side,1) * 1.35), -50%) scale(.56);
+  }
+  .kungfu-players-carousel .players-carousel-arrow { top: 42%; }
+}
+@media(max-width:390px) {
+  .kungfu-players-carousel { --carousel-card-width: 84vw; min-height: 250px; }
+  .kungfu-players-carousel .players-carousel-track { height: 210px; }
+}
