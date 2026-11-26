@@ -258,7 +258,7 @@
     }
 
     track.innerHTML = photos.map(function(photo, index) {
-      const label = 'لاعب الكونغ فو رقم ' + String(photo.number).padStart(2, '0');
+      const label = 'لاعب الكونغ فو رقم ' + String(photo.number);
       return '<button class="players-carousel-slide" type="button" data-slide-index="' + index + '" aria-label="' + label + '" tabindex="-1">' +
         '<span class="players-carousel-image-frame"><img src="' + photo.src + '" alt="' + label + '" loading="' + (index < 3 ? 'eager' : 'lazy') + '" decoding="async" draggable="false"></span>' +
         '<span class="players-carousel-slide-number">' + label + '</span></button>';
