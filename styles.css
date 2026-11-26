@@ -681,3 +681,72 @@ html{scroll-behavior:smooth}
  .nav .nav-dropdown.is-open .nav-dropdown-menu{display:grid}
  .nav .nav-dropdown-menu a{padding:11px 12px;font-size:.92rem;background:rgba(255,255,255,.045)}
 }
+
+/* Premium academy mega-menu */
+.nav-dropdown{position:relative;isolation:isolate}
+.nav-dropdown-menu{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+  position:absolute;top:calc(100% + 15px);right:50%;transform:translate(50%,10px) scale(.98);
+  width:min(470px,calc(100vw - 34px));min-width:410px;padding:12px;
+  border:1px solid rgba(245,210,130,.24);border-radius:20px;
+  background:linear-gradient(145deg,rgba(16,25,43,.985),rgba(7,13,26,.99));
+  box-shadow:0 22px 65px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.055);
+  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .2s ease,transform .2s ease,visibility .2s ease;
+}
+.nav-dropdown-menu::before{
+  content:"";position:absolute;top:-7px;right:50%;width:13px;height:13px;
+  transform:translateX(50%) rotate(45deg);background:#111b30;
+  border-right:1px solid rgba(245,210,130,.22);border-top:1px solid rgba(245,210,130,.22);
+}
+.nav-dropdown:hover .nav-dropdown-menu,
+.nav-dropdown:focus-within .nav-dropdown-menu,
+.nav-dropdown.is-open .nav-dropdown-menu{
+  opacity:1;visibility:visible;pointer-events:auto;transform:translate(50%,0) scale(1);
+}
+.nav .nav-dropdown-menu a.academy-menu-card{
+  display:grid;grid-template-columns:42px minmax(0,1fr) 18px;align-items:center;gap:10px;
+  min-height:76px;padding:12px;margin:0;white-space:normal;
+  border:1px solid rgba(255,255,255,.075);border-radius:14px;
+  background:linear-gradient(135deg,rgba(255,255,255,.065),rgba(255,255,255,.025));
+  color:#fff;text-decoration:none;transition:transform .2s ease,border-color .2s ease,background .2s ease;
+}
+.nav .nav-dropdown-menu a.academy-menu-card:hover{
+  transform:translateY(-2px);border-color:rgba(245,210,130,.42);
+  background:linear-gradient(135deg,rgba(245,158,11,.13),rgba(16,185,129,.08));
+}
+.nav .nav-dropdown-menu a.academy-menu-card::after{display:none}
+.academy-menu-icon{
+  display:grid;place-items:center;width:42px;height:42px;border-radius:13px;
+  font-size:1.35rem;background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.08);
+}
+.academy-menu-card.football .academy-menu-icon{background:rgba(16,185,129,.14)}
+.academy-menu-card.karate .academy-menu-icon{background:rgba(245,158,11,.14)}
+.academy-menu-card.kungfu .academy-menu-icon{background:rgba(239,68,68,.14)}
+.academy-menu-card.nasheed .academy-menu-icon{background:rgba(139,92,246,.16)}
+.academy-menu-copy{display:block;min-width:0}
+.academy-menu-copy strong{display:block;color:#f8fafc;font-size:.82rem;font-weight:900;line-height:1.5}
+.academy-menu-copy small{display:block;margin-top:3px;color:#aab7ca;font-size:.66rem;font-weight:600;line-height:1.5}
+.academy-menu-arrow{display:grid;place-items:center;color:#e8c77f;font-size:1.05rem;transition:transform .2s}
+.academy-menu-card:hover .academy-menu-arrow{transform:translateX(-3px)}
+@media(max-width:920px){
+ .nav .nav-dropdown{width:100%}
+ .nav .nav-dropdown-toggle{width:100%;justify-content:space-between;padding:14px 16px;border-radius:12px}
+ .nav .nav-dropdown-menu{
+   display:none!important;position:static;top:auto;right:auto;transform:none!important;
+   width:100%;min-width:0;margin:7px 0 5px;padding:8px;grid-template-columns:1fr;
+   border-radius:15px;background:rgba(255,255,255,.035);box-shadow:none;
+   opacity:1;visibility:visible;pointer-events:auto;backdrop-filter:none;
+ }
+ .nav .nav-dropdown-menu::before{display:none}
+ .nav .nav-dropdown.is-open .nav-dropdown-menu{display:grid!important}
+ .nav .nav-dropdown-menu a.academy-menu-card{min-height:66px;padding:10px 12px;background:rgba(255,255,255,.045)}
+ .academy-menu-icon{width:38px;height:38px}
+ .academy-menu-copy strong{font-size:.86rem}
+ .academy-menu-copy small{font-size:.7rem}
+}
+@media(min-width:921px) and (max-width:1120px){
+ .nav-dropdown-menu{right:auto;left:50%;transform:translate(-50%,10px) scale(.98)}
+ .nav-dropdown:hover .nav-dropdown-menu,.nav-dropdown:focus-within .nav-dropdown-menu,.nav-dropdown.is-open .nav-dropdown-menu{transform:translate(-50%,0) scale(1)}
+}
