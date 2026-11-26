@@ -191,6 +191,7 @@ async function nasheed(req,env,path){
  const day=String(b.day||"").trim(),fromTime=String(b.fromTime||"").trim(),toTime=String(b.toTime||"").trim();if(!day||!fromTime||!toTime)throw Error("اليوم ووقتا التدريب مطلوبان.");
  const s={id,day,date:String(b.date||""),fromTime,toTime,location:String(b.location||"مركز شباب الأحمدية"),active:b.active!==false};await put(env,key,s);return {ok:true,schedule:s};
 }
+async function nasheedData(req,env){await verifyStaff(req,env,"nasheed");return {players:await academyPlayers("nasheed",env),schedules:await academySchedules("nasheed",env)};}
 async function route(req,env,url){
  const p=url.pathname,m=req.method;
  if(p==="/api/health"&&m==="GET")return {ok:true,academies:Object.keys(ACADEMIES)};
