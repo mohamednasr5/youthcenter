@@ -660,3 +660,24 @@ html{scroll-behavior:smooth}
   .bottom-nav a,.bottom-nav .bn-more{font-size:.58rem;padding-inline:2px}
   .bottom-nav .bn-more-menu{grid-template-columns:1fr}
 }
+
+/* Academy dropdown — compact desktop navigation and accessible mobile menu */
+.nav-dropdown{position:relative;flex:0 0 auto}
+.nav-dropdown-toggle{appearance:none;-webkit-appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;border:0;border-radius:11px;background:transparent;color:var(--txt-2);font:inherit;font-size:.92rem;font-weight:700;white-space:nowrap;cursor:pointer;transition:.25s}
+.nav-dropdown-toggle:hover,.nav-dropdown.is-open .nav-dropdown-toggle{color:#fff;background:var(--bg-glass)}
+.nav-dropdown-chevron{font-size:1.05rem;line-height:1;transition:transform .22s ease}
+.nav-dropdown.is-open .nav-dropdown-chevron{transform:rotate(180deg)}
+.nav-dropdown-menu{position:absolute;top:calc(100% + 9px);right:0;z-index:80;display:none;min-width:245px;padding:8px;border:1px solid var(--border-strong);border-radius:16px;background:rgba(8,12,24,.98);backdrop-filter:blur(18px);box-shadow:0 18px 48px rgba(0,0,0,.55);gap:4px}
+.nav-dropdown:hover .nav-dropdown-menu,.nav-dropdown:focus-within .nav-dropdown-menu,.nav-dropdown.is-open .nav-dropdown-menu{display:grid}
+.nav .nav-dropdown-menu a{display:flex;align-items:center;gap:10px;padding:11px 12px;margin:0;border-radius:10px;background:transparent;color:var(--txt-2);font-size:.84rem;white-space:nowrap}
+.nav .nav-dropdown-menu a span{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:rgba(255,255,255,.07);font-size:1rem}
+.nav .nav-dropdown-menu a:hover{background:rgba(255,255,255,.09);color:#fff}
+.nav .nav-dropdown-menu a::after{display:none}
+.nav-dropdown-toggle:focus-visible,.nav-dropdown-menu a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+@media(max-width:920px){
+ .nav .nav-dropdown{width:100%;flex:0 0 auto}
+ .nav .nav-dropdown-toggle{width:100%;justify-content:space-between;padding:14px 16px;font-size:1.05rem;border-radius:12px;background:var(--bg-glass);color:var(--txt-2)}
+ .nav .nav-dropdown-menu{position:static;min-width:0;width:100%;margin:5px 0 4px;padding:7px;display:none;grid-template-columns:1fr;border-radius:13px;background:rgba(255,255,255,.035);box-shadow:none;border-color:var(--border)}
+ .nav .nav-dropdown.is-open .nav-dropdown-menu{display:grid}
+ .nav .nav-dropdown-menu a{padding:11px 12px;font-size:.92rem;background:rgba(255,255,255,.045)}
+}
