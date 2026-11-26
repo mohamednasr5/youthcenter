@@ -195,15 +195,6 @@ async function attendance(req,env,url){
  const next=act==="checkin"?{in:c.now,out:null,playerName:p.name||p.fullName||"",by:staff.uid}:{...s,out:c.now,outBy:staff.uid};
  await put(env,key,next);return {ok:true,message:act==="checkin"?"تم تسجيل دخول اللاعب.":"تم تسجيل خروج اللاعب.",session:next};
 }
-async function nasheed(req,env,path){
- await verifyStaff(req,env,"nasheed");const b=await body(req);
- const type=path.includes("schedule")?"schedule":"player",id=playerKey(b.id||type+"-"+crypto.randomUUID()),key="nasheed:"+type+":"+id;
- if(path.endsWith("/delete")){await del(env,key);if(type==="player"){const c=await get(env,PRIVATE+"contact:nasheed:"+id);if(c?.phone){const g=await get(env,PRIVATE+"guardian:"+c.phone);if(g?.players?.nasheed)delete g.players.nasheed[id];if(g)await put(env,PRIVATE+"guardian:"+c.phone,g);await del(env,PRIVATE+"contact:nasheed:"+id);}}return {ok:true};}
- if(type==="player"){const name=String(b.name||"").trim();if(!name)throw Error("اسم اللاعب مطلوب.");const p={id,name,age:String(b.age||""),category:String(b.category||""),photo:String(b.photo||""),active:b.active!==false};await put(env,key,p);return {ok:true,player:p};}
- const day=String(b.day||"").trim(),fromTime=String(b.fromTime||"").trim(),toTime=String(b.toTime||"").trim();if(!day||!fromTime||!toTime)throw Error("اليوم ووقتا التدريب مطلوبان.");
- const s={id,day,date:String(b.date||""),fromTime,toTime,location:String(b.location||"مركز شباب الأحمدية"),active:b.active!==false};await put(env,key,s);return {ok:true,schedule:s};
-}
-async function nasheedData(req,env){await verifyStaff(req,env,"nasheed");return {players:await academyPlayers("nasheed",env),schedules:await academySchedules("nasheed",env)};}
 async function route(req,env,url){
  const p=url.pathname,m=req.method;
  if(p==="/api/health"&&m==="GET")return {ok:true,academies:Object.keys(ACADEMIES)};
@@ -214,7 +205,6 @@ async function route(req,env,url){
  if(p==="/api/admin/players"&&m==="GET")return playersAdmin(req,env,url);
  if(p==="/api/admin/link-player"&&m==="POST")return linkPlayer(req,env);
  if(p==="/api/admin/attendance"&&(m==="GET"||m==="POST"))return attendance(req,env,url);
- if(p.startsWith("/api/nasheed/")&&m==="POST")return nasheed(req,env,p);
  return {status:404,error:"المسار غير موجود."};
 }
 export default {
