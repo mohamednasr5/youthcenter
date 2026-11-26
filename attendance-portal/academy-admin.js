@@ -55,7 +55,7 @@ async function mount(a){
  <div class="c" style="margin-top:12px"><b>📋 حضور وانصراف اليوم</b><button class="alt" id="yc-reload">تحديث السجلات</button><div id="yc-list"></div></div>
  <div class="c" id="yc-qr" style="display:none;margin-top:12px"><b>بطاقة اللاعب الرسمية</b><div id="yc-qr-view"></div></div>`;
  const anchor=$("#dashboard-section")||$("#app")||$(".wrap")||document.querySelector("main")||document.body;anchor.appendChild(box);}
- let players=[],rows=[],videoStream=null,detector=null,scanLoop=0,scanning=false,scanBusy=false;
+ let players=[],rows=[],videoStream=null,detector=null,scanLoop=0,scanning=false,scanBusy=false;const recentScans=new Map();
  const sel=$("#yc-player",box),message=(id,t)=>$("#"+id,box).textContent=t;
  async function load(){
   players=await api(a,"/api/admin/players?academy="+a);const old=sel.value;
@@ -68,7 +68,8 @@ async function mount(a){
   if(scanBusy)return;scanBusy=true;
   try{
    let value=String(raw||"").trim();if(value.startsWith("AHMADIYAH|")){const p=value.split("|");if(p.length!==3||p[1]!=="v1")throw Error("صيغة الباركود غير صحيحة أو قديمة.");value=p[2];}
-   const result=await api(a,"/api/admin/scan",{method:"POST",body:JSON.stringify({token:value})});
+   const seen=recentScans.get(value)||0;if(Date.now()-seen<300000){message("yc-scan-msg","⏳ تمت قراءة هذا الرمز منذ قليل؛ انتظر انتهاء مهلة الخمس دقائق.");return;}
+   const result=await api(a,"/api/admin/scan",{method:"POST",body:JSON.stringify({token:value})});recentScans.set(value,Date.now());
    if(result.ignored){message("yc-scan-msg","⏳ "+result.message+" اللاعب: "+result.playerName);return;}
    message("yc-scan-msg",(result.action==="checkin"?"🟢 ":"🔵 ")+result.message+" — "+result.playerName+" — "+result.academyLabel+" — "+new Date(result.at).toLocaleTimeString("ar-EG"));
    $("#yc-code",box).value="";await load();
