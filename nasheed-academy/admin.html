@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#12142a">
+<title>إدارة فريق الإنشاد | مركز شباب الأحمدية</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0d1b;--card:#171a32;--line:#ffffff1b;--txt:#f5f5ff;--mut:#aeb2c9;--gold:#edc46b;--purple:#a78bfa}
+*{box-sizing:border-box}body{margin:0;padding:20px;background:radial-gradient(ellipse at 15% 0,#4c1d9550,transparent 38%),radial-gradient(ellipse at 90% 80%,#312e8150,transparent 38%),var(--bg);color:var(--txt);font-family:Cairo,system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:1050px;margin:auto}h1{font-size:1.55rem;margin:0 0 5px}.muted{color:var(--mut);font-size:.84rem;line-height:1.8;margin:0 0 20px}
+.card{padding:19px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#ffffff10,#ffffff06);margin:14px 0;box-shadow:0 15px 50px #0003}
+label{display:block;color:#c9cce0;font-size:.8rem;margin:10px 0}input,select{display:block;width:100%;padding:11px;border-radius:10px;border:1px solid var(--line);background:#0e1225;color:white;font:inherit;margin-top:5px}
+button,.btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:10px;padding:10px 15px;background:linear-gradient(120deg,#a78bfa,#e9c16a);color:#17112a;font:inherit;font-weight:900;cursor:pointer;margin:5px 3px 0 0}
+button.secondary{background:#2b304b;color:#edf0ff;border:1px solid #ffffff22}button.danger{background:#542338;color:#ffd3df}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.item small{display:block;color:var(--mut)}.msg{min-height:22px;color:#a7f3d0;font-size:.8rem;margin-top:9px}.error{color:#fda4af}
+#app{display:none}.login{max-width:500px;margin:8vh auto 0}.brand{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:12px}.brand a{color:#c4b5fd;text-decoration:none;font-size:.8rem}
+@media(max-width:560px){body{padding:12px}.card{padding:14px}.item{align-items:flex-start;flex-direction:column}}
+</style></head>
+<body><div class="wrap">
+<div class="brand"><strong>🏛️ مركز شباب الأحمدية</strong><a href="./index.html">عرض صفحة فريق الإنشاد ↗</a></div>
+<div id="login" class="card login"><h1>🎙️ إدارة فريق الإنشاد</h1><p class="muted">سجّل الدخول بحساب إدارة يحمل صلاحية الإنشاد أو صلاحية إدارة المركز.</p>
+<label>البريد الإلكتروني<input id="em" type="email" autocomplete="username"></label><label>كلمة المرور<input id="pw" type="password" autocomplete="current-password"></label>
+<button id="loginBtn">دخول لوحة الإنشاد</button><button id="googleBtn" type="button" class="secondary">الدخول باستخدام Google</button><div id="loginMsg" class="msg error"></div></div>
+<div id="app">
+<div class="card"><h1>إدارة اللاعبين والمواعيد</h1><p class="muted">تُخزن سجلات فريق الإنشاد في مساحة منفصلة، ويُستخدم رقم ولي الأمر ورمز المتابعة نفسه مثل الأكاديميات الأخرى.</p></div>
+<div class="grid">
+<div class="card"><h3 id="playerTitle">إضافة لاعب جديد</h3><form id="playerForm"><input id="playerId" type="hidden"><label>اسم اللاعب<input id="playerName" required maxlength="120"></label><label>السن<input id="playerAge" type="number" min="3" max="100"></label><label>المجموعة / المستوى<input id="playerGroup" maxlength="80" placeholder="مبتدئ، متقدم..."></label><label>رابط الصورة (اختياري)<input id="playerPhoto" type="url"></label><button>حفظ اللاعب</button><button type="button" class="secondary" id="cancelPlayer">مسح النموذج</button></form><div id="playerMsg" class="msg"></div></div>
+<div class="card"><h3 id="scheduleTitle">إضافة موعد تدريب</h3><form id="scheduleForm"><input id="scheduleId" type="hidden"><label>اليوم<select id="scheduleDay"><option>السبت</option><option>الأحد</option><option>الإثنين</option><option>الثلاثاء</option><option>الأربعاء</option><option>الخميس</option><option>الجمعة</option></select></label><label>التاريخ (اختياري لحصة محددة)<input id="scheduleDate" type="date"></label><div class="grid"><label>من الساعة<input id="scheduleFrom" type="time" required value="17:00"></label><label>إلى الساعة<input id="scheduleTo" type="time" required value="19:00"></label></div><label>مكان التدريب<input id="scheduleLocation" value="مركز شباب الأحمدية"></label><button>حفظ الموعد</button><button type="button" class="secondary" id="cancelSchedule">مسح النموذج</button></form><div id="scheduleMsg" class="msg"></div></div>
+</div>
+<div class="grid"><div class="card"><h3>قائمة اللاعبين</h3><div id="playersList"></div></div><div class="card"><h3>مواعيد التدريب</h3><div id="schedulesList"></div></div></div>
+</div></div>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="../yc-auth-config.js"></script><script src="../data.js"></script><script src="../attendance-portal/config.js"></script>
+<script src="./admin.js"></script>
+<script type="module" src="../attendance-portal/academy-admin.js" data-academy-admin="nasheed"></script>
+</body></html>
