@@ -20,7 +20,7 @@
 
 الإعدادات:
 - Root directory: جذر المستودع.
-- Build command: اتركه فارغًا.
+- Build command: `npm install` (لتثبيت Wrangler المحدد في package.json).
 - Deploy command: `npx wrangler deploy`
 - Preview command: `npx wrangler preview`
 - ملف الإعداد: `wrangler.toml` في جذر المستودع.
