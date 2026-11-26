@@ -1,6 +1,22 @@
-/* Ahmadiya Youth Center attendance API
-   Guardians + QR attendance for football, karate, kungfu and nasheed.
-   Private guardian data is held in Cloudflare Durable Objects.
+/* Ahmadiya Youth Center attendance API — unified player QR identity, smart
+   attendance, audit logs and rate limiting for football, karate, kungfu and nasheed.
+   Private guardian data and QR tokens are held in Cloudflare Durable Objects.
+
+   Endpoints (all under /api):
+   - GET  /health
+   - POST /guardian/login                 guardian phone + tracking code
+   - GET  /guardian/status                children + permanent QR identity
+   - GET  /admin/players?academy=        roster incl. barcode info
+   - POST /admin/qr-provision             auto QR right after a player is created
+   - POST /admin/link-player              link guardian phone (keeps same QR)
+   - POST /admin/qr-manage                info | revoke | regenerate
+   - POST /admin/scan                     camera QR scan -> attendance toggle
+   - GET  /admin/attendance?academy=      today roster status
+   - GET  /admin/attendance-history       multi-day sessions per player
+   - POST /admin/transfer-player          move player between academies (center)
+   - GET  /admin/audit-logs               recent audit trail (center)
+   - GET  /admin/guardians                guardian list (center)
+   - POST /admin/guardian-code            set/delete tracking code (center)
 */
 const API_KEY = "FIREBASE_WEB_API_KEY";
 const DB = "https://academia-e6d7b-default-rtdb.firebaseio.com";
@@ -11,6 +27,8 @@ const ACADEMIES = {
   kungfu:{label:"أكاديمية الكونغ فو",players:"kungfu_academy/players",schedules:"kungfu_academy/schedules",claim:"ycKungfu"},
   nasheed:{label:"فريق الإنشاد",players:"nasheed_academy/players",schedules:"nasheed_academy/schedules",claim:"ycNasheed"}
 };
+const CLAIM_KEYS=Object.values(ACADEMIES).map(a=>a.claim);
+const SCAN_LIMIT=40, SCAN_WINDOW_MS=60000, SCAN_COOLDOWN_MS=300000, AUDIT_CAP=600;
 const DAYS=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 
 const ok=(data,status=200,origin="")=>{
@@ -36,7 +54,7 @@ function phoneKey(v){
  return n;
 }
 let firebaseKeys=null;
-async function verifyStaff(req,env,academy,centerOnly=false){
+async function verifyStaff(req,env,academy,centerOnly=false,anyAcademy=false){
  const token=bearer(req);if(!token)throw Error("سجّل الدخول بحساب الإدارة أولًا.");
  const parts=token.split(".");if(parts.length!==3)throw Error("جلسة Firebase غير صالحة.");
  let head,payload,signature;
@@ -56,9 +74,20 @@ async function verifyStaff(req,env,academy,centerOnly=false){
  if(!check.ok)throw Error("انتهت صلاحية حساب الإدارة أو تم إيقافه.");
  const user=(await check.json()).users?.[0];if(!user||user.disabled||Number(payload.auth_time)<Number(user.validSince||0))throw Error("جلسة الإدارة لم تعد صالحة. سجّل الدخول مجددًا.");
  const claims=payload;
- const allowed=centerOnly?(claims.ycAdmin===true||claims.ycCenter===true):(claims.ycAdmin===true||claims.ycCenter===true||(academy&&claims[ACADEMIES[academy].claim]===true));
+ const allowed=centerOnly?(claims.ycAdmin===true||claims.ycCenter===true)
+  :anyAcademy?(claims.ycAdmin===true||claims.ycCenter===true||CLAIM_KEYS.some(k=>claims[k]===true))
+  :(claims.ycAdmin===true||claims.ycCenter===true||(academy&&claims[ACADEMIES[academy].claim]===true));
  if(!allowed)throw Error("الحساب لا يملك صلاحية تنفيذ هذا الإجراء.");
- return {uid:payload.user_id||payload.sub,claims};
+ return {uid:payload.user_id||payload.sub,claims,email:claims.email||""};
+}
+async function verifyAnyAcademy(req,env){
+ // Any authorized academy staff (or center admin) may scan a player QR from any
+ // academy dashboard; attendance is still stored under the player's own academy.
+ const staff=await verifyStaff(req,env,null,false,true);
+ const c=staff.claims;
+ const center=c.ycAdmin===true||c.ycCenter===true;
+ const academies=Object.keys(ACADEMIES).filter(a=>c[ACADEMIES[a].claim]===true);
+ return {...staff,center,academies};
 }
 function store(env){
  const id=env.ATTENDANCE_STORE.idFromName("ahmadiya-attendance-store");
@@ -75,6 +104,19 @@ const get=(env,key)=>kv(env,"get",key);
 const put=(env,key,value)=>kv(env,"put",key,value);
 const del=(env,key)=>kv(env,"delete",key);
 const list=(env,prefix)=>kv(env,"list",prefix);
+async function auditAdd(env,entry){
+ try{
+  const r=await store(env).fetch("https://store/audit-add",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({t:new Date().toISOString(),...entry})});
+  if(!r.ok)throw Error();
+ }catch{/* audit best-effort: never block an attendance action */}
+}
+async function auditList(env,limit=100){
+ try{
+  const r=await store(env).fetch("https://store/audit-list?limit="+encodeURIComponent(Math.min(600,Math.max(1,limit))));
+  if(!r.ok)throw Error();
+  return (await r.json()).items||[];
+ }catch{return [];}
+}
 async function firebaseRead(path){
  const r=await fetch(DB+"/"+path.split("/").map(encodeURIComponent).join("/")+".json");
  if(!r.ok)throw Error("تعذر قراءة بيانات الأكاديمية من Firebase.");
@@ -109,6 +151,10 @@ function clock(){
  const p=Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit",weekday:"long",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).map(x=>[x.type,x.value]));
  const days={Sunday:"الأحد",Monday:"الإثنين",Tuesday:"الثلاثاء",Wednesday:"الأربعاء",Thursday:"الخميس",Friday:"الجمعة",Saturday:"السبت"};
  return {date:p.year+"-"+p.month+"-"+p.day,day:days[p.weekday],minute:Number(p.hour)*60+Number(p.minute),now:new Date().toISOString(),ms:Date.now()};
+}
+function cairoDateOf(ms){
+ const p=Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(ms)).map(x=>[x.type,x.value]));
+ return p.year+"-"+p.month+"-"+p.day;
 }
 async function academyPlayers(a,env){
  return entries(await firebaseRead(ACADEMIES[a].players)).map(([k,v])=>({...v,id:String(v.id??k)}));
@@ -147,7 +193,7 @@ async function parentStatus(req,env){
   const [ss,sc]=await Promise.all([get(env,PRIVATE+"session:"+c.date+":"+r.a+":"+r.id),academySchedules(r.a,env)]);
   const sched=matchingSchedule(sc,c);
   const barcode=await ensurePlayerBarcode(env,r.a,p,contact);
-  return {id:r.id,academy:r.a,academyLabel:a.label,name:p.name||p.fullName||"لاعب",age:p.age||"",group:p.category||p.belt||"",photo:p.photo||"",barcodeId:barcode.barcodeId,barcodeToken:barcode.token,guardianPhone:contact.display||"",schedule:sched?{fromTime:sched.fromTime||"",toTime:sched.toTime||"",location:sched.location||"",day:sched.day||c.day}:null,status:stateOf(ss,sched,c)};
+  return {id:r.id,academy:r.a,academyLabel:a.label,name:p.name||p.fullName||"لاعب",age:p.age||"",group:p.category||p.belt||"",photo:p.photo||"",barcodeId:barcode.barcodeId,barcodeToken:barcode.active?barcode.token:"",barcodeActive:barcode.active!==false,barcodeCreatedAt:barcode.createdAt||"",guardianPhone:contact.display||"",schedule:sched?{fromTime:sched.fromTime||"",toTime:sched.toTime||"",location:sched.location||"",day:sched.day||c.day}:null,status:stateOf(ss,sched,c)};
  }));
  return {date:c.date,serverTime:c.now,players:players.filter(Boolean)};
 }
@@ -157,12 +203,38 @@ async function ensurePlayerBarcode(env,a,p,contact){
  if(!saved?.token||!saved?.barcodeId){
   const bytes=crypto.getRandomValues(new Uint8Array(32));let raw="";bytes.forEach(x=>raw+=String.fromCharCode(x));
   const token=b64(raw),barcodeId="YC-"+crypto.randomUUID().replace(/-/g,"").slice(0,16).toUpperCase();
-  saved={barcodeId,token,academy:a,playerId:String(p.id),createdAt:new Date().toISOString(),active:true};
+  saved={barcodeId,token,academy:a,playerId:String(p.id),createdAt:new Date().toISOString(),active:true,revision:1};
  }
- const record={...saved,academy:a,playerId:String(p.id),playerName:p.name||p.fullName||"لاعب",guardianPhone:contact?.display||saved.guardianPhone||"",active:true};
- await put(env,PRIVATE+"barcode-token:"+await tokenHash(record.token),record);
- await put(env,indexKey,record);
- return record;
+ // Refresh display fields but never resurrect a revoked card and never rotate the token.
+ saved={...saved,academy:a,playerId:String(p.id),playerName:p.name||p.fullName||saved.playerName||"لاعب",guardianPhone:contact?.display||saved.guardianPhone||"",revision:saved.revision||1,active:saved.active===undefined?true:saved.active};
+ // A revoked card keeps its index record (for info/regenerate) but must not
+ // re-create the live token lookup key that scans resolve against.
+ if(saved.active!==false)await put(env,PRIVATE+"barcode-token:"+await tokenHash(saved.token),saved);
+ await put(env,indexKey,saved);
+ return saved;
+}
+async function qrProvision(req,env){
+ // Called automatically right after a new player is saved: creates the
+ // permanent QR identity (once) and optionally links the guardian phone.
+ const b=await body(req),a=academyKey(b.academy),staff=await verifyStaff(req,env,a),id=playerKey(b.playerId);
+ const p=(await academyPlayers(a,env)).find(x=>String(x.id)===id);
+ if(!p)throw Error("اللاعب غير موجود بعد — احفظ بيانات اللاعب أولًا ثم أنشئ البطاقة.");
+ const phone=b.phone?phoneKey(b.phone):"";
+ let contact=await get(env,PRIVATE+"contact:"+a+":"+id);
+ if(phone){
+  const old=contact;
+  if(old?.phone&&old.phone!==phone){
+   const og=await get(env,PRIVATE+"guardian:"+old.phone);
+   if(og?.players?.[a])delete og.players[a][id];if(og)await put(env,PRIVATE+"guardian:"+old.phone,og);
+  }
+  const g=await get(env,PRIVATE+"guardian:"+phone)||{players:{},enabled:false};
+  g.players=g.players||{};g.players[a]=g.players[a]||{};g.players[a][id]=true;g.display=String(b.phone).trim();g.updatedAt=new Date().toISOString();
+  contact={phone,display:String(b.phone).trim(),updatedBy:staff.uid};
+  await put(env,PRIVATE+"guardian:"+phone,g);await put(env,PRIVATE+"contact:"+a+":"+id,contact);
+ }
+ const barcode=await ensurePlayerBarcode(env,a,p,contact);
+ await auditAdd(env,{kind:"provision",academy:a,playerId:id,playerName:barcode.playerName,action:"qr",staff:staff.uid,staffEmail:staff.email,barcodeId:barcode.barcodeId,detail:phone?"مع ربط ولي الأمر":"بدون رقم ولي الأمر"});
+ return {ok:true,message:"تم إنشاء بطاقة QR دائمة للاعب.",barcode:{barcodeId:barcode.barcodeId,createdAt:barcode.createdAt,revision:barcode.revision||1,active:barcode.active!==false,token:barcode.active?barcode.token:"",guardianPhone:barcode.guardianPhone||"",playerId:id,academy:a}};
 }
 async function playersAdmin(req,env,url){
  const a=academyKey(url.searchParams.get("academy"));await verifyStaff(req,env,a);
@@ -170,7 +242,7 @@ async function playersAdmin(req,env,url){
  for(const p of rows){
   const c=await get(env,PRIVATE+"contact:"+a+":"+p.id);
   const barcode=await ensurePlayerBarcode(env,a,p,c);
-  out.push({id:p.id,name:p.name||p.fullName||"لاعب",age:p.age||"",guardianPhone:c?.display||"",barcodeId:barcode.barcodeId,barcodeToken:barcode.token});
+  out.push({id:p.id,name:p.name||p.fullName||"لاعب",age:p.age||"",guardianPhone:c?.display||"",barcodeId:barcode.barcodeId,barcodeToken:barcode.active?barcode.token:"",barcodeCreatedAt:barcode.createdAt||"",barcodeActive:barcode.active!==false,barcodeRevision:barcode.revision||1});
  }
  return out;
 }
@@ -182,7 +254,7 @@ async function linkPlayer(req,env){
   const og=await get(env,PRIVATE+"guardian:"+old.phone);
   if(og?.players?.[a])delete og.players[a][id];if(og)await put(env,PRIVATE+"guardian:"+old.phone,og);
  }
- if(!phone){await del(env,PRIVATE+"contact:"+a+":"+id);return {ok:true,message:"تم إلغاء ربط ولي الأمر بهذا اللاعب."};}
+ if(!phone){await del(env,PRIVATE+"contact:"+a+":"+id);await auditAdd(env,{kind:"unlink",academy:a,playerId:id,playerName:p.name||p.fullName||"",action:"link",staff:staff.uid,staffEmail:staff.email,detail:"إلغاء ربط ولي الأمر"});return {ok:true,message:"تم إلغاء ربط ولي الأمر بهذا اللاعب."};}
  const g=await get(env,PRIVATE+"guardian:"+phone)||{players:{},enabled:false};
  g.players=g.players||{};g.players[a]=g.players[a]||{};g.players[a][id]=true;g.display=String(b.phone).trim();g.updatedAt=new Date().toISOString();
  const contact={phone,display:String(b.phone).trim(),updatedBy:staff.uid};
@@ -191,8 +263,59 @@ async function linkPlayer(req,env){
  const barcode=await ensurePlayerBarcode(env,a,player,contact);
  barcode.guardianPhone=contact.display;barcode.playerName=player.name||player.fullName||"لاعب";
  await put(env,PRIVATE+"barcode-player:"+a+":"+id,barcode);
- await put(env,PRIVATE+"barcode-token:"+await tokenHash(barcode.token),barcode);
+ if(barcode.active!==false)await put(env,PRIVATE+"barcode-token:"+await tokenHash(barcode.token),barcode);
+ await auditAdd(env,{kind:"link",academy:a,playerId:id,playerName:barcode.playerName,action:"link",staff:staff.uid,staffEmail:staff.email,barcodeId:barcode.barcodeId,detail:contact.display});
  return {ok:true,message:"تم ربط ولي الأمر وإنشاء باركود دائم وآمن للاعب.",barcodeId:barcode.barcodeId};
+}
+async function qrManage(req,env){
+ const b=await body(req),a=academyKey(b.academy),staff=await verifyStaff(req,env,a),id=playerKey(b.playerId);
+ const action=String(b.action||"");
+ if(!["info","revoke","regenerate"].includes(action))throw Error("نوع العملية غير صحيح.");
+ const indexKey=PRIVATE+"barcode-player:"+a+":"+id;
+ const rec=await get(env,indexKey);
+ if(!rec||!rec.token)throw Error("لا توجد بطاقة QR لهذا اللاعب بعد.");
+ if(action==="info")return {ok:true,barcode:{barcodeId:rec.barcodeId,createdAt:rec.createdAt||"",regeneratedAt:rec.regeneratedAt||"",revokedAt:rec.revokedAt||"",revision:rec.revision||1,active:rec.active!==false,token:rec.active!==false?rec.token:"",guardianPhone:rec.guardianPhone||"",playerId:id,academy:a,playerName:rec.playerName||""}};
+ const c=clock();
+ if(action==="revoke"){
+  const next={...rec,active:false,revokedAt:c.now};
+  await del(env,PRIVATE+"barcode-token:"+await tokenHash(rec.token));
+  await put(env,indexKey,next);
+  await auditAdd(env,{kind:"revoke",academy:a,playerId:id,playerName:rec.playerName||"",action:"revoke",staff:staff.uid,staffEmail:staff.email,barcodeId:rec.barcodeId});
+  return {ok:true,message:"تم إبطال بطاقة اللاعب. أي رمز QR قديم لن يُقبل بعد الآن."};
+ }
+ // regenerate: same permanent barcodeId, brand-new cryptographically secure token.
+ const bytes=crypto.getRandomValues(new Uint8Array(32));let raw="";bytes.forEach(x=>raw+=String.fromCharCode(x));
+ const fresh=b64(raw);
+ const next={...rec,token:fresh,active:true,revision:(rec.revision||1)+1,regeneratedAt:c.now,revokedAt:null};
+ await del(env,PRIVATE+"barcode-token:"+await tokenHash(rec.token));
+ await put(env,PRIVATE+"barcode-token:"+await tokenHash(fresh),next);
+ await put(env,indexKey,next);
+ await auditAdd(env,{kind:"regenerate",academy:a,playerId:id,playerName:rec.playerName||"",action:"regenerate",staff:staff.uid,staffEmail:staff.email,barcodeId:rec.barcodeId,detail:"إصدار رقم "+next.revision});
+ return {ok:true,message:"تم توليد رمز QR جديد آمن. اطبع البطاقة الجديدة وسلّمها للاعب.",barcode:{barcodeId:next.barcodeId,createdAt:next.createdAt||"",regeneratedAt:next.regeneratedAt,revision:next.revision,active:true,token:fresh,guardianPhone:next.guardianPhone||"",playerId:id,academy:a}};
+}
+async function transferPlayer(req,env){
+ const b=await body(req),staff=await verifyStaff(req,env,null,true);
+ const from=academyKey(b.fromAcademy||b.academy),to=academyKey(b.toAcademy),id=playerKey(b.playerId);
+ if(from===to)throw Error("اختر أكاديمية مختلفة للنقل.");
+ const rec=await get(env,PRIVATE+"barcode-player:"+from+":"+id);
+ if(!rec||!rec.token)throw Error("لا توجد بطاقة QR لهذا اللاعب في الأكاديمية المصدر.");
+ const target=(await academyPlayers(to,env)).find(x=>String(x.id)===id);
+ if(!target)throw Error("أضف اللاعب في لوحة الأكاديمية الهدف أولًا (بالمعرف نفسه) ثم أعد النقل — لا تُنشأ سجلات لاعبين مكررة تلقائيًا.");
+ const contact=await get(env,PRIVATE+"contact:"+from+":"+id);
+ // move barcode identity (same barcodeId + token) to the new academy
+ const next={...rec,academy:to,playerId:id,playerName:(await academyPlayers(from,env)).find(x=>String(x.id)===id)?.name||rec.playerName,transferredAt:new Date().toISOString()};
+ await del(env,PRIVATE+"barcode-player:"+from+":"+id);
+ await put(env,PRIVATE+"barcode-player:"+to+":"+id,next);
+ await put(env,PRIVATE+"barcode-token:"+await tokenHash(next.token),next);
+ // move guardian contact + membership
+ if(contact?.phone){
+  await del(env,PRIVATE+"contact:"+from+":"+id);
+  await put(env,PRIVATE+"contact:"+to+":"+id,contact);
+  const g=await get(env,PRIVATE+"guardian:"+contact.phone);
+  if(g?.players){if(g.players[from]?.[id])delete g.players[from][id];g.players[to]=g.players[to]||{};g.players[to][id]=true;await put(env,PRIVATE+"guardian:"+contact.phone,g);}
+ }
+ await auditAdd(env,{kind:"transfer",academy:from,playerId:id,playerName:next.playerName||"",action:"transfer",staff:staff.uid,staffEmail:staff.email,barcodeId:next.barcodeId,detail:"نقل إلى "+ACADEMIES[to].label});
+ return {ok:true,message:"تم نقل هوية اللاعب إلى "+ACADEMIES[to].label+" مع الحفاظ على بطاقة QR نفسها.",barcodeId:next.barcodeId};
 }
 async function guardians(req,env){
  await verifyStaff(req,env,null,true);return (await list(env,PRIVATE+"guardian:")||[]).map(x=>({phone:x.value.display||x.key.split(":").pop(),enabled:!!x.value.enabled,count:Object.values(x.value.players||{}).reduce((n,v)=>n+Object.keys(v||{}).length,0),updatedAt:x.value.updatedAt||x.value.codeUpdatedAt||""}));
@@ -216,28 +339,63 @@ async function attendance(req,env,url){
  if(!["checkin","checkout"].includes(act))throw Error("نوع الحركة غير صحيح.");
  const p=(await academyPlayers(a,env)).find(x=>String(x.id)===id);if(!p)throw Error("اللاعب غير موجود.");
  const c=clock(),key=PRIVATE+"session:"+c.date+":"+a+":"+id,s=await get(env,key)||{};
- if(act==="checkin"&&s.in&&!s.out)throw Error("اللاعب مسجل بالفعل داخل التمرين.");
- if(act==="checkout"&&(!s.in||s.out))throw Error("لا يوجد تسجيل دخول مفتوح لهذا اللاعب.");
- const next=act==="checkin"?{in:c.now,out:null,playerName:p.name||p.fullName||"",by:staff.uid}:{...s,out:c.now,outBy:staff.uid};
- await put(env,key,next);return {ok:true,message:act==="checkin"?"تم تسجيل دخول اللاعب.":"تم تسجيل خروج اللاعب.",session:next};
+ const sessions=Array.isArray(s.sessions)?s.sessions:(s.in?[{in:s.in,out:s.out,by:s.by,outBy:s.outBy}]:[]);
+ const latest=sessions[sessions.length-1];
+ if(act==="checkin"&&latest?.in&&!latest.out)throw Error("اللاعب مسجل بالفعل داخل التمرين.");
+ if(act==="checkout"&&!(latest?.in&&!latest.out))throw Error("لا يوجد تسجيل دخول مفتوح لهذا اللاعب.");
+ let next;
+ if(act==="checkin"){
+  sessions.push({in:c.now,out:null,by:staff.uid,byEmail:staff.email||"",playerName:p.name||p.fullName||""});
+  next={sessions,lastScanAt:c.now,lastScanBy:staff.uid,playerName:p.name||p.fullName||"",barcodeId:s.barcodeId};
+ }else{
+  latest.out=c.now;latest.outBy=staff.uid;latest.outByEmail=staff.email||"";
+  next={...s,sessions};
+ }
+ await put(env,key,next);
+ await auditAdd(env,{kind:act,academy:a,playerId:id,playerName:p.name||p.fullName||"",action:act,staff:staff.uid,staffEmail:staff.email,detail:"تسجيل يدوي من اللوحة"});
+ return {ok:true,message:act==="checkin"?"تم تسجيل دخول اللاعب.":"تم تسجيل خروج اللاعب.",session:next};
+}
+async function attendanceHistory(req,env,url){
+ const a=academyKey(url.searchParams.get("academy"));await verifyStaff(req,env,a);
+ const id=playerKey(url.searchParams.get("playerId"));
+ const days=Math.min(31,Math.max(1,Number(url.searchParams.get("days"))||7));
+ const now=Date.now(),out=[];
+ for(let k=0;k<days;k++){
+  const date=cairoDateOf(now-k*86400000);
+  const s=await get(env,PRIVATE+"session:"+date+":"+a+":"+id);
+  const sessions=Array.isArray(s?.sessions)?s.sessions:(s?.in?[{in:s.in,out:s.out,by:s.by,outBy:s.outBy}]:[]);
+  if(sessions.length)out.push({date,sessions:sessions.map(x=>({checkInAt:x.in||"",checkOutAt:x.out||null,by:x.by||"",byEmail:x.byEmail||"",outBy:x.outBy||"",outByEmail:x.outByEmail||"",playerName:x.playerName||""}))});
+ }
+ return {ok:true,academy:a,playerId:id,days,out};
 }
 async function scanBarcode(req,env){
  const b=await body(req),token=String(b.token||"").trim();
  if(token.length<30||token.length>100)throw Error("رمز QR غير صالح.");
+ // Authenticate staff FIRST — never reveal token validity to unauthenticated callers.
+ const staff=await verifyAnyAcademy(req,env);
  const record=await get(env,PRIVATE+"barcode-token:"+await tokenHash(token));
- if(!record||!record.active||record.token!==token)throw Error("هذا الباركود غير مسجل أو تم إيقافه.");
- const a=academyKey(record.academy),staff=await verifyStaff(req,env,a);
+ if(!record||record.token!==token)throw Error("هذا الباركود غير مسجل أو تم إيقافه.");
+ if(record.active===false)throw Error("بطاقة هذا اللاعب موقوفة أو ملغاة. اطلب بطاقة جديدة من الإدارة.");
+ const a=academyKey(record.academy),sameAcademy=staff.center||staff.claims[ACADEMIES[a].claim]===true;
  const p=(await academyPlayers(a,env)).find(x=>String(x.id)===String(record.playerId));
  if(!p)throw Error("اللاعب المرتبط بالباركود لم يعد موجودًا.");
+ // silently refresh the guardian phone on the record if the linked contact changed
+ let guardianPhone=record.guardianPhone||"";
  const contact=await get(env,PRIVATE+"contact:"+a+":"+record.playerId);
- if(!contact||contact.display!==record.guardianPhone)throw Error("بيانات ربط اللاعب تغيّرت. حدّث الباركود من لوحة الأكاديمية.");
+ if(contact?.display&&contact.display!==record.guardianPhone){
+  guardianPhone=contact.display;
+  const synced={...record,guardianPhone:contact.display,playerName:p.name||p.fullName||record.playerName};
+  await put(env,PRIVATE+"barcode-player:"+a+":"+record.playerId,synced);
+  await put(env,PRIVATE+"barcode-token:"+await tokenHash(token),synced);
+ }
  const c=clock(),key=PRIVATE+"session:"+c.date+":"+a+":"+record.playerId;
- const atomic=await store(env).fetch("https://store/scan-toggle?key="+encodeURIComponent(key),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({now:c.now,staff:staff.uid,playerName:record.playerName,barcodeId:record.barcodeId})});
+ const atomic=await store(env).fetch("https://store/scan-toggle?key="+encodeURIComponent(key),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({now:c.now,staff:staff.uid,staffEmail:staff.email||"",playerName:p.name||p.fullName||record.playerName,barcodeId:record.barcodeId,academy:a,playerId:String(record.playerId)})});
  if(!atomic.ok)throw Error("تعذر تحديث سجل الحضور بشكل آمن.");
  const result=await atomic.json();
- if(result.ignored){const remaining=Math.ceil(result.remainingMs/1000);return {ok:false,ignored:true,remainingSeconds:remaining,playerName:record.playerName,barcodeId:record.barcodeId,message:"تم تجاهل القراءة المكررة. يمكن تسجيل الحركة بعد "+Math.ceil(remaining/60)+" دقيقة."};}
+ if(result.rateLimited)return {ok:false,rateLimited:true,message:"عدد عمليات المسح كبير جدًا خلال دقيقة واحدة. انتظر قليلًا ثم أعد المحاولة."};
+ if(result.ignored){const remaining=Math.ceil(result.remainingMs/1000);return {ok:false,ignored:true,remainingSeconds:remaining,playerName:record.playerName,barcodeId:record.barcodeId,message:"تم تجاهل القراءة المكررة. يمكن تسجيل الحركة بعد "+Math.ceil(remaining/60)+" دقيقة ("+remaining+" ثانية)."};}
  const action=result.action;
- return {ok:true,action,playerName:record.playerName,guardianPhone:record.guardianPhone,academy:a,academyLabel:ACADEMIES[a].label,barcodeId:record.barcodeId,at:c.now,message:action==="checkin"?"تم تسجيل حضور اللاعب بنجاح.":"تم تسجيل انصراف اللاعب بنجاح."};
+ return {ok:true,action,playerName:p.name||p.fullName||record.playerName,playerPhoto:p.photo||"",guardianPhone:sameAcademy?guardianPhone:"",masked:!sameAcademy,academy:a,academyLabel:ACADEMIES[a].label,barcodeId:record.barcodeId,at:c.now,byEmail:staff.email||"",message:action==="checkin"?"تم تسجيل حضور اللاعب بنجاح.":"تم تسجيل انصراف اللاعب بنجاح."};
 }
 async function route(req,env,url){
  const p=url.pathname,m=req.method;
@@ -247,9 +405,14 @@ async function route(req,env,url){
  if(p==="/api/admin/guardians"&&m==="GET")return guardians(req,env);
  if(p==="/api/admin/guardian-code"&&m==="POST")return saveCode(req,env);
  if(p==="/api/admin/players"&&m==="GET")return playersAdmin(req,env,url);
+ if(p==="/api/admin/qr-provision"&&m==="POST")return qrProvision(req,env);
  if(p==="/api/admin/link-player"&&m==="POST")return linkPlayer(req,env);
+ if(p==="/api/admin/qr-manage"&&m==="POST")return qrManage(req,env);
+ if(p==="/api/admin/transfer-player"&&m==="POST")return transferPlayer(req,env);
  if(p==="/api/admin/scan"&&m==="POST")return scanBarcode(req,env);
  if(p==="/api/admin/attendance"&&(m==="GET"||m==="POST"))return attendance(req,env,url);
+ if(p==="/api/admin/attendance-history"&&m==="GET")return attendanceHistory(req,env,url);
+ if(p==="/api/admin/audit-logs"&&m==="GET"){await verifyStaff(req,env,null,true);const limit=Number(url.searchParams.get("limit"))||100;return {ok:true,items:await auditList(env,limit)};}
  return {status:404,error:"المسار غير موجود."};
 }
 export default {
@@ -267,22 +430,47 @@ export default {
 
 export class AttendanceStore {
  constructor(state){this.state=state;this.queue=Promise.resolve();}
- async fetch(req){
+ async audit(entry){
+  const rows=(await this.state.storage.get("audit"))||[];
+  rows.unshift(entry);
+  if(rows.length>AUDIT_CAP)rows.length=AUDIT_CAP;
+  await this.state.storage.put("audit",rows);
+ }
+ async fetch(input,init){
+  const req=input instanceof Request?input:new Request(String(input),init||{});
   const u=new URL(req.url),method=u.pathname,key=u.searchParams.get("key")||"";
   if(method==="/scan-toggle"&&req.method==="POST"){
    const run=async()=>{
-    const b=await req.json(),now=String(b.now||new Date().toISOString()),old=await this.state.storage.get(key)||{sessions:[]};
-    const last=old.lastScanAt?Date.parse(old.lastScanAt):0,elapsed=Date.parse(now)-last;
-    if(last&&elapsed<300000)return {ignored:true,remainingMs:300000-elapsed};
+    const b=await req.json(),now=String(b.now||new Date().toISOString()),nowMs=Date.parse(now)||Date.now();
+    // per-staff rate limit (server-side, atomic within the serialized queue)
+    const rlKey="rate:"+String(b.staff||"anon");
+    const rl=(await this.state.storage.get(rlKey))||{start:nowMs,count:0};
+    if(nowMs-rl.start>SCAN_WINDOW_MS){rl.start=nowMs;rl.count=0;}
+    if(rl.count>=SCAN_LIMIT)return {rateLimited:true};
+    rl.count++;await this.state.storage.put(rlKey,rl);
+    const old=(await this.state.storage.get(key))||{sessions:[]};
+    const last=old.lastScanAt?Date.parse(old.lastScanAt):0,elapsed=nowMs-last;
+    if(last&&elapsed<SCAN_COOLDOWN_MS)return {ignored:true,remainingMs:SCAN_COOLDOWN_MS-elapsed};
     const sessions=Array.isArray(old.sessions)?old.sessions:(old.in?[{in:old.in,out:old.out,by:old.by,outBy:old.outBy}]:[]);
     const latest=sessions[sessions.length-1];let action;
-    if(latest?.in&&!latest.out){latest.out=now;latest.outBy=b.staff;action="checkout";}
-    else{sessions.push({in:now,out:null,by:b.staff,playerName:b.playerName});action="checkin";}
+    if(latest?.in&&!latest.out){latest.out=now;latest.outBy=b.staff;latest.outByEmail=b.staffEmail||"";action="checkout";}
+    else{sessions.push({in:now,out:null,by:b.staff,byEmail:b.staffEmail||"",playerName:b.playerName});action="checkin";}
     await this.state.storage.put(key,{sessions,lastScanAt:now,lastScanBy:b.staff,playerName:b.playerName,barcodeId:b.barcodeId});
+    await this.audit({t:now,kind:"scan",academy:b.academy,playerId:b.playerId,playerName:b.playerName,action,staff:b.staff,staffEmail:b.staffEmail||"",barcodeId:b.barcodeId,detail:"مسح كاميرا"});
     return {ok:true,action};
    };
    const result=this.queue.then(run,run);this.queue=result.then(()=>undefined,()=>undefined);
    try{return Response.json(await result);}catch{return Response.json({error:"scan transaction failed"},{status:500});}
+  }
+  if(method==="/audit-add"&&req.method==="POST"){
+   const run=async()=>{await this.audit(await req.json());return {ok:true};};
+   const result=this.queue.then(run,run);this.queue=result.then(()=>undefined,()=>undefined);
+   try{return Response.json(await result);}catch{return Response.json({error:"audit failed"},{status:500});}
+  }
+  if(method==="/audit-list"){
+   const limit=Math.min(AUDIT_CAP,Math.max(1,Number(u.searchParams.get("limit"))||100));
+   const rows=(await this.state.storage.get("audit"))||[];
+   return Response.json({items:rows.slice(0,limit)});
   }
   if(method==="/get")return Response.json({value:await this.state.storage.get(key)});
   if(method==="/put"){await this.state.storage.put(key,await req.json());return Response.json({ok:true});}

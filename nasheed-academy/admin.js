@@ -28,8 +28,16 @@
   e.preventDefault();
   try{
    const id=$("#playerId").value,ref=id?db.ref("nasheed_academy/players/"+id):db.ref("nasheed_academy/players").push();
+   const guardianPhone=($("#playerGuardian")?.value||"").trim();
    const p={id:ref.key||id,name:$("#playerName").value.trim(),age:$("#playerAge").value,category:$("#playerGroup").value.trim(),photo:$("#playerPhoto").value.trim(),active:true,updatedAt:Date.now()};
-   await ref.set(p);clearPlayer();say("playerMsg","تم حفظ اللاعب في قاعدة Firebase.");await load();
+   await ref.set(p);clearPlayer();
+   try{
+    const mod=await import("../attendance-portal/qr-provision.js");
+    const res=await mod.provisionPlayerQR("nasheed",p.id,guardianPhone);
+    say("playerMsg","تم حفظ اللاعب وإنشاء بطاقة QR — رقم الهوية "+(res.barcode?.barcodeId||""));
+    window.dispatchEvent(new CustomEvent("yc:qr-provisioned",{detail:{academy:"nasheed",playerId:p.id}}));
+   }catch(x){ say("playerMsg","تم حفظ اللاعب، وتعذر توليد بطاقة QR الآن: "+x.message,true); }
+   await load();
   }catch(x){say("playerMsg",x.message,true)}
  };
  $("#scheduleForm").onsubmit=async e=>{

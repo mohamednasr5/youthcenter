@@ -39,7 +39,7 @@ button.g{background:transparent;border:1px solid var(--line);color:var(--txt)}bu
 
   <div id="app">
     <div class="tabs" id="tabs"></div>
-    <div class="card"><h3 id="formTitle" style="margin-bottom:10px"></h3><form id="f"></form><div class="msg" id="msg"></div></div>
+    <div class="card"><h3 id="formTitle" style="margin-bottom:10px"></h3><form id="f"></form><div id="guardianBox" style="display:none"><label style="margin-top:10px">هاتف ولي الأمر — يُنشئ/يحدّث بطاقة الحضور QR تلقائيًا عند الحفظ<input id="guardianPhone" type="tel" dir="ltr" placeholder="01xxxxxxxxx" inputmode="tel" style="direction:ltr;text-align:left"></label></div><div class="msg" id="msg"></div></div>
     <div class="card"><h3 style="margin-bottom:10px">السجلات الحالية <small id="cnt" style="color:var(--mut)"></small></h3><div id="list"></div></div>
   </div>
 </div>
@@ -98,6 +98,7 @@ button.g{background:transparent;border:1px solid var(--line);color:var(--txt)}bu
   }
   function tabs(){
     $("#tabs").innerHTML=Object.entries(COLS).map(([k,c])=>`<button class="${k===cur?"on":""}" data-k="${k}">${c.label}</button>`).join("");
+    const gb=$("#guardianBox"); if(gb)gb.style.display=(cur==="players")?"block":"none";
     $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{cur=b.dataset.k;editing=null;tabs();renderForm();listen()});
   }
   $("#f").addEventListener("submit",async e=>{
@@ -111,7 +112,18 @@ button.g{background:transparent;border:1px solid var(--line);color:var(--txt)}bu
         const r=editing?db.ref("karate_academy/"+cur+"/"+editing):db.ref("karate_academy/"+cur).push();
         if(editing) item.updatedAt=Date.now(); else { item.createdAt=Date.now(); }
         await (editing?r.update(item):r.set(item));
+        const newId=editing||r.key;
+        const guardianPhone=($("#guardianPhone")?.value||"").trim();
         editing=null; renderForm();
+        if(cur==="players"){
+          try{
+            const mod=await import("../attendance-portal/qr-provision.js");
+            const res=await mod.provisionPlayerQR("karate",newId,guardianPhone);
+            say("تم حفظ اللاعب وإنشاء بطاقة QR — رقم الهوية "+(res.barcode?.barcodeId||""),1);
+            window.dispatchEvent(new CustomEvent("yc:qr-provisioned",{detail:{academy:"karate",playerId:newId}}));
+          }catch(x){ say("حُفظ اللاعب، وتعذر توليد بطاقة QR: "+x.message); }
+          const gi=$("#guardianPhone"); if(gi)gi.value="";
+        }
       }
       say("تم الحفظ في قاعدة البيانات الموحدة",1);
     }catch(err){say("فشل الحفظ (راجع قواعد الأمان): "+err.message)}

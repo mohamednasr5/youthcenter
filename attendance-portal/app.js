@@ -10,14 +10,18 @@
  function showDashboard(){loginView.classList.add("hidden");dashboard.classList.remove("hidden");$("#logout").classList.remove("hidden");}
  function showLogin(){dashboard.classList.add("hidden");loginView.classList.remove("hidden");$("#logout").classList.add("hidden");}
  const time=v=>v?new Intl.DateTimeFormat("ar-EG",{hour:"2-digit",minute:"2-digit",hour12:true,timeZone:"Africa/Cairo"}).format(new Date(v)):"—";
+ const fmtDate=v=>v?new Intl.DateTimeFormat("ar-EG",{year:"numeric",month:"2-digit",day:"2-digit",timeZone:"Africa/Cairo"}).format(new Date(v)):"—";
  function statusClass(code){return ["inside","left","absent","upcoming","no-training"].includes(code)?code:"no-training";}
  function playerQrUrl(p){return "AHMADIYAH|v1|"+p.barcodeToken;}
  function qrCard(p){
   const name=escapeHtml(p.name),academy=escapeHtml(p.academyLabel||names[p.academy]||"");
+  if(p.barcodeActive===false||!p.barcodeToken){
+   return '<section class="player-qr revoked"><div class="player-qr-head"><div><span class="qr-eyebrow">بطاقة الهوية الرقمية</span><h4>'+name+'</h4><small>'+academy+'</small></div><span class="qr-lock">⛔</span></div><div class="qr-revoked-note">بطاقة هذا اللاعب موقوفة مؤقتًا من إدارة المركز. تواصل مع إدارة الأكاديمية لإصدار بطاقة محدثة؛ سجلات الحضور السابقة محفوظة.</div></section>';
+  }
   return '<section class="player-qr" data-qr-player="'+escapeHtml(p.id)+'">'+
-   '<div class="player-qr-head"><div><span class="qr-eyebrow">بطاقة الهوية الرقمية</span><h4>'+name+'</h4><small>'+academy+' · '+escapeHtml(p.barcodeId||"")+'</small></div><span class="qr-lock">QR</span></div>'+
-   '<div class="player-qr-body"><canvas class="player-qr-image" data-player-qr="'+escapeHtml(p.id)+'"></canvas><div class="player-qr-help">ولي الأمر: '+escapeHtml(p.guardianPhone||"")+'<br>رمز حضور وانصراف موثّق.</div></div>'+
-   '<div class="player-qr-actions"><button type="button" class="qr-btn qr-download" data-qr-download="'+escapeHtml(p.id)+'">تنزيل الصورة</button><button type="button" class="qr-btn qr-whatsapp" data-qr-whatsapp="'+escapeHtml(p.id)+'">مشاركة واتساب</button><button type="button" class="qr-btn qr-print" data-qr-print="'+escapeHtml(p.id)+'">طباعة</button></div></section>';
+   '<div class="player-qr-head"><div><span class="qr-eyebrow">بطاقة الهوية الرقمية — رمز دائم لا يتغير</span><h4>'+name+'</h4><small>'+academy+' · '+escapeHtml(p.barcodeId||"")+'</small></div><span class="qr-lock">QR</span></div>'+
+   '<div class="player-qr-body"><canvas class="player-qr-image" data-player-qr="'+escapeHtml(p.id)+'"></canvas><div class="player-qr-help">ولي الأمر: '+escapeHtml(p.guardianPhone||"")+'<br>رمز حضور وانصراف موثّق'+(p.barcodeCreatedAt?' · أُنشئت '+escapeHtml(fmtDate(p.barcodeCreatedAt)):'')+'</div></div>'+
+   '<div class="player-qr-actions"><button type="button" class="qr-btn qr-download" data-qr-download="'+escapeHtml(p.id)+'">تنزيل البطاقة</button><button type="button" class="qr-btn qr-whatsapp" data-qr-whatsapp="'+escapeHtml(p.id)+'">مشاركة واتساب</button><button type="button" class="qr-btn qr-print" data-qr-print="'+escapeHtml(p.id)+'">طباعة</button></div></section>';
  }
  function render(data){
   const list=data.players||[],inside=list.filter(x=>x.status?.code==="inside").length,left=list.filter(x=>x.status?.code==="left").length;
@@ -37,9 +41,46 @@
   list.forEach(p=>{const canvas=children.querySelector('[data-player-qr="'+CSS.escape(String(p.id))+'"]');if(canvas&&window.QRCode&&p.barcodeToken)QRCode.toCanvas(canvas,playerQrUrl(p),{width:220,margin:2,errorCorrectionLevel:"H"}).catch(()=>{});});
  }
  function qrCanvas(id){return children.querySelector('[data-player-qr="'+CSS.escape(String(id))+'"]');}
+ async function drawPortalCard(p){
+  /* premium downloadable ID card for the guardian portal (mint/gold theme) */
+  await ensureQrLibrary();
+  const W=680,H=920,c=document.createElement("canvas");c.width=W;c.height=H;
+  const x=c.getContext("2d");
+  const rr=(r,X,Y,w,h)=>{x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();};
+  const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,"#14233c");g.addColorStop(1,"#0b1020");
+  rr(34,0,0,W,H);x.fillStyle=g;x.fill();
+  x.strokeStyle="#9be7cb";x.lineWidth=3;rr(26,10,10,W-20,H-20);x.stroke();
+  x.textAlign="center";x.fillStyle="#9be7cb";x.font="900 30px Cairo,'Segoe UI',sans-serif";x.fillText("🏛️ مركز شباب الأحمدية",W/2,72);
+  x.fillStyle="rgba(255,255,255,.6)";x.font="600 19px Cairo,sans-serif";x.fillText("بوابة ولي الأمر — بطاقة هوية اللاعب",W/2,102);
+  x.font="800 23px Cairo,sans-serif";const chip="✅ "+(p.academyLabel||names[p.academy]||"");const cw=x.measureText(chip).width+56;
+  rr(20,(W-cw)/2,128,cw,46,23);x.fillStyle="rgba(155,231,203,.15)";x.fill();x.strokeStyle="#9be7cb";x.lineWidth=1.6;x.stroke();x.fillStyle="#fff";x.fillText(chip,W/2,159);
+  const img=await new Promise(res=>{if(!p.photo)return res(null);const i=new Image();i.crossOrigin="anonymous";i.onload=()=>res(i);i.onerror=()=>res(null);try{i.src=new URL(p.photo,location.href).href;}catch{res(null);}});
+  const cx=W/2,cy=290,pr=82;x.save();x.beginPath();x.arc(cx,cy,pr+5,0,Math.PI*2);x.fillStyle="#9be7cb";x.fill();x.beginPath();x.arc(cx,cy,pr,0,Math.PI*2);x.clip();
+  if(img){const s=Math.max(pr*2/img.width,pr*2/img.height);x.drawImage(img,cx-img.width*s/2,cy-img.height*s/2,img.width*s,img.height*s);}else{x.fillStyle="rgba(255,255,255,.15)";x.fillRect(cx-pr,cy-pr,pr*2,pr*2);x.font="700 58px Cairo,sans-serif";x.fillStyle="#fff";x.fillText(String(p.name||"؟").charAt(0),cx,cy+22);}
+  x.restore();
+  x.fillStyle="#fff";x.font="900 42px Cairo,sans-serif";x.fillText(String(p.name||"لاعب"),W/2,424);
+  x.fillStyle="#aab5ca";x.font="600 20px Cairo,sans-serif";
+  x.fillText((p.age?"السن: "+p.age+" · ":"")+"رقم الهوية: "+(p.barcodeId||"—"),W/2,462);
+  x.fillText("ولي الأمر: "+(p.guardianPhone||"غير مربوط"),W/2,494);
+  const q=document.createElement("canvas");await QRCode.toCanvas(q,playerQrUrl(p),{width:300,margin:2,errorCorrectionLevel:"H"});
+  rr(16,(W-320)/2,530,320,320);x.fillStyle="#fff";x.fill();x.drawImage(q,(W-320)/2+10,540,300,300);
+  x.font="600 17px Cairo,sans-serif";x.fillStyle="rgba(255,255,255,.55)";
+  x.fillText("امسح هذا الرمز عند بوابة الأكاديمية لتسجيل الحضور والانصراف",W/2,884);
+  return c;
+ }
+ function ensureQrLibrary(){
+  if(window.QRCode)return Promise.resolve();
+  if(window.__gQrPromise)return window.__gQrPromise;
+  window.__gQrPromise=new Promise((resolve,reject)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/qrcode@1.5.0/build/qrcode.min.js";s.onload=()=>window.QRCode?resolve():reject(Error("تعذر تحميل مكتبة QR."));s.onerror=()=>reject(Error("تعذر تحميل مكتبة QR."));document.head.appendChild(s);});return window.__gQrPromise;
+ }
  async function downloadQr(id){
   const p=(window.__guardianPlayers||[]).find(x=>String(x.id)===String(id)),canvas=qrCanvas(id);if(!p||!canvas)return;
-  const a=document.createElement("a");a.href=canvas.toDataURL("image/png");a.download="QR-"+(p.name||"player")+"-"+(p.barcodeId||id)+".png";a.click();
+  try{
+   const card=await drawPortalCard(p);
+   const a=document.createElement("a");a.href=card.toDataURL("image/png");a.download="بطاقة-"+(p.name||"player")+"-"+(p.barcodeId||id)+".png";a.click();
+  }catch(e){
+   const a=document.createElement("a");a.href=canvas.toDataURL("image/png");a.download="QR-"+(p.name||"player")+"-"+(p.barcodeId||id)+".png";a.click();
+  }
  }
  async function shareQr(id){
   const p=(window.__guardianPlayers||[]).find(x=>String(x.id)===String(id)),canvas=qrCanvas(id);if(!p||!canvas)return;

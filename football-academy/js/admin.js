@@ -520,6 +520,10 @@ function openPlayerModal(player = null) {
         <label class="admin-label">اسم اللاعب الرباعي <span class="req">*</span></label>
         <input type="text" id="m-p-name" class="admin-input" value="${isEdit ? escapeHtml(player.name) : ''}" required>
       </div>
+      <div class="admin-form-group">
+        <label class="admin-label">هاتف ولي الأمر <span style="font-weight:400;color:var(--text-muted)">(يُنشئ/يحدّث بطاقة الحضور QR تلقائيًا)</span></label>
+        <input type="tel" id="m-p-guardian" class="admin-input" dir="ltr" placeholder="01xxxxxxxxx" inputmode="tel" autocomplete="tel" style="direction:ltr;text-align:left">
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="admin-form-group"><label class="admin-label">تاريخ الميلاد <span class="req">*</span></label><input type="date" id="m-p-birth" class="admin-input" value="${isEdit ? (player.birthDate || '') : ''}" required></div>
         <div class="admin-form-group"><label class="admin-label">رقم القميص</label><input type="number" id="m-p-num" class="admin-input" value="${isEdit ? (player.number || '') : 10}"></div>
@@ -548,6 +552,7 @@ function openPlayerModal(player = null) {
   document.getElementById("form-player-crud").onsubmit = async (e) => {
     e.preventDefault();
     const achievementsText = document.getElementById("m-p-achievements").value.trim();
+    const guardianPhone = (document.getElementById("m-p-guardian")?.value || "").trim();
     const item = {
       id: isEdit ? player.id : `player-${Date.now()}`,
       name: document.getElementById("m-p-name").value.trim(),
@@ -571,6 +576,17 @@ function openPlayerModal(player = null) {
     closeAdminModal();
     await loadAdminData();
     adminToast(isEdit ? "تم حفظ التعديلات" : "تمت إضافة اللاعب", "success");
+    /* Automatic permanent QR identity — generated once, right after saving the player */
+    if (!isEdit || guardianPhone) {
+      try {
+        const { provisionPlayerQR } = await import("../../attendance-portal/qr-provision.js");
+        const r = await provisionPlayerQR("football", item.id, guardianPhone);
+        adminToast("تم إنشاء بطاقة QR للاعب — رقم الهوية " + (r.barcode?.barcodeId || ""), "success");
+        window.dispatchEvent(new CustomEvent("yc:qr-provisioned", { detail: { academy: "football", playerId: item.id } }));
+      } catch (x) {
+        adminToast("تم حفظ اللاعب، وتعذر توليد بطاقة QR الآن: " + x.message, "error");
+      }
+    }
   };
 }
 
