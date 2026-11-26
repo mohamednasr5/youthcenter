@@ -4,4 +4,4 @@ Allow: /
 # Admin dashboard: keep out of search indexes
 Disallow: /admin.html
 
-Sitemap: https://mohamednasr5.github.io/youthcenter/football-academy/sitemap.xml
+Sitemap: https://ahmadiya.online/football-academy/sitemap.xml
