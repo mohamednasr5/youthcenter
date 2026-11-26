@@ -35,17 +35,30 @@ function phoneKey(v){
  if(!/^20[0-9]{10,11}$/.test(n))throw Error("أدخل رقم هاتف مصري صحيحًا لولي الأمر.");
  return n;
 }
+let firebaseKeys=null;
 async function verifyStaff(req,env,academy,centerOnly=false){
  const token=bearer(req);if(!token)throw Error("سجّل الدخول بحساب الإدارة أولًا.");
- const r=await fetch("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key="+encodeURIComponent(env.FIREBASE_API_KEY||API_KEY),{
-  method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({idToken:token})
- });
- if(!r.ok)throw Error("جلسة Firebase غير صالحة. سجّل الدخول مجددًا.");
- const j=await r.json(),u=j.users&&j.users[0];if(!u)throw Error("تعذر التحقق من حساب الإدارة.");
- let claims={};try{claims=JSON.parse(u.customAttributes||"{}");}catch{}
+ const parts=token.split(".");if(parts.length!==3)throw Error("جلسة Firebase غير صالحة.");
+ let head,payload,signature;
+ try{head=JSON.parse(unb64(parts[0]));payload=JSON.parse(unb64(parts[1]));signature=Uint8Array.from(unb64(parts[2]),c=>c.charCodeAt(0));}catch{throw Error("جلسة Firebase غير صالحة.");}
+ if(head.alg!=="RS256"||!head.kid)throw Error("جلسة Firebase غير صالحة.");
+ if(!firebaseKeys||firebaseKeys.until<Date.now()){
+  const kr=await fetch("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com");
+  if(!kr.ok)throw Error("تعذر التحقق من توقيع Firebase.");
+  firebaseKeys={keys:(await kr.json()).keys||[],until:Date.now()+3000000};
+ }
+ const jwk=firebaseKeys.keys.find(k=>k.kid===head.kid);if(!jwk)throw Error("مفتاح توقيع Firebase غير معروف.");
+ const key=await crypto.subtle.importKey("jwk",jwk,{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["verify"]);
+ const valid=await crypto.subtle.verify({name:"RSASSA-PKCS1-v1_5"},key,signature,new TextEncoder().encode(parts[0]+"."+parts[1]));
+ const now=Math.floor(Date.now()/1000),project=env.FIREBASE_PROJECT_ID||"academia-e6d7b";
+ if(!valid||payload.aud!==project||payload.iss!=="https://securetoken.google.com/"+project||!payload.sub||payload.exp<now||payload.iat>now+60||payload.auth_time>now+60)throw Error("جلسة Firebase غير صالحة أو منتهية.");
+ const check=await fetch("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key="+encodeURIComponent(env.FIREBASE_API_KEY||API_KEY),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({idToken:token})});
+ if(!check.ok)throw Error("انتهت صلاحية حساب الإدارة أو تم إيقافه.");
+ const user=(await check.json()).users?.[0];if(!user||user.disabled||Number(payload.auth_time)<Number(user.validSince||0))throw Error("جلسة الإدارة لم تعد صالحة. سجّل الدخول مجددًا.");
+ const claims=payload;
  const allowed=centerOnly?(claims.ycAdmin===true||claims.ycCenter===true):(claims.ycAdmin===true||claims.ycCenter===true||(academy&&claims[ACADEMIES[academy].claim]===true));
  if(!allowed)throw Error("الحساب لا يملك صلاحية تنفيذ هذا الإجراء.");
- return {uid:u.localId,claims};
+ return {uid:payload.user_id||payload.sub,claims};
 }
 function store(env){
  const id=env.ATTENDANCE_STORE.idFromName("ahmadiya-attendance-store");
