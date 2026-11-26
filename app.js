@@ -563,6 +563,25 @@
       bt.classList.toggle("show", window.scrollY > 400);
     }, { passive: true });
     mt.addEventListener("click", () => { nav.classList.toggle("open"); mt.textContent = nav.classList.contains("open") ? "✕" : "☰"; });
+    const academyDropdown = $("#academiesDropdown");
+    const academyToggle = academyDropdown?.querySelector(".nav-dropdown-toggle");
+    if (academyDropdown && academyToggle) {
+      const closeAcademies = () => {
+        academyDropdown.classList.remove("is-open");
+        academyToggle.setAttribute("aria-expanded", "false");
+      };
+      academyToggle.addEventListener("click", () => {
+        const open = academyDropdown.classList.toggle("is-open");
+        academyToggle.setAttribute("aria-expanded", String(open));
+      });
+      document.addEventListener("click", e => {
+        if (!academyDropdown.contains(e.target)) closeAcademies();
+      });
+      document.addEventListener("keydown", e => {
+        if (e.key === "Escape") closeAcademies();
+      });
+      academyDropdown.querySelectorAll(".nav-dropdown-menu a").forEach(a => a.addEventListener("click", closeAcademies));
+    }
     nav.querySelectorAll("a").forEach(a => a.addEventListener("click", () => { nav.classList.remove("open"); mt.textContent = "☰"; }));
     $("#backTop").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
     const sections = ["about", "board", "academies", "articles", "activities", "gallery"];
