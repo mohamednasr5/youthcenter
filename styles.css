@@ -750,3 +750,5 @@ html{scroll-behavior:smooth}
  .nav-dropdown-menu{right:auto;left:50%;transform:translate(-50%,10px) scale(.98)}
  .nav-dropdown:hover .nav-dropdown-menu,.nav-dropdown:focus-within .nav-dropdown-menu,.nav-dropdown.is-open .nav-dropdown-menu{transform:translate(-50%,0) scale(1)}
 }
+
+@media(max-width:920px){.nav .nav-dropdown:not(.is-open) .nav-dropdown-menu{display:none!important}.nav .nav-dropdown.is-open .nav-dropdown-menu{display:grid!important}}
