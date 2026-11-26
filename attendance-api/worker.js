@@ -9,7 +9,7 @@ const ACADEMIES = {
   football:{label:"أكاديمية كرة القدم",players:"players",schedules:"schedules",claim:"ycFootball"},
   karate:{label:"أكاديمية الكاراتيه",players:"karate_academy/players",schedules:"karate_academy/schedules",claim:"ycKarate"},
   kungfu:{label:"أكاديمية الكونغ فو",players:"kungfu_academy/players",schedules:"kungfu_academy/schedules",claim:"ycKungfu"},
-  nasheed:{label:"فريق الإنشاد",players:null,schedules:null,claim:"ycNasheed"}
+  nasheed:{label:"فريق الإنشاد",players:"nasheed_academy/players",schedules:"nasheed_academy/schedules",claim:"ycNasheed"}
 };
 const DAYS=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 
@@ -35,17 +35,30 @@ function phoneKey(v){
  if(!/^20[0-9]{10,11}$/.test(n))throw Error("أدخل رقم هاتف مصري صحيحًا لولي الأمر.");
  return n;
 }
+let firebaseKeys=null;
 async function verifyStaff(req,env,academy,centerOnly=false){
  const token=bearer(req);if(!token)throw Error("سجّل الدخول بحساب الإدارة أولًا.");
- const r=await fetch("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key="+encodeURIComponent(env.FIREBASE_API_KEY||API_KEY),{
-  method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({idToken:token})
- });
- if(!r.ok)throw Error("جلسة Firebase غير صالحة. سجّل الدخول مجددًا.");
- const j=await r.json(),u=j.users&&j.users[0];if(!u)throw Error("تعذر التحقق من حساب الإدارة.");
- let claims={};try{claims=JSON.parse(u.customAttributes||"{}");}catch{}
+ const parts=token.split(".");if(parts.length!==3)throw Error("جلسة Firebase غير صالحة.");
+ let head,payload,signature;
+ try{head=JSON.parse(unb64(parts[0]));payload=JSON.parse(unb64(parts[1]));signature=Uint8Array.from(unb64(parts[2]),c=>c.charCodeAt(0));}catch{throw Error("جلسة Firebase غير صالحة.");}
+ if(head.alg!=="RS256"||!head.kid)throw Error("جلسة Firebase غير صالحة.");
+ if(!firebaseKeys||firebaseKeys.until<Date.now()){
+  const kr=await fetch("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com");
+  if(!kr.ok)throw Error("تعذر التحقق من توقيع Firebase.");
+  firebaseKeys={keys:(await kr.json()).keys||[],until:Date.now()+3000000};
+ }
+ const jwk=firebaseKeys.keys.find(k=>k.kid===head.kid);if(!jwk)throw Error("مفتاح توقيع Firebase غير معروف.");
+ const key=await crypto.subtle.importKey("jwk",jwk,{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["verify"]);
+ const valid=await crypto.subtle.verify({name:"RSASSA-PKCS1-v1_5"},key,signature,new TextEncoder().encode(parts[0]+"."+parts[1]));
+ const now=Math.floor(Date.now()/1000),project=env.FIREBASE_PROJECT_ID||"academia-e6d7b";
+ if(!valid||payload.aud!==project||payload.iss!=="https://securetoken.google.com/"+project||!payload.sub||payload.exp<now||payload.iat>now+60||payload.auth_time>now+60)throw Error("جلسة Firebase غير صالحة أو منتهية.");
+ const check=await fetch("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key="+encodeURIComponent(env.FIREBASE_API_KEY||API_KEY),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({idToken:token})});
+ if(!check.ok)throw Error("انتهت صلاحية حساب الإدارة أو تم إيقافه.");
+ const user=(await check.json()).users?.[0];if(!user||user.disabled||Number(payload.auth_time)<Number(user.validSince||0))throw Error("جلسة الإدارة لم تعد صالحة. سجّل الدخول مجددًا.");
+ const claims=payload;
  const allowed=centerOnly?(claims.ycAdmin===true||claims.ycCenter===true):(claims.ycAdmin===true||claims.ycCenter===true||(academy&&claims[ACADEMIES[academy].claim]===true));
  if(!allowed)throw Error("الحساب لا يملك صلاحية تنفيذ هذا الإجراء.");
- return {uid:u.localId,claims};
+ return {uid:payload.user_id||payload.sub,claims};
 }
 function store(env){
  const id=env.ATTENDANCE_STORE.idFromName("ahmadiya-attendance-store");
@@ -67,11 +80,9 @@ async function firebaseRead(path){
  if(!r.ok)throw Error("تعذر قراءة بيانات الأكاديمية من Firebase.");
  return r.json();
 }
-async function hmac(value,env){
- if(!env.SESSION_SECRET||String(env.SESSION_SECRET).length<32)throw Error("لم تتم إضافة SESSION_SECRET إلى Cloudflare Secrets (32 حرفًا على الأقل).");
- const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(env.SESSION_SECRET),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
- const sig=new Uint8Array(await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(value)));
- let s="";sig.forEach(c=>s+=String.fromCharCode(c));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+async function tokenHash(value){
+ const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)));
+ let s="";digest.forEach(c=>s+=String.fromCharCode(c));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 }
 const b64=s=>btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const unb64=s=>{const v=s.replace(/-/g,"+").replace(/_/g,"/");return atob(v+"=".repeat((4-v.length%4)%4));};
@@ -82,14 +93,17 @@ async function hashCode(code,salt,it){
 }
 async function equal(a,b){const x=new TextEncoder().encode(String(a)),y=new TextEncoder().encode(String(b));if(x.length!==y.length)return false;let d=0;for(let i=0;i<x.length;i++)d|=x[i]^y[i];return d===0;}
 async function parentToken(phone,version,env){
- const raw=b64(JSON.stringify({p:phone,v:version,e:Math.floor(Date.now()/1000)+1200}));
- return raw+"."+await hmac(raw,env);
+ const bytes=crypto.getRandomValues(new Uint8Array(32));let raw="";bytes.forEach(c=>raw+=String.fromCharCode(c));raw=b64(raw);
+ await put(env,PRIVATE+"session:"+await tokenHash(raw),{phone,version,expiresAt:Date.now()+1200000});
+ return raw;
 }
 async function parentSession(req,env){
- const p=bearer(req).split(".");if(p.length!==2||!await equal(p[1],await hmac(p[0],env)))throw Error("انتهت جلسة المتابعة؛ سجّل الدخول مرة أخرى.");
- const x=JSON.parse(unb64(p[0]));if(!x.p||x.e<Math.floor(Date.now()/1000))throw Error("انتهت جلسة المتابعة؛ سجّل الدخول مرة أخرى.");
- const g=await get(env,PRIVATE+"guardian:"+x.p);if(!g||!g.enabled||g.version!==x.v)throw Error("تم تغيير أو إلغاء رمز المتابعة. استخدم الرمز الجديد.");
- return {phone:x.p,guardian:g};
+ const raw=bearer(req);if(raw.length<40)throw Error("انتهت جلسة المتابعة؛ سجّل الدخول مرة أخرى.");
+ const s=await get(env,PRIVATE+"session:"+await tokenHash(raw));
+ if(!s||s.expiresAt<Date.now())throw Error("انتهت جلسة المتابعة؛ سجّل الدخول مرة أخرى.");
+ const g=await get(env,PRIVATE+"guardian:"+s.phone);
+ if(!g||!g.enabled||g.version!==s.version)throw Error("تم تغيير أو إلغاء رمز المتابعة. استخدم الرمز الجديد.");
+ return {phone:s.phone,guardian:g};
 }
 function clock(){
  const p=Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit",weekday:"long",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).map(x=>[x.type,x.value]));
@@ -97,11 +111,9 @@ function clock(){
  return {date:p.year+"-"+p.month+"-"+p.day,day:days[p.weekday],minute:Number(p.hour)*60+Number(p.minute),now:new Date().toISOString(),ms:Date.now()};
 }
 async function academyPlayers(a,env){
- if(a==="nasheed")return (await list(env,"nasheed:player:")||[]).map(x=>x.value);
  return entries(await firebaseRead(ACADEMIES[a].players)).map(([k,v])=>({...v,id:String(v.id??k)}));
 }
 async function academySchedules(a,env){
- if(a==="nasheed")return (await list(env,"nasheed:schedule:")||[]).map(x=>x.value);
  return entries(await firebaseRead(ACADEMIES[a].schedules)).map(x=>x[1]);
 }
 function matchingSchedule(rows,c){
@@ -183,14 +195,6 @@ async function attendance(req,env,url){
  const next=act==="checkin"?{in:c.now,out:null,playerName:p.name||p.fullName||"",by:staff.uid}:{...s,out:c.now,outBy:staff.uid};
  await put(env,key,next);return {ok:true,message:act==="checkin"?"تم تسجيل دخول اللاعب.":"تم تسجيل خروج اللاعب.",session:next};
 }
-async function nasheed(req,env,path){
- await verifyStaff(req,env,"nasheed");const b=await body(req);
- const type=path.includes("schedule")?"schedule":"player",id=playerKey(b.id||type+"-"+crypto.randomUUID()),key="nasheed:"+type+":"+id;
- if(path.endsWith("/delete")){await del(env,key);if(type==="player"){const c=await get(env,PRIVATE+"contact:nasheed:"+id);if(c?.phone){const g=await get(env,PRIVATE+"guardian:"+c.phone);if(g?.players?.nasheed)delete g.players.nasheed[id];if(g)await put(env,PRIVATE+"guardian:"+c.phone,g);await del(env,PRIVATE+"contact:nasheed:"+id);}}return {ok:true};}
- if(type==="player"){const name=String(b.name||"").trim();if(!name)throw Error("اسم اللاعب مطلوب.");const p={id,name,age:String(b.age||""),category:String(b.category||""),photo:String(b.photo||""),active:b.active!==false};await put(env,key,p);return {ok:true,player:p};}
- const day=String(b.day||"").trim(),fromTime=String(b.fromTime||"").trim(),toTime=String(b.toTime||"").trim();if(!day||!fromTime||!toTime)throw Error("اليوم ووقتا التدريب مطلوبان.");
- const s={id,day,date:String(b.date||""),fromTime,toTime,location:String(b.location||"مركز شباب الأحمدية"),active:b.active!==false};await put(env,key,s);return {ok:true,schedule:s};
-}
 async function route(req,env,url){
  const p=url.pathname,m=req.method;
  if(p==="/api/health"&&m==="GET")return {ok:true,academies:Object.keys(ACADEMIES)};
@@ -201,7 +205,6 @@ async function route(req,env,url){
  if(p==="/api/admin/players"&&m==="GET")return playersAdmin(req,env,url);
  if(p==="/api/admin/link-player"&&m==="POST")return linkPlayer(req,env);
  if(p==="/api/admin/attendance"&&(m==="GET"||m==="POST"))return attendance(req,env,url);
- if(p.startsWith("/api/nasheed/")&&m==="POST")return nasheed(req,env,p);
  return {status:404,error:"المسار غير موجود."};
 }
 export default {

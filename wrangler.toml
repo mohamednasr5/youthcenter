@@ -1,13 +1,14 @@
 name = "ahmadiya-attendance"
-main = "worker.js"
+main = "./attendance-api/worker.js"
 compatibility_date = "2026-11-26"
 workers_dev = true
 
 [vars]
 FIREBASE_API_KEY = "AIzaSyDJYIKnZNBMZuXhVAhP4irqjLuzP4jQ16g"
+FIREBASE_PROJECT_ID = "academia-e6d7b"
 
 [assets]
-directory = "../attendance-portal"
+directory = "./attendance-portal"
 binding = "ASSETS"
 run_worker_first = ["/api/*"]
 
