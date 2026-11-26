@@ -9,7 +9,7 @@ const ACADEMIES = {
   football:{label:"أكاديمية كرة القدم",players:"players",schedules:"schedules",claim:"ycFootball"},
   karate:{label:"أكاديمية الكاراتيه",players:"karate_academy/players",schedules:"karate_academy/schedules",claim:"ycKarate"},
   kungfu:{label:"أكاديمية الكونغ فو",players:"kungfu_academy/players",schedules:"kungfu_academy/schedules",claim:"ycKungfu"},
-  nasheed:{label:"فريق الإنشاد",players:null,schedules:null,claim:"ycNasheed"}
+  nasheed:{label:"فريق الإنشاد",players:"nasheed_academy/players",schedules:"nasheed_academy/schedules",claim:"ycNasheed"}
 };
 const DAYS=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 
@@ -111,11 +111,9 @@ function clock(){
  return {date:p.year+"-"+p.month+"-"+p.day,day:days[p.weekday],minute:Number(p.hour)*60+Number(p.minute),now:new Date().toISOString(),ms:Date.now()};
 }
 async function academyPlayers(a,env){
- if(a==="nasheed")return (await list(env,"nasheed:player:")||[]).map(x=>x.value);
  return entries(await firebaseRead(ACADEMIES[a].players)).map(([k,v])=>({...v,id:String(v.id??k)}));
 }
 async function academySchedules(a,env){
- if(a==="nasheed")return (await list(env,"nasheed:schedule:")||[]).map(x=>x.value);
  return entries(await firebaseRead(ACADEMIES[a].schedules)).map(x=>x[1]);
 }
 function matchingSchedule(rows,c){
