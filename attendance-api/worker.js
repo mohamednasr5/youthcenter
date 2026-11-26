@@ -146,7 +146,8 @@ async function parentStatus(req,env){
   if(!p||!contact||contact.phone!==session.phone)return null;
   const [ss,sc]=await Promise.all([get(env,PRIVATE+"session:"+c.date+":"+r.a+":"+r.id),academySchedules(r.a,env)]);
   const sched=matchingSchedule(sc,c);
-  return {id:r.id,academy:r.a,academyLabel:a.label,name:p.name||p.fullName||"لاعب",age:p.age||"",group:p.category||p.belt||"",photo:p.photo||"",schedule:sched?{fromTime:sched.fromTime||"",toTime:sched.toTime||"",location:sched.location||"",day:sched.day||c.day}:null,status:stateOf(ss,sched,c)};
+  const barcode=await ensurePlayerBarcode(env,r.a,p,contact);
+  return {id:r.id,academy:r.a,academyLabel:a.label,name:p.name||p.fullName||"لاعب",age:p.age||"",group:p.category||p.belt||"",photo:p.photo||"",barcodeId:barcode.barcodeId,barcodeToken:barcode.token,guardianPhone:contact.display||"",schedule:sched?{fromTime:sched.fromTime||"",toTime:sched.toTime||"",location:sched.location||"",day:sched.day||c.day}:null,status:stateOf(ss,sched,c)};
  }));
  return {date:c.date,serverTime:c.now,players:players.filter(Boolean)};
 }
@@ -228,18 +229,12 @@ async function scanBarcode(req,env){
  if(!p)throw Error("اللاعب المرتبط بالباركود لم يعد موجودًا.");
  const contact=await get(env,PRIVATE+"contact:"+a+":"+record.playerId);
  if(!contact||contact.display!==record.guardianPhone)throw Error("بيانات ربط اللاعب تغيّرت. حدّث الباركود من لوحة الأكاديمية.");
- const c=clock(),key=PRIVATE+"session:"+c.date+":"+a+":"+record.playerId,s=await get(env,key)||{sessions:[]};
- s.sessions=Array.isArray(s.sessions)?s.sessions:(s.in?[{in:s.in,out:s.out,by:s.by,outBy:s.outBy}]:[]);
- const last=s.lastScanAt?Date.parse(s.lastScanAt):0,elapsed=Date.now()-last;
- if(last&&elapsed<300000){
-  const remaining=Math.ceil((300000-elapsed)/1000);
-  return {ok:false,ignored:true,remainingSeconds:remaining,playerName:record.playerName,barcodeId:record.barcodeId,message:"تم تجاهل القراءة المكررة. يمكن تسجيل الحركة بعد "+Math.ceil(remaining/60)+" دقيقة."};
- }
- const latest=s.sessions[s.sessions.length-1];let action;
- if(latest?.in&&!latest.out){latest.out=c.now;latest.outBy=staff.uid;action="checkout";}
- else{s.sessions.push({in:c.now,out:null,by:staff.uid,playerName:record.playerName});action="checkin";}
- s.lastScanAt=c.now;s.lastScanBy=staff.uid;s.playerName=record.playerName;s.barcodeId=record.barcodeId;
- await put(env,key,s);
+ const c=clock(),key=PRIVATE+"session:"+c.date+":"+a+":"+record.playerId;
+ const atomic=await store(env).fetch("https://store/scan-toggle?key="+encodeURIComponent(key),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({now:c.now,staff:staff.uid,playerName:record.playerName,barcodeId:record.barcodeId})});
+ if(!atomic.ok)throw Error("تعذر تحديث سجل الحضور بشكل آمن.");
+ const result=await atomic.json();
+ if(result.ignored){const remaining=Math.ceil(result.remainingMs/1000);return {ok:false,ignored:true,remainingSeconds:remaining,playerName:record.playerName,barcodeId:record.barcodeId,message:"تم تجاهل القراءة المكررة. يمكن تسجيل الحركة بعد "+Math.ceil(remaining/60)+" دقيقة."};}
+ const action=result.action;
  return {ok:true,action,playerName:record.playerName,guardianPhone:record.guardianPhone,academy:a,academyLabel:ACADEMIES[a].label,barcodeId:record.barcodeId,at:c.now,message:action==="checkin"?"تم تسجيل حضور اللاعب بنجاح.":"تم تسجيل انصراف اللاعب بنجاح."};
 }
 async function route(req,env,url){
@@ -269,9 +264,24 @@ export default {
 };
 
 export class AttendanceStore {
- constructor(state){this.state=state;}
+ constructor(state){this.state=state;this.queue=Promise.resolve();}
  async fetch(req){
   const u=new URL(req.url),method=u.pathname,key=u.searchParams.get("key")||"";
+  if(method==="/scan-toggle"&&req.method==="POST"){
+   const run=async()=>{
+    const b=await req.json(),now=String(b.now||new Date().toISOString()),old=await this.state.storage.get(key)||{sessions:[]};
+    const last=old.lastScanAt?Date.parse(old.lastScanAt):0,elapsed=Date.parse(now)-last;
+    if(last&&elapsed<300000)return {ignored:true,remainingMs:300000-elapsed};
+    const sessions=Array.isArray(old.sessions)?old.sessions:(old.in?[{in:old.in,out:old.out,by:old.by,outBy:old.outBy}]:[]);
+    const latest=sessions[sessions.length-1];let action;
+    if(latest?.in&&!latest.out){latest.out=now;latest.outBy=b.staff;action="checkout";}
+    else{sessions.push({in:now,out:null,by:b.staff,playerName:b.playerName});action="checkin";}
+    await this.state.storage.put(key,{sessions,lastScanAt:now,lastScanBy:b.staff,playerName:b.playerName,barcodeId:b.barcodeId});
+    return {ok:true,action};
+   };
+   const result=this.queue.then(run,run);this.queue=result.then(()=>undefined,()=>undefined);
+   try{return Response.json(await result);}catch{return Response.json({error:"scan transaction failed"},{status:500});}
+  }
   if(method==="/get")return Response.json({value:await this.state.storage.get(key)});
   if(method==="/put"){await this.state.storage.put(key,await req.json());return Response.json({ok:true});}
   if(method==="/delete"){await this.state.storage.delete(key);return Response.json({ok:true});}
