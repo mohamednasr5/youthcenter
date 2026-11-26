@@ -569,6 +569,7 @@
       const closeAcademies = () => {
         academyDropdown.classList.remove("is-open");
         academyToggle.setAttribute("aria-expanded", "false");
+        academyToggle.blur();
       };
       academyToggle.addEventListener("click", () => {
         const open = academyDropdown.classList.toggle("is-open");
