@@ -1,11 +1,11 @@
 (() => {
  "use strict";
- const $=s=>document.querySelector(s), loginView=$("#loginView"), dashboard=$("#dashboardView"), children=$("#children");
+ const API=window.YC_ATTENDANCE_API||"", $=s=>document.querySelector(s), loginView=$("#loginView"), dashboard=$("#dashboardView"), children=$("#children");
  const tokenKey="ahmadiya_guardian_session_v1";
  let token=sessionStorage.getItem(tokenKey)||"",timer=null,busy=false;
  const names={football:"⚽ كرة القدم",karate:"🥋 الكاراتيه",kungfu:"🥊 الكونغ فو",nasheed:"🎙️ الإنشاد"};
  const escapeHtml=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
- function api(path,opts={}){return fetch(path,{...opts,headers:{"content-type":"application/json",...(opts.headers||{}),...(token?{authorization:"Bearer "+token}:{})}}).then(async r=>{let d={};try{d=await r.json()}catch{}if(!r.ok)throw Error(d.error||"تعذر الاتصال بالخدمة.");return d;});}
+ function api(path,opts={}){return fetch(API+path,{...opts,headers:{"content-type":"application/json",...(opts.headers||{}),...(token?{authorization:"Bearer "+token}:{})}}).then(async r=>{let d={};try{d=await r.json()}catch{}if(!r.ok)throw Error(d.error||"تعذر الاتصال بالخدمة.");return d;});}
  function showDashboard(){loginView.classList.add("hidden");dashboard.classList.remove("hidden");$("#logout").classList.remove("hidden");}
  function showLogin(){dashboard.classList.add("hidden");loginView.classList.remove("hidden");$("#logout").classList.add("hidden");}
  const time=v=>v?new Intl.DateTimeFormat("ar-EG",{hour:"2-digit",minute:"2-digit",hour12:true,timeZone:"Africa/Cairo"}).format(new Date(v)):"—";
