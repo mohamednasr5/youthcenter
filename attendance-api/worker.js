@@ -120,8 +120,10 @@ function matchingSchedule(rows,c){
  return rows.find(s=>s&&s.active!==false&&s.active!=="false"&&s.active!=="موقوف"&&(s.date?String(s.date)===c.date:String(s.day||"")===c.day))||null;
 }
 function stateOf(s,sc,c){
- if(s&&s.in&&!s.out)return {code:"inside",label:"داخل التمرين",checkInAt:s.in,minutes:Math.max(0,Math.floor((c.ms-Date.parse(s.in))/60000))};
- if(s&&s.in&&s.out)return {code:"left",label:"خرج من التمرين",checkInAt:s.in,checkOutAt:s.out,minutes:Math.max(0,Math.floor((Date.parse(s.out)-Date.parse(s.in))/60000))};
+ const sessions=Array.isArray(s?.sessions)?s.sessions:(s?.in?[{in:s.in,out:s.out}]:[]);
+ const latest=sessions[sessions.length-1];
+ if(latest?.in&&!latest.out)return {code:"inside",label:"داخل التمرين",checkInAt:latest.in,minutes:Math.max(0,Math.floor((c.ms-Date.parse(latest.in))/60000)),sessions:sessions.length};
+ if(latest?.in&&latest.out)return {code:"left",label:"خرج من التمرين",checkInAt:latest.in,checkOutAt:latest.out,minutes:Math.max(0,Math.floor((Date.parse(latest.out)-Date.parse(latest.in))/60000)),sessions:sessions.length};
  if(!sc)return {code:"no-training",label:"لا يوجد تمرين اليوم"};
  const t=String(sc.fromTime||"00:00").split(":").map(Number),start=(t[0]||0)*60+(t[1]||0);
  return c.minute<start?{code:"upcoming",label:"لم يبدأ التمرين بعد",fromTime:sc.fromTime||"",location:sc.location||""}:{code:"absent",label:"لم يحضر",fromTime:sc.fromTime||"",location:sc.location||""};
@@ -148,10 +150,25 @@ async function parentStatus(req,env){
  }));
  return {date:c.date,serverTime:c.now,players:players.filter(Boolean)};
 }
+async function ensurePlayerBarcode(env,a,p,contact){
+ const indexKey=PRIVATE+"barcode-player:"+a+":"+p.id;
+ let saved=await get(env,indexKey);
+ if(saved?.token&&saved?.barcodeId)return saved;
+ const bytes=crypto.getRandomValues(new Uint8Array(32));let raw="";bytes.forEach(x=>raw+=String.fromCharCode(x));
+ const token=b64(raw),barcodeId="YC-"+crypto.randomUUID().replace(/-/g,"").slice(0,16).toUpperCase();
+ const record={barcodeId,token,academy:a,playerId:String(p.id),playerName:p.name||p.fullName||"لاعب",guardianPhone:contact?.display||"",createdAt:new Date().toISOString(),active:true};
+ await put(env,PRIVATE+"barcode-token:"+await tokenHash(token),record);
+ await put(env,indexKey,record);
+ return record;
+}
 async function playersAdmin(req,env,url){
  const a=academyKey(url.searchParams.get("academy"));await verifyStaff(req,env,a);
  const rows=await academyPlayers(a,env),out=[];
- for(const p of rows){const c=await get(env,PRIVATE+"contact:"+a+":"+p.id);out.push({id:p.id,name:p.name||p.fullName||"لاعب",age:p.age||"",guardianPhone:c?.display||""});}
+ for(const p of rows){
+  const c=await get(env,PRIVATE+"contact:"+a+":"+p.id);
+  const barcode=await ensurePlayerBarcode(env,a,p,c);
+  out.push({id:p.id,name:p.name||p.fullName||"لاعب",age:p.age||"",guardianPhone:c?.display||"",barcodeId:barcode.barcodeId,barcodeToken:barcode.token});
+ }
  return out;
 }
 async function linkPlayer(req,env){
@@ -165,8 +182,14 @@ async function linkPlayer(req,env){
  if(!phone){await del(env,PRIVATE+"contact:"+a+":"+id);return {ok:true,message:"تم إلغاء ربط ولي الأمر بهذا اللاعب."};}
  const g=await get(env,PRIVATE+"guardian:"+phone)||{players:{},enabled:false};
  g.players=g.players||{};g.players[a]=g.players[a]||{};g.players[a][id]=true;g.display=String(b.phone).trim();g.updatedAt=new Date().toISOString();
- await put(env,PRIVATE+"guardian:"+phone,g);await put(env,PRIVATE+"contact:"+a+":"+id,{phone,display:String(b.phone).trim(),updatedBy:staff.uid});
- return {ok:true,message:"تم ربط اللاعب. أنشئ رمز المتابعة من لوحة المركز."};
+ const contact={phone,display:String(b.phone).trim(),updatedBy:staff.uid};
+ await put(env,PRIVATE+"guardian:"+phone,g);await put(env,PRIVATE+"contact:"+a+":"+id,contact);
+ const player=(await academyPlayers(a,env)).find(x=>String(x.id)===id);
+ const barcode=await ensurePlayerBarcode(env,a,player,contact);
+ barcode.guardianPhone=contact.display;barcode.playerName=player.name||player.fullName||"لاعب";
+ await put(env,PRIVATE+"barcode-player:"+a+":"+id,barcode);
+ await put(env,PRIVATE+"barcode-token:"+await tokenHash(barcode.token),barcode);
+ return {ok:true,message:"تم ربط ولي الأمر وإنشاء باركود دائم وآمن للاعب.",barcodeId:barcode.barcodeId};
 }
 async function guardians(req,env){
  await verifyStaff(req,env,null,true);return (await list(env,PRIVATE+"guardian:")||[]).map(x=>({phone:x.value.display||x.key.split(":").pop(),enabled:!!x.value.enabled,count:Object.values(x.value.players||{}).reduce((n,v)=>n+Object.keys(v||{}).length,0),updatedAt:x.value.updatedAt||x.value.codeUpdatedAt||""}));
@@ -195,6 +218,30 @@ async function attendance(req,env,url){
  const next=act==="checkin"?{in:c.now,out:null,playerName:p.name||p.fullName||"",by:staff.uid}:{...s,out:c.now,outBy:staff.uid};
  await put(env,key,next);return {ok:true,message:act==="checkin"?"تم تسجيل دخول اللاعب.":"تم تسجيل خروج اللاعب.",session:next};
 }
+async function scanBarcode(req,env){
+ const b=await body(req),token=String(b.token||"").trim();
+ if(token.length<30||token.length>100)throw Error("رمز QR غير صالح.");
+ const record=await get(env,PRIVATE+"barcode-token:"+await tokenHash(token));
+ if(!record||!record.active||record.token!==token)throw Error("هذا الباركود غير مسجل أو تم إيقافه.");
+ const a=academyKey(record.academy),staff=await verifyStaff(req,env,a);
+ const p=(await academyPlayers(a,env)).find(x=>String(x.id)===String(record.playerId));
+ if(!p)throw Error("اللاعب المرتبط بالباركود لم يعد موجودًا.");
+ const contact=await get(env,PRIVATE+"contact:"+a+":"+record.playerId);
+ if(!contact||contact.display!==record.guardianPhone)throw Error("بيانات ربط اللاعب تغيّرت. حدّث الباركود من لوحة الأكاديمية.");
+ const c=clock(),key=PRIVATE+"session:"+c.date+":"+a+":"+record.playerId,s=await get(env,key)||{sessions:[]};
+ s.sessions=Array.isArray(s.sessions)?s.sessions:(s.in?[{in:s.in,out:s.out,by:s.by,outBy:s.outBy}]:[]);
+ const last=s.lastScanAt?Date.parse(s.lastScanAt):0,elapsed=Date.now()-last;
+ if(last&&elapsed<300000){
+  const remaining=Math.ceil((300000-elapsed)/1000);
+  return {ok:false,ignored:true,remainingSeconds:remaining,playerName:record.playerName,barcodeId:record.barcodeId,message:"تم تجاهل القراءة المكررة. يمكن تسجيل الحركة بعد "+Math.ceil(remaining/60)+" دقيقة."};
+ }
+ const latest=s.sessions[s.sessions.length-1];let action;
+ if(latest?.in&&!latest.out){latest.out=c.now;latest.outBy=staff.uid;action="checkout";}
+ else{s.sessions.push({in:c.now,out:null,by:staff.uid,playerName:record.playerName});action="checkin";}
+ s.lastScanAt=c.now;s.lastScanBy=staff.uid;s.playerName=record.playerName;s.barcodeId=record.barcodeId;
+ await put(env,key,s);
+ return {ok:true,action,playerName:record.playerName,guardianPhone:record.guardianPhone,academy:a,academyLabel:ACADEMIES[a].label,barcodeId:record.barcodeId,at:c.now,message:action==="checkin"?"تم تسجيل حضور اللاعب بنجاح.":"تم تسجيل انصراف اللاعب بنجاح."};
+}
 async function route(req,env,url){
  const p=url.pathname,m=req.method;
  if(p==="/api/health"&&m==="GET")return {ok:true,academies:Object.keys(ACADEMIES)};
@@ -204,6 +251,7 @@ async function route(req,env,url){
  if(p==="/api/admin/guardian-code"&&m==="POST")return saveCode(req,env);
  if(p==="/api/admin/players"&&m==="GET")return playersAdmin(req,env,url);
  if(p==="/api/admin/link-player"&&m==="POST")return linkPlayer(req,env);
+ if(p==="/api/admin/scan"&&m==="POST")return scanBarcode(req,env);
  if(p==="/api/admin/attendance"&&(m==="GET"||m==="POST"))return attendance(req,env,url);
  return {status:404,error:"المسار غير موجود."};
 }
