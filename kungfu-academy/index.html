@@ -541,25 +541,29 @@
       </div>
     </section>
 
-    <!-- ============ PLAYERS GALLERY ============ -->
+    <!-- ============ CINEMATIC PLAYERS GALLERY ============ -->
     <section class="section" id="section-players">
       <div class="section-heading">
-        <span class="section-heading-icon" aria-hidden="true">👥</span>
+        <span class="section-heading-icon" aria-hidden="true">🥋</span>
         <div>
-          <span class="section-kicker">KUNG FU • STUDENTS</span>
-          <h2>لاعبونا</h2>
-          <p class="section-sub">صور من لاعبي الأكاديمية في مراحل الحزام المختلفة</p>
+          <span class="section-kicker">KUNG FU • CHAMPIONS</span>
+          <h2>أبطال أكاديمية الكونغ فو</h2>
+          <p class="section-sub">وجوه الأبطال.. لقطات من رحلتهم في التدريب وصناعة الإنجاز</p>
         </div>
       </div>
-      <div class="reveal">
-        <div id="playersGallery" class="gallery-grid" style="grid-template-columns: repeat(auto-fill, minmax(min(100%,220px), 1fr)); gap: 14px;">
-          <div style="grid-column: 1 / -1; padding: 28px; border-radius: 18px; border: 1px dashed rgba(232,160,32,0.4); background: rgba(232,160,32,0.05); color: var(--text-secondary); text-align: center;">
-            <div style="font-size: 2.6rem">📸</div>
-            <p style="margin: 10px 0 4px; font-weight: 800; color: #fff;">صور لاعبي الكونغ فو ستظهر هنا</p>
-            <p style="font-size: 0.85rem;">أضف صور اللعبة في مجلد <b>assets/images/photos/</b> (player-01.jpg، player-02.jpg ...) وسيتم عرضها في هذا المعرض بشكل تلقائي.</p>
-          </div>
+      <div class="players-carousel kungfu-players-carousel" id="playersGallery">
+        <div class="players-carousel-track" id="players-carousel-track">
+          <div class="players-carousel-loading">جارٍ تجهيز صور أبطال الأكاديمية...</div>
+        </div>
+        <button class="players-carousel-arrow players-carousel-prev" id="players-carousel-prev" type="button" aria-label="الصورة السابقة">‹</button>
+        <button class="players-carousel-arrow players-carousel-next" id="players-carousel-next" type="button" aria-label="الصورة التالية">›</button>
+        <div class="players-carousel-bottom">
+          <span class="players-carousel-counter" id="players-carousel-counter">01 / 52</span>
+          <div class="players-carousel-dots" id="players-carousel-dots" aria-label="اختيار صورة اللاعب"></div>
+          <button class="players-carousel-pause" id="players-carousel-pause" type="button" aria-pressed="false">Ⅱ إيقاف</button>
         </div>
       </div>
+      <p class="kungfu-gallery-note">يتم تحميل صور اللاعبين تلقائياً من مجلد الصور، مع تجاهل أي صورة غير موجودة أو لا تعمل.</p>
     </section>
 
     <!-- ============ TRAINING PERKS & GROUPS ============ -->
