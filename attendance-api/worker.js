@@ -67,11 +67,9 @@ async function firebaseRead(path){
  if(!r.ok)throw Error("تعذر قراءة بيانات الأكاديمية من Firebase.");
  return r.json();
 }
-async function hmac(value,env){
- if(!env.SESSION_SECRET||String(env.SESSION_SECRET).length<32)throw Error("لم تتم إضافة SESSION_SECRET إلى Cloudflare Secrets (32 حرفًا على الأقل).");
- const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(env.SESSION_SECRET),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
- const sig=new Uint8Array(await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(value)));
- let s="";sig.forEach(c=>s+=String.fromCharCode(c));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+async function tokenHash(value){
+ const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)));
+ let s="";digest.forEach(c=>s+=String.fromCharCode(c));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 }
 const b64=s=>btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const unb64=s=>{const v=s.replace(/-/g,"+").replace(/_/g,"/");return atob(v+"=".repeat((4-v.length%4)%4));};
@@ -82,14 +80,17 @@ async function hashCode(code,salt,it){
 }
 async function equal(a,b){const x=new TextEncoder().encode(String(a)),y=new TextEncoder().encode(String(b));if(x.length!==y.length)return false;let d=0;for(let i=0;i<x.length;i++)d|=x[i]^y[i];return d===0;}
 async function parentToken(phone,version,env){
- const raw=b64(JSON.stringify({p:phone,v:version,e:Math.floor(Date.now()/1000)+1200}));
- return raw+"."+await hmac(raw,env);
+ const bytes=crypto.getRandomValues(new Uint8Array(32));let raw="";bytes.forEach(c=>raw+=String.fromCharCode(c));raw=b64(raw);
+ await put(env,PRIVATE+"session:"+await tokenHash(raw),{phone,version,expiresAt:Date.now()+1200000});
+ return raw;
 }
 async function parentSession(req,env){
- const p=bearer(req).split(".");if(p.length!==2||!await equal(p[1],await hmac(p[0],env)))throw Error("انتهت جلسة المتابعة؛ سجّل الدخول مرة أخرى.");
- const x=JSON.parse(unb64(p[0]));if(!x.p||x.e<Math.floor(Date.now()/1000))throw Error("انتهت جلسة المتابعة؛ سجّل الدخول مرة أخرى.");
- const g=await get(env,PRIVATE+"guardian:"+x.p);if(!g||!g.enabled||g.version!==x.v)throw Error("تم تغيير أو إلغاء رمز المتابعة. استخدم الرمز الجديد.");
- return {phone:x.p,guardian:g};
+ const raw=bearer(req);if(raw.length<40)throw Error("انتهت جلسة المتابعة؛ سجّل الدخول مرة أخرى.");
+ const s=await get(env,PRIVATE+"session:"+await tokenHash(raw));
+ if(!s||s.expiresAt<Date.now())throw Error("انتهت جلسة المتابعة؛ سجّل الدخول مرة أخرى.");
+ const g=await get(env,PRIVATE+"guardian:"+s.phone);
+ if(!g||!g.enabled||g.version!==s.version)throw Error("تم تغيير أو إلغاء رمز المتابعة. استخدم الرمز الجديد.");
+ return {phone:s.phone,guardian:g};
 }
 function clock(){
  const p=Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit",weekday:"long",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).map(x=>[x.type,x.value]));
