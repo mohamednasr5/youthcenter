@@ -1049,3 +1049,19 @@ body {
   .kungfu-players-carousel .players-carousel-arrow { top: 42%; }
   .kungfu-players-carousel .players-carousel-bottom { gap: 9px; }
 }
+
+
+/* ============ KUNG FU PLAYERS PHOTO VISUAL ENHANCEMENT ============ */
+/* Gentle tonal correction only; preserves the original players and photo details. */
+.kungfu-players-carousel .players-carousel-image-frame img {
+  filter: brightness(1.055) contrast(1.09) saturate(1.07);
+  image-rendering: auto;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+.kungfu-players-carousel .players-carousel-slide.is-active .players-carousel-image-frame img {
+  filter: brightness(1.055) contrast(1.09) saturate(1.07);
+}
+@media (prefers-reduced-motion: reduce) {
+  .kungfu-players-carousel .players-carousel-image-frame img { transform: none; }
+}
