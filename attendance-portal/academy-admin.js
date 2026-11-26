@@ -26,4 +26,4 @@ async function mount(a){
  $("#yc-reload",box).onclick=()=>load().catch(x=>message("yc-scan-msg",x.message));
  await load();setInterval(()=>load().catch(()=>{}),30000);
 }
-const tag=document.querySelector("script[data-academy-admin]");if(tag){const a=tag.dataset.academyAdmin;const run=()=>mount(a).catch(e=>console.error("Attendance admin:",e));if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run();}
+const tag=document.querySelector("script[data-academy-admin]");if(tag){const a=tag.dataset.academyAdmin;const run=()=>{const root=a==="football"?$("#dashboard-section"):$("#app");let tries=0;const timer=setInterval(()=>{tries++;if(root&&getComputedStyle(root).display!=="none"){clearInterval(timer);mount(a).catch(e=>console.error("Attendance admin:",e));}else if(tries>120)clearInterval(timer);},500);};if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run();}
