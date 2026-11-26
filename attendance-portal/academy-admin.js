@@ -1,46 +1,110 @@
 const API=window.YC_ATTENDANCE_API||"";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const $=(s,r=document)=>r.querySelector(s);
+const academyNames={football:"أكاديمية كرة القدم",karate:"أكاديمية الكاراتيه",kungfu:"أكاديمية الكونغ فو",nasheed:"فريق الإنشاد"};
 async function getUser(a){
  if(a==="football"){const m=await import("../football-academy/js/firebase-config.js");if(m.auth.currentUser)return m.auth.currentUser;return await new Promise(resolve=>{let off;const done=u=>{if(off)off();resolve(u)};off=m.onAuthStateChanged(m.auth,done);setTimeout(()=>done(m.auth.currentUser),6000);});}
  const apps=window.firebase?.apps||[],app=apps.find(x=>x.name==="youthcenter")||apps[0];if(!app)return null;const auth=app.auth();if(auth.currentUser)return auth.currentUser;return await new Promise(resolve=>{let off;const done=u=>{if(off)off();resolve(u)};off=auth.onAuthStateChanged(done);setTimeout(()=>done(auth.currentUser),6000);});
 }
 async function api(a,path,opts={}){const u=await getUser(a);if(!u)throw Error("سجّل الدخول إلى لوحة الأكاديمية أولًا.");const r=await fetch(API+path,{...opts,headers:{"content-type":"application/json","authorization":"Bearer "+await u.getIdToken()}});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||"تعذر تنفيذ الطلب.");return d;}
-function style(){if($("#yc-att-style"))return;const s=document.createElement("style");s.id="yc-att-style";s.textContent="#yc-attendance-admin{margin:24px 0;padding:18px;border-radius:18px;background:#111b2e;color:#f8fafc;border:1px solid #ffffff22;font-family:inherit}#yc-attendance-admin *{box-sizing:border-box}#yc-attendance-admin h2{margin:0 0 8px}#yc-attendance-admin p{color:#b7c4d6;font-size:.82rem;line-height:1.8}#yc-attendance-admin .g{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}#yc-attendance-admin .c{padding:14px;border:1px solid #ffffff1c;background:#ffffff08;border-radius:14px}#yc-attendance-admin label{display:block;margin:9px 0;color:#cbd5e1;font-size:.78rem}#yc-attendance-admin input,#yc-attendance-admin select{width:100%;padding:10px;border:1px solid #ffffff25;border-radius:9px;background:#071224;color:white;font:inherit;margin-top:5px}#yc-attendance-admin button{padding:9px 12px;margin:4px 3px 0 0;border:0;border-radius:9px;background:#a7f3d0;color:#05251b;font-weight:800;cursor:pointer}#yc-attendance-admin button.alt{background:#263850;color:#e5edf8}#yc-attendance-admin .r{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid #ffffff14;font-size:.8rem}#yc-attendance-admin .m{min-height:22px;color:#9be7c4;font-size:.78rem;margin-top:8px}@media(max-width:600px){#yc-attendance-admin{padding:12px}#yc-attendance-admin .r{align-items:flex-start;flex-direction:column}}#yc-qr-view .yc-qr-card{max-width:360px;margin:14px auto;padding:20px;text-align:center;border-radius:16px;background:#fff;color:#111827;border:1px solid #d1d5db}#yc-qr-view .yc-qr-card canvas{display:block;width:250px!important;height:250px!important;max-width:100%;margin:12px auto}#yc-qr-view .yc-qr-card h3{color:#111827;margin:0 0 5px}#yc-qr-view .yc-qr-card p{color:#4b5563;margin:3px 0;font-size:.8rem}#yc-qr-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0}#yc-qr-actions button{margin:0}@media print{body.yc-print-qr *{visibility:hidden!important}body.yc-print-qr #yc-qr,body.yc-print-qr #yc-qr *{visibility:visible!important}body.yc-print-qr #yc-qr{display:block!important;position:fixed!important;inset:0!important;margin:0!important;padding:24px!important;border:0!important;background:#fff!important;color:#111!important;width:100%!important;height:100%!important}body.yc-print-qr #yc-qr-actions{display:none!important}body.yc-print-qr #yc-qr-view .yc-qr-card{border:0!important;box-shadow:none!important;margin:35px auto!important}}";document.head.appendChild(s);}
+function style(){if($("#yc-att-style"))return;const s=document.createElement("style");s.id="yc-att-style";s.textContent=`
+#yc-attendance-admin{margin:24px 0;padding:18px;border-radius:20px;background:linear-gradient(145deg,#111b2e,#0b1425);color:#f8fafc;border:1px solid #ffffff22;font-family:inherit;box-shadow:0 18px 50px #0003}
+#yc-attendance-admin *{box-sizing:border-box}#yc-attendance-admin h2{margin:0 0 8px;font-size:1.15rem}#yc-attendance-admin p{color:#b7c4d6;font-size:.82rem;line-height:1.8}
+#yc-attendance-admin .g{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+#yc-attendance-admin .c{padding:15px;border:1px solid #ffffff1c;background:#ffffff08;border-radius:15px}
+#yc-attendance-admin label{display:block;margin:9px 0;color:#cbd5e1;font-size:.78rem}
+#yc-attendance-admin input,#yc-attendance-admin select{width:100%;padding:10px;border:1px solid #ffffff25;border-radius:10px;background:#071224;color:white;font:inherit;margin-top:5px}
+#yc-attendance-admin button{padding:9px 12px;margin:4px 3px 0 0;border:0;border-radius:10px;background:#a7f3d0;color:#05251b;font-weight:800;cursor:pointer;transition:.2s}
+#yc-attendance-admin button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+#yc-attendance-admin button.alt{background:#263850;color:#e5edf8}#yc-attendance-admin button.warn{background:#5b2630;color:#fecdd3}
+#yc-attendance-admin .r{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 0;border-bottom:1px solid #ffffff14;font-size:.8rem}
+#yc-attendance-admin .m{min-height:22px;color:#9be7c4;font-size:.78rem;margin-top:8px}
+#yc-attendance-admin .scan-status{margin-top:10px;padding:12px;border-radius:12px;background:#071224;border:1px solid #ffffff18;min-height:48px;color:#dbeafe;font-size:.82rem;line-height:1.8}
+#yc-attendance-admin video{width:100%;max-height:280px;object-fit:cover;background:#000;border-radius:13px;margin-top:10px}
+#yc-qr-view .yc-qr-card{max-width:380px;margin:14px auto;padding:22px;text-align:center;border-radius:18px;background:#fff;color:#111827;border:1px solid #d1d5db}
+#yc-qr-view .yc-qr-card canvas{display:block;width:250px!important;height:250px!important;max-width:100%;margin:12px auto}
+#yc-qr-view .yc-qr-card h3{color:#111827;margin:5px 0}#yc-qr-view .yc-qr-card p{color:#4b5563;margin:4px 0;font-size:.8rem}
+#yc-qr-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+@media(max-width:600px){#yc-attendance-admin{padding:12px}#yc-attendance-admin .r{align-items:flex-start;flex-direction:column}#yc-attendance-admin .r>span:last-child{display:flex;flex-wrap:wrap}}
+@media print{body.yc-print-qr *{visibility:hidden!important}body.yc-print-qr #yc-qr,body.yc-print-qr #yc-qr *{visibility:visible!important}body.yc-print-qr #yc-qr{display:block!important;position:fixed!important;inset:0!important;margin:0!important;padding:24px!important;border:0!important;background:#fff!important;color:#111!important;width:100%!important;height:100%!important}body.yc-print-qr #yc-qr-actions{display:none!important}body.yc-print-qr #yc-qr-view .yc-qr-card{border:0!important;box-shadow:none!important;margin:35px auto!important}}
+`;document.head.appendChild(s);}
 async function mount(a){
- style();let box=$("#yc-attendance-admin");if(!box){box=document.createElement("section");box.id="yc-attendance-admin";box.innerHTML='<h2>🕒 الحضور والانصراف وربط ولي الأمر</h2><p>اربط رقم ولي الأمر باللاعب وسجل الدخول والخروج من خلال QR. لإنشاء بطاقة اللاعب اضغط زر «QR» بجوار اسمه، ثم نزّل الصورة أو اطبع البطاقة وسلمها للاعب.</p><div class="g"><div class="c"><b>ربط ولي الأمر</b><label>اللاعب<select id="yc-player"></select></label><label>رقم الهاتف<input id="yc-phone" placeholder="01xxxxxxxxx" inputmode="tel"></label><button id="yc-save-link">حفظ الربط</button><button class="alt" id="yc-remove-link">إلغاء الربط</button><div id="yc-link-msg" class="m"></div></div><div class="c"><b>تسجيل QR</b><p>امسح QR بأي قارئ على الهاتف، ثم الصق النص هنا. الصيغة: AHMADIYAH|'+a+'|معرف اللاعب</p><label>بيانات QR أو معرف اللاعب<input id="yc-code" placeholder="AHMADIYAH|'+a+'|player-id"></label><button id="yc-scan">تسجيل الحركة تلقائيًا</button><div id="yc-scan-msg" class="m"></div></div><div class="c"><b>قارئ QR بالكاميرا</b><button id="yc-camera-start">فتح الكاميرا</button><button class="alt" id="yc-camera-stop">إيقاف</button><video id="yc-video" playsinline muted style="display:none;width:100%;max-height:230px;background:#000;border-radius:12px;margin-top:8px"></video></div></div><div class="c" style="margin-top:12px"><b>حالة الحضور اليوم</b><button class="alt" id="yc-reload">تحديث</button><div id="yc-list"></div></div><div class="c" id="yc-qr" style="display:none;margin-top:12px"><b>QR اللاعب</b><div id="yc-qr-view"></div></div>';
+ style();let box=$("#yc-attendance-admin");
+ if(!box){box=document.createElement("section");box.id="yc-attendance-admin";box.innerHTML=`
+ <h2>🛡️ نظام هوية اللاعب والحضور الذكي</h2>
+ <p>باركود فريد لكل لاعب، مرتبط بالأكاديمية ورقم ولي الأمر. يتم التحقق من الرمز في الخادم قبل تسجيل أي حركة، مع منع تكرار المسح لمدة خمس دقائق.</p>
+ <div class="g">
+  <div class="c"><b>👨‍👦 بيانات اللاعب وولي الأمر</b>
+   <label>اللاعب<select id="yc-player"></select></label>
+   <label>رقم هاتف ولي الأمر<input id="yc-phone" placeholder="01xxxxxxxxx" inputmode="tel" autocomplete="tel"></label>
+   <button id="yc-save-link">حفظ بيانات اللاعب وإنشاء / تحديث QR</button><button class="alt" id="yc-remove-link">إلغاء ربط ولي الأمر</button>
+   <div id="yc-link-msg" class="m"></div>
+  </div>
+  <div class="c"><b>📷 قارئ QR بالكاميرا</b>
+   <p>وجّه كاميرا الهاتف إلى بطاقة اللاعب. سيحدد النظام الأكاديمية واللاعب تلقائيًا من الرمز الآمن.</p>
+   <button id="yc-camera-start">تشغيل الكاميرا</button><button class="alt" id="yc-camera-stop">إيقاف الكاميرا</button>
+   <video id="yc-video" playsinline muted style="display:none"></video>
+   <div id="yc-scan-msg" class="scan-status">القارئ متوقف — جاهز للمسح</div>
+  </div>
+  <div class="c"><b>⌨️ إدخال رمز يدوي</b>
+   <label>محتوى QR<input id="yc-code" autocomplete="off" placeholder="امسح الرمز أو الصق محتواه هنا"></label>
+   <button id="yc-scan">تحقق وتسجيل الحركة</button>
+   <p>لا يمكن تسجيل اللاعب اعتمادًا على رقم اللاعب وحده؛ يجب أن يكون الرمز صادرًا من قاعدة بيانات المركز.</p>
+  </div>
+ </div>
+ <div class="c" style="margin-top:12px"><b>📋 حضور وانصراف اليوم</b><button class="alt" id="yc-reload">تحديث السجلات</button><div id="yc-list"></div></div>
+ <div class="c" id="yc-qr" style="display:none;margin-top:12px"><b>بطاقة اللاعب الرسمية</b><div id="yc-qr-view"></div></div>`;
  const anchor=$("#dashboard-section")||$("#app")||$(".wrap")||document.querySelector("main")||document.body;anchor.appendChild(box);}
- let players=[],rows=[],videoStream=null,detector=null,scanLoop=0,scanning=false;
+ let players=[],rows=[],videoStream=null,detector=null,scanLoop=0,scanning=false,scanBusy=false;
  const sel=$("#yc-player",box),message=(id,t)=>$("#"+id,box).textContent=t;
- async function load(){players=await api(a,"/api/admin/players?academy="+a);const old=sel.value;sel.innerHTML='<option value="">اختر لاعبًا</option>'+players.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+' — '+esc(p.id)+'</option>').join("");sel.value=old;rows=await api(a,"/api/admin/attendance?academy="+a);$("#yc-list",box).innerHTML=rows.map(p=>'<div class="r"><span><b>'+esc(p.name)+'</b><small style="display:block;color:#94a3b8">'+esc(p.id)+'</small></span><span>'+esc(p.status?.label||"—")+(p.status?.minutes!=null?" · "+p.status.minutes+" دقيقة":"")+'</span><span><button data-a="checkin" data-id="'+esc(p.id)+'">دخول</button><button class="alt" data-a="checkout" data-id="'+esc(p.id)+'">خروج</button><button class="alt" data-qr="'+esc(p.id)+'">QR</button></span></div>').join("")||"<p>لا توجد سجلات لاعبين.</p>";}
- async function mark(id,action){await api(a,"/api/admin/attendance",{method:"POST",body:JSON.stringify({academy:a,playerId:id,action})});message("yc-scan-msg",action==="checkin"?"تم تسجيل الدخول.":"تم تسجيل الخروج.");await load();}
- async function scanText(raw){const p=String(raw||"").trim().split("|");let id=String(raw||"").trim();if(p.length===3&&p[0]==="AHMADIYAH"){if(p[1]!==a)throw Error("رمز QR تابع لأكاديمية أخرى.");id=p[2];}const row=rows.find(x=>String(x.id)===id);if(!row)throw Error("لم يتم العثور على اللاعب.");await mark(id,row.status?.code==="inside"?"checkout":"checkin");}
- function stopCamera(){scanning=false;if(scanLoop)cancelAnimationFrame(scanLoop);if(videoStream)videoStream.getTracks().forEach(t=>t.stop());videoStream=null;const v=$("#yc-video",box);if(v){v.pause();v.srcObject=null;v.style.display="none";}}
- async function startCamera(){if(!("BarcodeDetector" in window)){message("yc-scan-msg","المتصفح لا يدعم قراءة QR بالكاميرا؛ استخدم تطبيق قارئ QR وانسخ الرمز إلى الحقل.");return;}videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});const v=$("#yc-video",box);v.srcObject=videoStream;v.style.display="block";await v.play();detector=new BarcodeDetector({formats:["qr_code"]});scanning=true;const tick=async()=>{if(!scanning)return;try{const found=await detector.detect(v);if(found.length){scanning=false;stopCamera();await scanText(found[0].rawValue);}}catch(e){message("yc-scan-msg",e.message);}if(scanning)scanLoop=requestAnimationFrame(tick);};tick();}
+ async function load(){
+  players=await api(a,"/api/admin/players?academy="+a);const old=sel.value;
+  sel.innerHTML='<option value="">اختر لاعبًا</option>'+players.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+' — '+esc(p.id)+'</option>').join("");sel.value=old;
+  const chosen=players.find(p=>String(p.id)===String(sel.value));if(chosen&&chosen.guardianPhone)$("#yc-phone",box).value=chosen.guardianPhone;
+  rows=await api(a,"/api/admin/attendance?academy="+a);
+  $("#yc-list",box).innerHTML=rows.map(p=>'<div class="r"><span><b>'+esc(p.name)+'</b><small style="display:block;color:#94a3b8">ID: '+esc(p.id)+'</small></span><span>'+esc(p.status?.label||"—")+(p.status?.minutes!=null?" · "+p.status.minutes+" دقيقة":"")+'</span><span><button class="alt" data-qr="'+esc(p.id)+'">عرض QR</button></span></div>').join("")||"<p>لا توجد سجلات لاعبين.</p>";
+ }
+ async function scanText(raw){
+  if(scanBusy)return;scanBusy=true;
+  try{
+   let value=String(raw||"").trim();if(value.startsWith("AHMADIYAH|")){const p=value.split("|");if(p.length!==3||p[1]!=="v1")throw Error("صيغة الباركود غير صحيحة أو قديمة.");value=p[2];}
+   const result=await api(a,"/api/admin/scan",{method:"POST",body:JSON.stringify({token:value})});
+   if(result.ignored){message("yc-scan-msg","⏳ "+result.message+" اللاعب: "+result.playerName);return;}
+   message("yc-scan-msg",(result.action==="checkin"?"🟢 ":"🔵 ")+result.message+" — "+result.playerName+" — "+result.academyLabel+" — "+new Date(result.at).toLocaleTimeString("ar-EG"));
+   $("#yc-code",box).value="";await load();
+  }catch(e){message("yc-scan-msg","⚠️ "+e.message);}
+  finally{scanBusy=false;}
+ }
+ function stopCamera(){scanning=false;if(scanLoop)cancelAnimationFrame(scanLoop);scanLoop=0;if(videoStream)videoStream.getTracks().forEach(t=>t.stop());videoStream=null;const v=$("#yc-video",box);if(v){v.pause();v.srcObject=null;v.style.display="none";}}
+ async function startCamera(){
+  if(!("BarcodeDetector" in window)){message("yc-scan-msg","متصفحك لا يدعم BarcodeDetector. افتح الصفحة عبر Chrome حديث أو استخدم الإدخال اليدوي.");return;}
+  if(!navigator.mediaDevices?.getUserMedia)throw Error("الكاميرا تحتاج إلى HTTPS وصلاحية الوصول.");
+  videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+  const v=$("#yc-video",box);v.srcObject=videoStream;v.style.display="block";await v.play();
+  detector=new BarcodeDetector({formats:["qr_code"]});scanning=true;message("yc-scan-msg","📷 الكاميرا تعمل — وجّه الرمز داخل الإطار.");
+  const tick=async()=>{if(!scanning)return;try{if(!scanBusy){const found=await detector.detect(v);if(found.length)await scanText(found[0].rawValue);}}catch(e){message("yc-scan-msg","تعذر قراءة الرمز: "+e.message);}if(scanning)scanLoop=requestAnimationFrame(tick);};tick();
+ }
  function ensureQrLibrary(){
-  if(window.QRCode)return Promise.resolve();
-  if(window.__ycQrLibraryPromise)return window.__ycQrLibraryPromise;
-  window.__ycQrLibraryPromise=new Promise((resolve,reject)=>{
-   const script=document.createElement("script");script.src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js";script.onload=()=>window.QRCode?resolve():reject(Error("تعذر تحميل مكتبة إنشاء QR."));script.onerror=()=>reject(Error("تعذر تحميل مكتبة إنشاء QR. تحقق من اتصال الإنترنت."));document.head.appendChild(script);
-  });
-  return window.__ycQrLibraryPromise;
+  if(window.QRCode)return Promise.resolve();if(window.__ycQrLibraryPromise)return window.__ycQrLibraryPromise;
+  window.__ycQrLibraryPromise=new Promise((resolve,reject)=>{const script=document.createElement("script");script.src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js";script.onload=()=>window.QRCode?resolve():reject(Error("تعذر تحميل مكتبة QR."));script.onerror=()=>reject(Error("تعذر تحميل مكتبة QR؛ تحقق من الإنترنت."));document.head.appendChild(script);});return window.__ycQrLibraryPromise;
  }
  async function showPlayerQr(id){
-  const p=players.find(x=>String(x.id)===String(id));if(!p)throw Error("لم يتم العثور على بيانات اللاعب.");
-  await ensureQrLibrary();
-  const panel=$("#yc-qr",box),view=$("#yc-qr-view",box);panel.style.display="block";
-  view.innerHTML='<div class="yc-qr-card"><div style="font-size:12px;font-weight:900;letter-spacing:1px;color:#374151">مركز شباب الأحمدية</div><h3>'+esc(p.name)+'</h3><p>'+esc(({football:"أكاديمية كرة القدم",karate:"أكاديمية الكاراتيه",kungfu:"أكاديمية الكونغ فو",nasheed:"فريق الإنشاد"})[a])+'</p><div class="yc-qr-holder"></div><p>رمز الحضور والانصراف الخاص باللاعب</p><p style="font-size:11px;color:#6b7280">يُعرض هذا الرمز على المدرب عند الحضور والانصراف</p></div><div id="yc-qr-actions"><button id="yc-qr-download">تنزيل بطاقة QR</button><button class="alt" id="yc-qr-print">طباعة البطاقة</button></div>';
-  const canvas=document.createElement("canvas");const payload="AHMADIYAH|"+a+"|"+p.id;
-  await QRCode.toCanvas(canvas,payload,{width:260,margin:2,errorCorrectionLevel:"H"});
-  $(".yc-qr-holder",view).appendChild(canvas);
-  $("#yc-qr-download",view).onclick=()=>{const link=document.createElement("a");link.href=canvas.toDataURL("image/png");link.download="ahmadiya-"+a+"-"+String(p.id).replace(/[^a-zA-Z0-9_-]/g,"_")+".png";document.body.appendChild(link);link.click();link.remove();};
-  $("#yc-qr-print",view).onclick=()=>{document.body.classList.add("yc-print-qr");const done=()=>{document.body.classList.remove("yc-print-qr");window.removeEventListener("afterprint",done);};window.addEventListener("afterprint",done);window.print();setTimeout(done,1500);};
+  const p=players.find(x=>String(x.id)===String(id));if(!p)throw Error("اللاعب غير موجود.");
+  if(!p.barcodeToken||!p.barcodeId)throw Error("لم يتم إنشاء الباركود بعد. حدّث قائمة اللاعبين.");
+  await ensureQrLibrary();const panel=$("#yc-qr",box),view=$("#yc-qr-view",box);panel.style.display="block";
+  view.innerHTML='<div class="yc-qr-card"><div style="font-size:12px;font-weight:900;letter-spacing:1px;color:#374151">مركز شباب الأحمدية</div><h3>'+esc(p.name)+'</h3><p>'+esc(academyNames[a])+'</p><div class="yc-qr-holder"></div><p><b>ولي الأمر:</b> '+esc(p.guardianPhone||"غير مربوط")+'</p><p><b>رقم الهوية:</b> '+esc(p.barcodeId)+'</p><p>بطاقة حضور وانصراف دائمة — لا تشارك الرمز إلا مع اللاعب وولي أمره</p></div><div id="yc-qr-actions"><button id="yc-qr-download">تنزيل البطاقة PNG</button><button class="alt" id="yc-qr-print">طباعة</button><button class="alt" id="yc-qr-whatsapp">مشاركة واتساب</button></div>';
+  const canvas=document.createElement("canvas"),payload="AHMADIYAH|v1|"+p.barcodeToken;
+  await QRCode.toCanvas(canvas,payload,{width:300,margin:3,errorCorrectionLevel:"H"});$(".yc-qr-holder",view).appendChild(canvas);
+  $("#yc-qr-download",view).onclick=()=>{const link=document.createElement("a");link.href=canvas.toDataURL("image/png");link.download="Ahmadiya-"+a+"-"+p.barcodeId+".png";link.click();};
+  $("#yc-qr-print",view).onclick=()=>{document.body.classList.add("yc-print-qr");const done=()=>{document.body.classList.remove("yc-print-qr");window.removeEventListener("afterprint",done);};window.addEventListener("afterprint",done);window.print();setTimeout(done,1800);};
+  $("#yc-qr-whatsapp",view).onclick=()=>{const text="بطاقة QR الخاصة باللاعب: "+p.name+"\nالأكاديمية: "+academyNames[a]+"\nولي الأمر: "+(p.guardianPhone||"غير مسجل")+"\nرقم الهوية: "+p.barcodeId+"\nيرجى الاحتفاظ بصورة البطاقة وإظهارها عند الحضور.";window.open("https://wa.me/?text="+encodeURIComponent(text),"_blank","noopener");};
   panel.scrollIntoView({behavior:"smooth",block:"center"});
  }
- box.addEventListener("click",async e=>{try{const act=e.target.closest("[data-a]"),qr=e.target.closest("[data-qr]");if(act)await mark(act.dataset.id,act.dataset.a);if(qr)await showPlayerQr(qr.dataset.qr);}catch(x){message("yc-scan-msg",x.message)}});
- $("#yc-save-link",box).onclick=async()=>{try{if(!sel.value)throw Error("اختر اللاعب أولًا.");const r=await api(a,"/api/admin/link-player",{method:"POST",body:JSON.stringify({academy:a,playerId:sel.value,phone:$("#yc-phone",box).value.trim()})});message("yc-link-msg",r.message);await load();}catch(x){message("yc-link-msg",x.message)}};
+ sel.addEventListener("change",()=>{const p=players.find(x=>String(x.id)===String(sel.value));$("#yc-phone",box).value=p?.guardianPhone||"";});
+ box.addEventListener("click",async e=>{try{const qr=e.target.closest("[data-qr]");if(qr)await showPlayerQr(qr.dataset.qr);}catch(x){message("yc-scan-msg",x.message)}});
+ $("#yc-save-link",box).onclick=async()=>{try{if(!sel.value)throw Error("اختر اللاعب أولًا.");const phone=$("#yc-phone",box).value.trim();if(!phone)throw Error("أدخل رقم ولي الأمر لإنشاء بطاقة مكتملة.");const r=await api(a,"/api/admin/link-player",{method:"POST",body:JSON.stringify({academy:a,playerId:sel.value,phone})});message("yc-link-msg",r.message+" رقم البطاقة: "+(r.barcodeId||""));await load();await showPlayerQr(sel.value);}catch(x){message("yc-link-msg",x.message)}};
  $("#yc-remove-link",box).onclick=async()=>{try{if(!sel.value)throw Error("اختر اللاعب أولًا.");const r=await api(a,"/api/admin/link-player",{method:"POST",body:JSON.stringify({academy:a,playerId:sel.value,phone:""})});message("yc-link-msg",r.message);$("#yc-phone",box).value="";await load();}catch(x){message("yc-link-msg",x.message)}};
- $("#yc-scan",box).onclick=()=>scanText($("#yc-code",box).value).catch(x=>message("yc-scan-msg",x.message));
+ $("#yc-scan",box).onclick=()=>scanText($("#yc-code",box).value);
  $("#yc-camera-start",box).onclick=()=>startCamera().catch(x=>message("yc-scan-msg","تعذر فتح الكاميرا: "+x.message));
  $("#yc-camera-stop",box).onclick=stopCamera;
  $("#yc-reload",box).onclick=()=>load().catch(x=>message("yc-scan-msg",x.message));
