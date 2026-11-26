@@ -16,8 +16,8 @@
  async function open(){
   $("#login").style.display="none";$("#app").style.display="block";await load();
  }
- $("#loginBtn").onclick=async()=>{try{const email=$("#em").value.trim();await SiteData.signIn(email,$("#pw").value,"nasheed");await open();}catch(e){say("loginMsg",e.message,true)}};
- $("#googleBtn").onclick=async()=>{try{const u=await SiteData.signInWithGoogle("nasheed");if(u)await open();}catch(e){say("loginMsg",e.message,true)}};
+ $("#loginBtn").onclick=async()=>{try{const email=$("#em").value.trim();try{await SiteData.signIn(email,$("#pw").value,"nasheed");}catch(first){await SiteData.signIn(email,$("#pw").value,"center");}await open();}catch(e){say("loginMsg",e.message,true)}};
+ $("#googleBtn").onclick=async()=>{try{let u;try{u=await SiteData.signInWithGoogle("nasheed");}catch(first){u=await SiteData.signInWithGoogle("center");}if(u)await open();}catch(e){say("loginMsg",e.message,true)}};
  $("#playerForm").onsubmit=async e=>{e.preventDefault();try{const d={id:$("#playerId").value||undefined,name:$("#playerName").value.trim(),age:$("#playerAge").value,category:$("#playerGroup").value.trim(),photo:$("#playerPhoto").value.trim()};await api("/api/nasheed/player",{method:"POST",body:JSON.stringify(d)});clearPlayer();say("playerMsg","تم حفظ بيانات اللاعب.");await load();}catch(x){say("playerMsg",x.message,true)}};
  $("#scheduleForm").onsubmit=async e=>{e.preventDefault();try{const d={id:$("#scheduleId").value||undefined,day:$("#scheduleDay").value,date:$("#scheduleDate").value,fromTime:$("#scheduleFrom").value,toTime:$("#scheduleTo").value,location:$("#scheduleLocation").value};await api("/api/nasheed/schedule",{method:"POST",body:JSON.stringify(d)});clearSchedule();say("scheduleMsg","تم حفظ موعد التدريب.");await load();}catch(x){say("scheduleMsg",x.message,true)}};
  $("#cancelPlayer").onclick=clearPlayer;$("#cancelSchedule").onclick=clearSchedule;
