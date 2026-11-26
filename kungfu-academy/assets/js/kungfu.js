@@ -217,10 +217,56 @@
     });
   }
 
+
+  async function loadKungfuPlayersGallery() {
+    const gallery = document.getElementById('playersGallery');
+    if (!gallery) return;
+    const base = 'assets/images/photos/';
+    let photos = [];
+    try {
+      const response = await fetch(base + 'images-manifest.json?v=' + Date.now(), {cache:'no-store'});
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data.images)) photos = data.images.map(function(entry) {
+          const file = typeof entry === 'string' ? entry : entry && entry.src;
+          if (!file) return null;
+          const clean = String(file).split('/').pop();
+          return {src:base + clean, caption:(entry && entry.caption) || clean};
+        }).filter(Boolean);
+      }
+    } catch(error) { console.warn('Players manifest unavailable', error); }
+    const valid = await Promise.all(photos.map(function(photo) {
+      return new Promise(function(resolve) {
+        const img = new Image();
+        img.onload = function(){resolve(photo);};
+        img.onerror = function(){resolve(null);};
+        img.src = photo.src;
+      });
+    }));
+    photos = valid.filter(Boolean);
+    if (!photos.length) {
+      gallery.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text-secondary)">لا توجد صور قابلة للعرض حالياً.</div>';
+      return;
+    }
+    gallery.classList.add('kungfu-photo-grid');
+    gallery.innerHTML = photos.map(function(photo,index) {
+      return '<button class="kungfu-photo-card" type="button" data-photo-index="'+index+'"><img src="'+photo.src+'" alt="'+photo.caption+'" loading="lazy"><span>'+String(index+1).padStart(2,'0')+'</span></button>';
+    }).join('');
+    gallery.querySelectorAll('[data-photo-index]').forEach(function(card) {
+      card.addEventListener('click',function() {
+        const photo = photos[Number(card.getAttribute('data-photo-index'))];
+        const overlay=document.getElementById('lightbox'), img=document.getElementById('lightboxImg');
+        const caption=document.getElementById('lightboxCaption');
+        if(overlay && img){img.src=photo.src;img.alt=photo.caption;if(caption)caption.textContent=photo.caption;overlay.classList.add('active');}
+      });
+    });
+  }
+
   /* ============ Init ============ */
   function init() {
     renderMoves();
     renderBelts();
+    loadKungfuPlayersGallery();
     setupLightbox();
     setupReveal();
     setupActiveNav();
