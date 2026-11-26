@@ -1,0 +1,1 @@
+window.YC_ATTENDANCE_API = window.YC_ATTENDANCE_API || "";
