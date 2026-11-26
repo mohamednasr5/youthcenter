@@ -217,10 +217,177 @@
     });
   }
 
+
+  /* ============ Cinematic players carousel ============ */
+  let playersCarouselIndex = 0;
+  let playersCarouselTimer = null;
+  let playersCarouselPaused = false;
+  let playersCarouselTouchStartX = 0;
+  let playersCarouselBound = false;
+
+  function kungfuPlayerFile(number) {
+    // Naming convention used in the uploaded folder:
+    // player-01.jpg ... player-09.jpg, then player-010.jpg ... player-052.jpg
+    const suffix = number < 10 ? String(number).padStart(2, '0') : String(number).padStart(3, '0');
+    return 'assets/images/photos/player-' + suffix + '.jpg';
+  }
+
+  async function loadKungfuPlayersGallery() {
+    const root = document.getElementById('playersGallery');
+    const track = document.getElementById('players-carousel-track');
+    if (!root || !track) return;
+
+    const candidates = Array.from({length:52}, function(_, index) {
+      const number = index + 1;
+      return {src: kungfuPlayerFile(number), number:number};
+    });
+
+    const checked = await Promise.all(candidates.map(function(item) {
+      return new Promise(function(resolve) {
+        const probe = new Image();
+        probe.onload = function(){ resolve(item); };
+        probe.onerror = function(){ resolve(null); };
+        probe.src = item.src;
+      });
+    }));
+    const photos = checked.filter(Boolean);
+
+    if (!photos.length) {
+      track.innerHTML = '<p class="players-carousel-loading">لم يتم العثور على صور اللاعبين. تأكد من وجود player-01.jpg حتى player-052.jpg داخل assets/images/photos/</p>';
+      return;
+    }
+
+    track.innerHTML = photos.map(function(photo, index) {
+      const label = 'لاعب الكونغ فو رقم ' + String(photo.number).padStart(2, '0');
+      return '<button class="players-carousel-slide" type="button" data-slide-index="' + index + '" aria-label="' + label + '" tabindex="-1">' +
+        '<span class="players-carousel-image-frame"><img src="' + photo.src + '" alt="' + label + '" loading="' + (index < 3 ? 'eager' : 'lazy') + '" decoding="async" draggable="false"></span>' +
+        '<span class="players-carousel-slide-number">' + label + '</span></button>';
+    }).join('');
+
+    root.classList.add('players-carousel');
+    root.setAttribute('aria-label', 'معرض لاعبي أكاديمية الكونغ فو');
+    playersCarouselIndex = 0;
+    updateKungfuPlayersCarousel();
+    setupKungfuPlayersCarouselControls();
+    startKungfuPlayersCarousel();
+  }
+
+  function updateKungfuPlayersCarousel() {
+    const track = document.getElementById('players-carousel-track');
+    const counter = document.getElementById('players-carousel-counter');
+    const dots = document.getElementById('players-carousel-dots');
+    if (!track) return;
+    const slides = Array.from(track.querySelectorAll('.players-carousel-slide'));
+    const total = slides.length;
+    if (!total) return;
+
+    slides.forEach(function(slide, index) {
+      let offset = index - playersCarouselIndex;
+      if (offset > total / 2) offset -= total;
+      if (offset < -total / 2) offset += total;
+      slide.className = 'players-carousel-slide';
+      slide.dataset.position = String(offset);
+      slide.setAttribute('aria-hidden', offset === 0 ? 'false' : 'true');
+      slide.tabIndex = offset === 0 ? 0 : -1;
+      if (offset === 0) slide.classList.add('is-active');
+      else if (Math.abs(offset) === 1) slide.classList.add(offset < 0 ? 'is-prev' : 'is-next');
+      else if (Math.abs(offset) === 2) slide.classList.add('is-far');
+      else slide.classList.add('is-hidden');
+    });
+
+    if (counter) counter.textContent = String(playersCarouselIndex + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+    if (dots) {
+      if (!dots.children.length) {
+        dots.innerHTML = slides.map(function(_, index) {
+          return '<button type="button" class="players-carousel-dot" data-go-to="' + index + '" aria-label="الصورة ' + (index + 1) + '"></button>';
+        }).join('');
+        dots.querySelectorAll('[data-go-to]').forEach(function(dot) {
+          dot.addEventListener('click', function() {
+            playersCarouselIndex = Number(dot.dataset.goTo);
+            updateKungfuPlayersCarousel();
+            restartKungfuPlayersCarousel();
+          });
+        });
+      }
+      dots.querySelectorAll('.players-carousel-dot').forEach(function(dot, index) {
+        dot.classList.toggle('active', index === playersCarouselIndex);
+        dot.setAttribute('aria-current', index === playersCarouselIndex ? 'true' : 'false');
+      });
+    }
+  }
+
+  function moveKungfuPlayersCarousel(direction) {
+    const total = document.querySelectorAll('#players-carousel-track .players-carousel-slide').length;
+    if (!total) return;
+    playersCarouselIndex = (playersCarouselIndex + direction + total) % total;
+    updateKungfuPlayersCarousel();
+  }
+  function stopKungfuPlayersCarousel() {
+    if (playersCarouselTimer) { window.clearInterval(playersCarouselTimer); playersCarouselTimer = null; }
+  }
+  function startKungfuPlayersCarousel() {
+    stopKungfuPlayersCarousel();
+    if (playersCarouselPaused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    playersCarouselTimer = window.setInterval(function(){ moveKungfuPlayersCarousel(1); }, 2800);
+  }
+  function restartKungfuPlayersCarousel() {
+    stopKungfuPlayersCarousel();
+    startKungfuPlayersCarousel();
+  }
+  function setupKungfuPlayersCarouselControls() {
+    const root = document.getElementById('playersGallery');
+    if (!root || playersCarouselBound) return;
+    playersCarouselBound = true;
+
+    const previous = document.getElementById('players-carousel-prev');
+    const next = document.getElementById('players-carousel-next');
+    const pause = document.getElementById('players-carousel-pause');
+    if (previous) previous.addEventListener('click', function(){ moveKungfuPlayersCarousel(-1); restartKungfuPlayersCarousel(); });
+    if (next) next.addEventListener('click', function(){ moveKungfuPlayersCarousel(1); restartKungfuPlayersCarousel(); });
+    if (pause) pause.addEventListener('click', function() {
+      playersCarouselPaused = !playersCarouselPaused;
+      pause.setAttribute('aria-pressed', String(playersCarouselPaused));
+      pause.textContent = playersCarouselPaused ? '▶ تشغيل' : 'Ⅱ إيقاف';
+      if (playersCarouselPaused) stopKungfuPlayersCarousel(); else startKungfuPlayersCarousel();
+    });
+
+    root.addEventListener('click', function(event) {
+      const slide = event.target.closest('.players-carousel-slide');
+      if (!slide) return;
+      const image = slide.querySelector('img');
+      const overlay = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightboxImg');
+      const caption = document.getElementById('lightboxCaption');
+      if (image && overlay && lightboxImg) {
+        lightboxImg.src = image.src;
+        lightboxImg.alt = image.alt;
+        if (caption) caption.textContent = image.alt;
+        overlay.classList.add('active');
+      }
+    });
+
+    root.addEventListener('mouseenter', stopKungfuPlayersCarousel);
+    root.addEventListener('mouseleave', startKungfuPlayersCarousel);
+    root.addEventListener('focusin', stopKungfuPlayersCarousel);
+    root.addEventListener('focusout', function(){ window.setTimeout(function(){ if (!root.contains(document.activeElement)) startKungfuPlayersCarousel(); }, 0); });
+    root.addEventListener('keydown', function(event) {
+      if (event.key === 'ArrowLeft') { event.preventDefault(); moveKungfuPlayersCarousel(1); restartKungfuPlayersCarousel(); }
+      if (event.key === 'ArrowRight') { event.preventDefault(); moveKungfuPlayersCarousel(-1); restartKungfuPlayersCarousel(); }
+    });
+    root.addEventListener('touchstart', function(event){ playersCarouselTouchStartX = event.changedTouches[0].clientX; stopKungfuPlayersCarousel(); }, {passive:true});
+    root.addEventListener('touchend', function(event) {
+      const delta = event.changedTouches[0].clientX - playersCarouselTouchStartX;
+      if (Math.abs(delta) > 45) moveKungfuPlayersCarousel(delta < 0 ? 1 : -1);
+      startKungfuPlayersCarousel();
+    }, {passive:true});
+    document.addEventListener('visibilitychange', function(){ if (document.hidden) stopKungfuPlayersCarousel(); else startKungfuPlayersCarousel(); });
+  }
+
   /* ============ Init ============ */
   function init() {
     renderMoves();
     renderBelts();
+    loadKungfuPlayersGallery();
     setupLightbox();
     setupReveal();
     setupActiveNav();

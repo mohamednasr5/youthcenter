@@ -21,7 +21,33 @@ button.g{background:transparent;border:1px solid var(--line);color:var(--txt)}bu
 .back{display:inline-block;margin-bottom:12px;color:var(--mut);text-decoration:none;font-size:.85rem;font-weight:700}
 .back:hover{color:var(--gold)}
 </style>
-</head>
+<style id="premium-admin">
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+:root{--p:#ef4444;--pg:rgba(239,68,68,.22);--gold:#f4c15d}
+*{box-sizing:border-box}
+body{font-family:Cairo,system-ui,sans-serif!important;background:radial-gradient(ellipse at 8% 0,var(--pg),transparent 40%),#080c16!important;color:#f8fafc!important;padding:clamp(12px,2.5vw,28px)!important;overflow-x:hidden}
+.wrap{max-width:1240px!important;margin:auto!important}
+.card{background:linear-gradient(145deg,#172235,#0e1727)!important;border:1px solid #ffffff18!important;border-radius:22px!important;padding:clamp(15px,2vw,24px)!important;box-shadow:0 18px 50px #0005!important;backdrop-filter:blur(16px);animation:rise .5s both}
+h1{font-size:clamp(1.3rem,3vw,2rem)!important;font-weight:900}
+.sub,.muted{color:#aebbd0!important;line-height:1.9}
+label{color:#d3dbea!important;font-weight:700}
+input,select,textarea{background:#09111f!important;color:#fff!important;border:1px solid #ffffff25!important;border-radius:12px!important;padding:12px!important;width:100%;font:inherit;transition:.2s}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--p)!important;box-shadow:0 0 0 3px var(--pg)!important}
+button{font:inherit!important;font-weight:800!important;border-radius:12px!important;padding:10px 16px!important;transition:transform .2s,filter .2s!important;cursor:pointer}
+button:hover{transform:translateY(-2px);filter:brightness(1.1)}
+button:not(.g):not(.secondary):not(.d):not(.danger){background:linear-gradient(115deg,var(--p),var(--gold))!important;color:#111827!important}
+button.g,button.secondary,.back{background:#ffffff0d!important;color:#f3f4f6!important;border:1px solid #ffffff25!important}
+button.d,button.danger{background:#6b2037!important;color:#ffe4e6!important}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:5px 0 12px}
+.tabs button{background:#ffffff0a!important;color:#cbd5e1!important;border:1px solid #ffffff20!important;flex:0 0 auto}
+.tabs button.on{background:linear-gradient(120deg,var(--p),var(--gold))!important;color:#111827!important}
+.item{background:#ffffff08;border:1px solid #ffffff17!important;border-radius:14px!important;padding:13px!important;margin:8px 0!important;transition:.2s}
+.item:hover{border-color:var(--p)!important;transform:translateX(-3px)}
+.item small{color:#aebbd0!important}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:640px){body{padding:10px!important}.card{border-radius:17px!important}.item{align-items:flex-start!important;flex-direction:column!important}.item>div:last-child{display:flex;gap:6px;flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style></head>
 <body>
 <div class="wrap">
   <a class="back" href="index.html">← العودة لصفحة الأكاديمية</a>
