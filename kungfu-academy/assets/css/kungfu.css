@@ -875,3 +875,193 @@ body {
   .kungfu-players-carousel .players-carousel-bottom{gap:7px}
 }
 @media(prefers-reduced-motion:reduce){.kungfu-players-carousel .players-carousel-slide{transition:none!important}}
+
+
+/* ============ KUNG FU LANDSCAPE PHOTO FORMAT ============ */
+/* Keep the original horizontal composition; never crop player photographs into portrait/reels cards. */
+.kungfu-players-carousel {
+  --carousel-card-width: clamp(320px, 64vw, 820px);
+  min-height: clamp(260px, 42vw, 510px);
+  padding-top: 14px;
+}
+.kungfu-players-carousel .players-carousel-track {
+  height: clamp(230px, 39vw, 470px);
+}
+.kungfu-players-carousel .players-carousel-slide {
+  top: 50%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  max-height: 100%;
+  transform: translate(-50%, -50%) scale(.72);
+  border-radius: 16px;
+}
+.kungfu-players-carousel .players-carousel-image-frame,
+.kungfu-players-carousel .players-carousel-image-frame img {
+  width: 100%;
+  height: 100%;
+}
+.kungfu-players-carousel .players-carousel-image-frame {
+  background: #080808;
+}
+.kungfu-players-carousel .players-carousel-image-frame img {
+  object-fit: contain;
+  object-position: center;
+  background: #080808;
+}
+.kungfu-players-carousel .players-carousel-slide::after {
+  inset: 62% 0 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.78) 100%);
+}
+.kungfu-players-carousel .players-carousel-slide.is-active {
+  transform: translate(-50%, -50%) scale(1);
+}
+.kungfu-players-carousel .players-carousel-slide.is-prev {
+  transform: translate(calc(-50% - var(--carousel-card-width) * .78), -50%) scale(.74) rotateY(5deg);
+}
+.kungfu-players-carousel .players-carousel-slide.is-next {
+  transform: translate(calc(-50% + var(--carousel-card-width) * .78), -50%) scale(.74) rotateY(-5deg);
+}
+.kungfu-players-carousel .players-carousel-slide.is-far {
+  transform: translate(calc(-50% + var(--carousel-card-width) * var(--side,1) * 1.48), -50%) scale(.58);
+}
+.kungfu-players-carousel .players-carousel-slide.is-hidden {
+  transform: translate(-50%, -50%) scale(.48);
+}
+.kungfu-players-carousel .players-carousel-arrow { top: 44%; }
+@media(max-width:767px) {
+  .kungfu-players-carousel {
+    --carousel-card-width: min(82vw, 520px);
+    min-height: 270px;
+    padding-top: 8px;
+  }
+  .kungfu-players-carousel .players-carousel-track { height: 230px; }
+  .kungfu-players-carousel .players-carousel-slide { border-radius: 12px; }
+  .kungfu-players-carousel .players-carousel-slide.is-prev {
+    transform: translate(calc(-50% - var(--carousel-card-width) * .72), -50%) scale(.72);
+  }
+  .kungfu-players-carousel .players-carousel-slide.is-next {
+    transform: translate(calc(-50% + var(--carousel-card-width) * .72), -50%) scale(.72);
+  }
+  .kungfu-players-carousel .players-carousel-slide.is-far {
+    transform: translate(calc(-50% + var(--carousel-card-width) * var(--side,1) * 1.35), -50%) scale(.56);
+  }
+  .kungfu-players-carousel .players-carousel-arrow { top: 42%; }
+}
+@media(max-width:390px) {
+  .kungfu-players-carousel { --carousel-card-width: 84vw; min-height: 250px; }
+  .kungfu-players-carousel .players-carousel-track { height: 210px; }
+}
+
+
+/* ============ KUNG FU GALLERY: FULL-WIDTH PHOTOS + CAPTIONS BELOW ============ */
+.kungfu-players-carousel {
+  --carousel-card-width: 100%;
+  width: 100%;
+  min-height: 0;
+  padding: 12px 0 0;
+}
+.kungfu-players-carousel .players-carousel-track {
+  width: 100%;
+  height: clamp(280px, 58vw, 650px);
+  min-height: 0;
+  perspective: none;
+}
+.kungfu-players-carousel .players-carousel-slide {
+  top: 0;
+  left: 50%;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  transform: translateX(-50%);
+  background: #10090b;
+  filter: none;
+}
+.kungfu-players-carousel .players-carousel-image-frame {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: auto;
+  background: transparent;
+}
+.kungfu-players-carousel .players-carousel-image-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  background: transparent;
+}
+.kungfu-players-carousel .players-carousel-slide::after { display: none; }
+.kungfu-players-carousel .players-carousel-slide-number {
+  position: relative;
+  inset: auto;
+  z-index: 2;
+  flex: 0 0 auto;
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 16px;
+  background: linear-gradient(135deg, #1b0b0d, #302016);
+  border-top: 1px solid rgba(232,160,32,.55);
+  color: #f8d58b;
+  text-align: center;
+  font-size: clamp(.95rem, 2vw, 1.12rem);
+  font-weight: 900;
+  text-shadow: none;
+  letter-spacing: 0;
+}
+.kungfu-players-carousel .players-carousel-slide.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 5;
+  transform: translateX(-50%);
+}
+.kungfu-players-carousel .players-carousel-slide.is-prev,
+.kungfu-players-carousel .players-carousel-slide.is-next,
+.kungfu-players-carousel .players-carousel-slide.is-far,
+.kungfu-players-carousel .players-carousel-slide.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transform: translateX(-50%);
+  filter: none;
+}
+.kungfu-players-carousel .players-carousel-arrow { top: 44%; }
+.kungfu-players-carousel .players-carousel-bottom {
+  position: relative;
+  inset: auto;
+  margin-top: 12px;
+  min-height: 42px;
+}
+@media(max-width:767px) {
+  .kungfu-players-carousel { min-height: 0; padding-top: 8px; }
+  .kungfu-players-carousel .players-carousel-track { height: clamp(230px, 66vw, 430px); }
+  .kungfu-players-carousel .players-carousel-slide { border-radius: 10px; }
+  .kungfu-players-carousel .players-carousel-slide-number { min-height: 44px; padding: 10px 12px; }
+  .kungfu-players-carousel .players-carousel-arrow { top: 42%; }
+  .kungfu-players-carousel .players-carousel-bottom { gap: 9px; }
+}
+
+
+/* ============ KUNG FU PLAYERS PHOTO VISUAL ENHANCEMENT ============ */
+/* Gentle tonal correction only; preserves the original players and photo details. */
+.kungfu-players-carousel .players-carousel-image-frame img {
+  filter: brightness(1.055) contrast(1.09) saturate(1.07);
+  image-rendering: auto;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+.kungfu-players-carousel .players-carousel-slide.is-active .players-carousel-image-frame img {
+  filter: brightness(1.055) contrast(1.09) saturate(1.07);
+}
+@media (prefers-reduced-motion: reduce) {
+  .kungfu-players-carousel .players-carousel-image-frame img { transform: none; }
+}
