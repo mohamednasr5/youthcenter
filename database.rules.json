@@ -119,6 +119,10 @@
         ".write": "auth.token.ycAdmin === true || auth.token.ycCenter === true || auth.token.ycKungfu === true"
       }
     },
+    "nasheed_academy": {
+      ".read": true,
+      ".write": "auth != null && (auth.token.ycAdmin === true || auth.token.ycCenter === true || auth.token.ycNasheed === true)"
+    },
     "pitch_booking": {
       "settings": {
         ".read": true,
