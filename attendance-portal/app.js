@@ -11,19 +11,13 @@
  function showLogin(){dashboard.classList.add("hidden");loginView.classList.remove("hidden");$("#logout").classList.add("hidden");}
  const time=v=>v?new Intl.DateTimeFormat("ar-EG",{hour:"2-digit",minute:"2-digit",hour12:true,timeZone:"Africa/Cairo"}).format(new Date(v)):"—";
  function statusClass(code){return ["inside","left","absent","upcoming","no-training"].includes(code)?code:"no-training";}
- function playerQrUrl(p){
-   const url=new URL("/attendance/qr.html",publicBase);
-   url.searchParams.set("academy",p.academy);
-   url.searchParams.set("player",p.id);
-   return url.href;
- }
+ function playerQrUrl(p){return "AHMADIYAH|v1|"+p.barcodeToken;}
  function qrCard(p){
-   const payload=playerQrUrl(p), qrSrc="https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=12&data="+encodeURIComponent(payload);
-   const name=escapeHtml(p.name),academy=escapeHtml(p.academyLabel||names[p.academy]||"");
-   return '<section class="player-qr" data-qr-player="'+escapeHtml(p.id)+'">'+
-    '<div class="player-qr-head"><div><span class="qr-eyebrow">رمز اللاعب الشخصي</span><h4>'+name+'</h4><small>'+academy+' · رقم اللاعب: '+escapeHtml(p.id)+'</small></div><span class="qr-lock">QR</span></div>'+
-    '<div class="player-qr-body"><img class="player-qr-image" src="'+qrSrc+'" alt="رمز QR الخاص باللاعب '+name+'" loading="lazy"><div class="player-qr-help">اعرض الرمز عند الحضور أو احتفظ بالصورة على هاتفك. الرمز مرتبط بمعرّف هذا اللاعب فقط.</div></div>'+
-    '<div class="player-qr-actions"><button type="button" class="qr-btn qr-download" data-qr-download="'+escapeHtml(p.id)+'">تنزيل الصورة</button><button type="button" class="qr-btn qr-whatsapp" data-qr-whatsapp="'+escapeHtml(p.id)+'">مشاركة واتساب</button><button type="button" class="qr-btn qr-print" data-qr-print="'+escapeHtml(p.id)+'">طباعة</button></div></section>';
+  const name=escapeHtml(p.name),academy=escapeHtml(p.academyLabel||names[p.academy]||"");
+  return '<section class="player-qr" data-qr-player="'+escapeHtml(p.id)+'">'+
+   '<div class="player-qr-head"><div><span class="qr-eyebrow">بطاقة الهوية الرقمية</span><h4>'+name+'</h4><small>'+academy+' · '+escapeHtml(p.barcodeId||"")+'</small></div><span class="qr-lock">QR</span></div>'+
+   '<div class="player-qr-body"><canvas class="player-qr-image" data-player-qr="'+escapeHtml(p.id)+'"></canvas><div class="player-qr-help">ولي الأمر: '+escapeHtml(p.guardianPhone||"")+'<br>رمز حضور وانصراف موثّق.</div></div>'+
+   '<div class="player-qr-actions"><button type="button" class="qr-btn qr-download" data-qr-download="'+escapeHtml(p.id)+'">تنزيل الصورة</button><button type="button" class="qr-btn qr-whatsapp" data-qr-whatsapp="'+escapeHtml(p.id)+'">مشاركة واتساب</button><button type="button" class="qr-btn qr-print" data-qr-print="'+escapeHtml(p.id)+'">طباعة</button></div></section>';
  }
  function render(data){
   const list=data.players||[],inside=list.filter(x=>x.status?.code==="inside").length,left=list.filter(x=>x.status?.code==="left").length;
@@ -40,24 +34,26 @@
    else if(s.code==="upcoming")duration='<div class="duration">موعد البداية <strong>'+escapeHtml(s.fromTime||"")+'</strong></div>';
    return '<article class="child-card" style="animation-delay:'+(i*70)+'ms"><div class="child-head">'+photo+'<div class="child-info"><h3>'+escapeHtml(p.name)+'</h3><small>'+escapeHtml(p.group||p.age||"")+'</small><div class="academy">'+escapeHtml(names[p.academy]||p.academyLabel||"")+'</div></div></div><div class="status '+statusClass(s.code)+'">'+escapeHtml(s.label||"لا توجد حالة مسجلة")+'</div><div class="detail-grid">'+schedule+'</div>'+duration+qrCard(p)+'</article>';
   }).join("");
+  list.forEach(p=>{const canvas=children.querySelector('[data-player-qr="'+CSS.escape(String(p.id))+'"]');if(canvas&&window.QRCode&&p.barcodeToken)QRCode.toCanvas(canvas,playerQrUrl(p),{width:220,margin:2,errorCorrectionLevel:"H"}).catch(()=>{});});
  }
- function qrImageUrl(id){const p=(window.__guardianPlayers||[]).find(x=>String(x.id)===String(id));return p? "https://api.qrserver.com/v1/create-qr-code/?size=720x720&margin=18&data="+encodeURIComponent(playerQrUrl(p)):null;}
+ function qrCanvas(id){return children.querySelector('[data-player-qr="'+CSS.escape(String(id))+'"]');}
  async function downloadQr(id){
-   const src=qrImageUrl(id);if(!src)return;
-   const p=window.__guardianPlayers.find(x=>String(x.id)===String(id));
-   try{const response=await fetch(src);if(!response.ok)throw Error("تعذر تنزيل صورة الرمز");const blob=await response.blob();const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="QR-"+(p?.name||"player")+"-"+id+".png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);}
-   catch{window.open(src,"_blank","noopener");}
+  const p=(window.__guardianPlayers||[]).find(x=>String(x.id)===String(id)),canvas=qrCanvas(id);if(!p||!canvas)return;
+  const a=document.createElement("a");a.href=canvas.toDataURL("image/png");a.download="QR-"+(p.name||"player")+"-"+(p.barcodeId||id)+".png";a.click();
  }
- function shareQr(id){
-   const src=qrImageUrl(id),p=window.__guardianPlayers.find(x=>String(x.id)===String(id));if(!src||!p)return;
-   const message="رمز QR الخاص باللاعب "+p.name+" - "+(p.academyLabel||names[p.academy]||"")+"\n"+playerQrUrl(p)+"\nصورة الرمز: "+src;
-   window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank","noopener");
+ async function shareQr(id){
+  const p=(window.__guardianPlayers||[]).find(x=>String(x.id)===String(id)),canvas=qrCanvas(id);if(!p||!canvas)return;
+  const message="بطاقة QR الخاصة باللاعب "+p.name+" - "+(p.academyLabel||names[p.academy]||"")+" - رقم الهوية "+(p.barcodeId||"");
+  canvas.toBlob(async blob=>{
+   if(blob&&navigator.canShare&&navigator.share){const file=new File([blob],"QR-"+(p.barcodeId||id)+".png",{type:"image/png"});try{if(navigator.canShare({files:[file]})){await navigator.share({title:"بطاقة اللاعب",text:message,files:[file]});return;}}catch{}}
+   window.open("https://wa.me/?text="+encodeURIComponent(message+"\\nيمكن تنزيل صورة البطاقة من بوابة ولي الأمر."),"_blank","noopener");
+  },"image/png");
  }
  function printQr(id){
-   const p=window.__guardianPlayers.find(x=>String(x.id)===String(id)),src=qrImageUrl(id);if(!p||!src)return;
-   const w=window.open("","_blank","noopener,noreferrer");if(!w)return;
-   w.document.write('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>QR '+escapeHtml(p.name)+'</title><style>body{font-family:Arial,sans-serif;text-align:center;padding:30px;color:#172033}.card{max-width:430px;margin:auto;border:2px solid #ddd;border-radius:18px;padding:24px}img{width:280px;height:280px;object-fit:contain}h1{font-size:24px}p{color:#555}@media print{button{display:none}}</style><div class="card"><h1>مركز شباب الأحمدية</h1><h2>'+escapeHtml(p.name)+'</h2><p>'+escapeHtml(p.academyLabel||names[p.academy]||"")+' · رقم اللاعب '+escapeHtml(p.id)+'</p><img src="'+src+'" alt="QR"><p>رمز اللاعب الشخصي</p></div><script>window.onload=()=>window.print()<\/script></html>');
-   w.document.close();
+  const p=(window.__guardianPlayers||[]).find(x=>String(x.id)===String(id)),canvas=qrCanvas(id);if(!p||!canvas)return;
+  const w=window.open("","_blank");if(!w)return;const src=canvas.toDataURL("image/png");
+  w.document.write('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>بطاقة '+escapeHtml(p.name)+'</title><style>body{font-family:Arial,sans-serif;text-align:center;padding:30px;color:#172033}.card{max-width:430px;margin:auto;border:2px solid #ddd;border-radius:18px;padding:24px}img{width:280px;height:280px;object-fit:contain}h1{font-size:24px}p{color:#555}</style><div class="card"><h1>مركز شباب الأحمدية</h1><h2>'+escapeHtml(p.name)+'</h2><p>'+escapeHtml(p.academyLabel||names[p.academy]||"")+'</p><p>ولي الأمر: '+escapeHtml(p.guardianPhone||"")+'</p><p>رقم الهوية: '+escapeHtml(p.barcodeId||"")+'</p><img src="'+src+'" alt="QR"><p>بطاقة الحضور والانصراف الرسمية</p></div><script>window.onload=()=>window.print()<\\/script></html>');
+  w.document.close();
  }
  children.addEventListener("click",e=>{
    const d=e.target.closest("[data-qr-download]"),s=e.target.closest("[data-qr-whatsapp]"),p=e.target.closest("[data-qr-print]");
