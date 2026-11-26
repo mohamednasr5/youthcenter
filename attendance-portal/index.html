@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10172b">
+<meta name="robots" content="noindex,nofollow">
+<title>متابعة الأبناء | مركز شباب الأحمدية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+<header class="topbar">
+  <a class="brand" href="https://ahmadiya.online/"><span class="brand-mark">🏛️</span><span><b>مركز شباب الأحمدية</b><small>بوابة متابعة ولي الأمر</small></span></a>
+  <div class="top-actions"><span class="secure"><i></i> اتصال آمن</span><button id="logout" class="ghost hidden">تسجيل الخروج</button></div>
+</header>
+<main class="shell">
+  <section id="loginView" class="login-layout">
+    <div class="intro">
+      <span class="eyebrow">AHMADIYAH • FAMILY PORTAL</span>
+      <h1>أبناؤك في التمرين…<br><em>وأنت مطمئن.</em></h1>
+      <p>تابع حضور أبنائك في الأكاديميات الأربع من مكان واحد، واعرف موعد التدريب ووقت الدخول والخروج ومدة التمرين.</p>
+      <div class="academy-pills"><span>⚽ كرة القدم</span><span>🥋 الكاراتيه</span><span>🥊 الكونغ فو</span><span>🎙️ الإنشاد</span></div>
+      <div class="privacy-note"><span>🔐</span><div><b>خصوصية كل أسرة محفوظة</b><small>تظهر فقط سجلات اللاعبين المرتبطين برقم هاتفك ورمز المتابعة الصادر من المركز.</small></div></div>
+    </div>
+    <div class="login-card">
+      <div class="login-symbol">👨‍👩‍👧‍👦</div>
+      <h2>دخول ولي الأمر</h2>
+      <p>أدخل رقم الهاتف ورمز المتابعة الذي استلمته من المركز.</p>
+      <form id="loginForm">
+        <label for="phone">رقم هاتف ولي الأمر</label>
+        <input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="01xxxxxxxxx" required maxlength="20">
+        <label for="code">رمز المتابعة السري</label>
+        <input id="code" type="password" autocomplete="current-password" placeholder="أدخل الرمز المكوّن من 6 إلى 16 حرفًا" required minlength="6" maxlength="16">
+        <button class="primary" id="loginBtn" type="submit"><span>عرض متابعة الأبناء</span><b>←</b></button>
+      </form>
+      <div id="loginError" class="message" role="alert"></div>
+      <div class="help">لا تحتاج إلى رسالة SMS. تحصل على رمز المتابعة مباشرة من إدارة المركز.</div>
+    </div>
+  </section>
+  <section id="dashboardView" class="dashboard hidden">
+    <div class="welcome">
+      <div><span class="eyebrow">لوحة الأسرة</span><h1>متابعة الأبناء</h1><p id="todayText">حالة التدريب اليوم</p></div>
+      <div class="live-pill"><i></i><span>تحديث مباشر كل 25 ثانية</span></div>
+    </div>
+    <div class="summary-grid">
+      <article class="summary"><span class="summary-icon">👦</span><div><small>الأبناء المرتبطون</small><b id="totalChildren">0</b></div></article>
+      <article class="summary"><span class="summary-icon">🏃</span><div><small>داخل التمرين الآن</small><b id="insideCount">0</b></div></article>
+      <article class="summary"><span class="summary-icon">✅</span><div><small>أنهوا التدريب</small><b id="leftCount">0</b></div></article>
+    </div>
+    <div class="section-heading"><div><h2>حالة الأبناء اليوم</h2><p>تظهر جميع الأكاديميات المرتبطة برقم هاتفك</p></div><button id="refresh" class="refresh">↻ تحديث الآن</button></div>
+    <div id="children" class="children-grid"><div class="loading"><span class="loader"></span> جارٍ تحميل بيانات الأبناء…</div></div>
+    <div class="footnote">البيانات تُحدّث من سجلات المركز. قد يتأخر ظهور آخر حركة بضع ثوانٍ بحسب اتصال الإنترنت.</div>
+  </section>
+</main>
+<footer>© مركز شباب الأحمدية <span>•</span> نظام الحضور ومتابعة الأسرة</footer>
+<script src="./app.js"></script>
+</body>
+</html>
