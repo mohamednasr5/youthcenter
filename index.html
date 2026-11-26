@@ -84,10 +84,17 @@
     <nav class="nav" id="nav">
       <a href="#about" class="active">عن المركز</a>
       <a href="#board">مجلس الإدارة</a>
-      <a href="football-academy/index.html">أكاديمية كرة القدم</a>
-      <a href="karate-academy/index.html">أكاديمية الكاراتيه</a>
-      <a href="kungfu-academy/index.html">أكاديمية الكونغ فو</a>
-      <a href="nasheed-academy/index.html">فريق الإنشاد الديني</a>
+      <div class="nav-dropdown" id="academiesDropdown">
+        <button class="nav-dropdown-toggle" type="button" aria-expanded="false" aria-controls="academiesDropdownMenu">
+          <span>الأكاديميات</span><span class="nav-dropdown-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div class="nav-dropdown-menu" id="academiesDropdownMenu">
+          <a href="football-academy/index.html"><span>⚽</span> أكاديمية كرة القدم</a>
+          <a href="karate-academy/index.html"><span>🥋</span> أكاديمية الكاراتيه</a>
+          <a href="kungfu-academy/index.html"><span>🐉</span> أكاديمية الكونغ فو</a>
+          <a href="nasheed-academy/index.html"><span>🎙️</span> فريق الإنشاد الديني</a>
+        </div>
+      </div>
       <a href="attendance/">متابعة الأبناء والحضور</a>
       <a href="pitch-booking/index.html">حجز الملعب الخماسي</a>
       <a href="#contact" class="btn btn-ghost" style="margin-top:4px">تواصل معنا</a>
