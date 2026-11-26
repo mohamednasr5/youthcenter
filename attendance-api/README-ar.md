@@ -36,9 +36,11 @@
 لنشر القواعد وتحديث صلاحيات الإدارة:
 1. تأكد من وجود GitHub Actions Secret باسم `FIREBASE_SERVICE_ACCOUNT_JSON` لخدمة مشروع `academia-e6d7b`.
 2. افتح GitHub Actions.
-3. اختر Workflow: `Provision Firebase admins and deploy database rules`.
+3. اختر Workflow: `Deploy attendance database rules`.
 4. اضغط Run workflow واختر الفرع `feature/attendance-guardian-portal`.
 5. انتظر نجاح الخطوات كلها قبل تجربة لوحة الإنشاد.
+
+هذا الـ Workflow ينشر قواعد قاعدة البيانات فقط ولا يعيد تهيئة حسابات الإدارة أو يبطل جلساتها. لا تستخدم Workflow القديم `Provision Firebase admins and deploy database rules` لهذا الغرض إلا عندما تريد أيضًا إعادة تعيين صلاحيات الحسابات؛ لأنه يجدد صلاحيات Custom Claims ويبطل جلسات تسجيل الدخول الحالية.
 
 لا ترفع ملف Service Account إلى GitHub ولا ترسله في المحادثة.
 
