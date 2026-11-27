@@ -111,7 +111,7 @@ img{max-width:100%;display:block}
 .ticker .t-item{display:inline-flex;align-items:center;gap:8px;padding:11px 24px;font-weight:600;font-size:.86rem;color:var(--txt)}
 .ticker .t-item .sep{color:var(--gold);font-weight:900}
 .ticker .t-item .ico{color:var(--emerald-2)}
-@keyframes scrollTicker{0%{transform:translate3d(0,0,0)}100%{transform:translate3d(-50%,0,0)}}
+@keyframes scrollTicker{0%{transform:translate3d(-50%,0,0)}100%{transform:translate3d(0,0,0)}}
 /* الشريط المتصل يعمل بالطريقة نفسها على الهاتف والكمبيوتر */
 @media(max-width:640px){
   .ticker .t-label{font-size:.72rem;padding:9px 12px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;letter-spacing:.5px}
