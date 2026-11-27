@@ -339,7 +339,7 @@ async function main() {
     await loadData();
   } catch (e) {
     console.warn('تعذر تحميل البيانات:', e);
-    offlineNotice();
+    offlineNotice(e);
   }
   loaderProgress(0.95);
   setTimeout(hideLoader, 350);
