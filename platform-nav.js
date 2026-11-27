@@ -48,7 +48,7 @@
     }
     const foot = document.createElement("footer");
     foot.className = "pf-foot";
-    foot.innerHTML = `<nav aria-label="روابط المنصة">${ITEMS.map(([k, l, h]) => `<a href="${base}${h}">${l}</a>`).join("")}</nav><div>© مركز شباب الأحمدية — المنزلة، الدقهلية • تطوير: المهندس محمد حماد</div>`;
+    foot.innerHTML = `<nav aria-label="روابط المنصة">${ITEMS.map(([k, l, h]) => `<a href="${base}${h}">${l}</a>`).join("")}</nav><div>© مركز شباب الأحمدية — المنزلة، الدقهلية</div>`;
     document.body.appendChild(foot);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
