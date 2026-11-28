@@ -199,7 +199,7 @@
     if (bookingsRef && bookingsCb) bookingsRef.off("value", bookingsCb);   // منع تسرب المستمعين
     subDay = dateKey(now());
     const y = dateKey(now() - 86400000);                                      // أمس: لحجوزات تعبر منتصف الليل
-    bookingsRef = db.ref("pitch_booking/bookings").orderByKey().startAt(y).limitToFirst(6);
+    bookingsRef = db.ref("pitch_booking/availability").orderByKey().startAt(y).limitToFirst(6);
     bookingsCb = (snap) => { S.bookings = snap.val() || {}; S.loaded.bookings = true; saveCache(); render(["pitchNow", "pitchNext"]); };
     bookingsRef.on("value", bookingsCb, () => { S.loaded.bookings = true; render(["pitchNow", "pitchNext"]); });
   }
