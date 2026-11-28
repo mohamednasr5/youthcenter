@@ -9,7 +9,7 @@
 //   - Firebase / analytics / non-GET: bypass the SW entirely.
 // Handles SKIP_WAITING messages for instant updates.
 // =====================================================================
-const CACHE_VERSION = "ahmadia-academy-v12";
+const CACHE_VERSION = "ahmadia-academy-v13-player-gallery";
 const APP_SHELL = [
   "./",
   "./index.html",
