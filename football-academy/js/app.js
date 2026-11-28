@@ -478,23 +478,29 @@ async function renderPlayers(players = []) {
       index
     }));
 
-  let images = registeredPlayers;
-  if (!images.length) {
-    try {
-      const response = await fetch("./images/players/players-manifest.json", { cache: "no-store" });
-      if (!response.ok) throw new Error("Players image manifest unavailable");
-      const manifest = await response.json();
-      images = (Array.isArray(manifest.images) ? manifest.images : []).map((item, index) => ({
-        ...item,
-        src: item.src.startsWith("http") ? item.src : item.src,
-        label: item.caption || `اللاعب رقم ${index + 1}`,
-        index
-      }));
-    } catch (error) {
-      console.warn("[Academia] Players images unavailable.", error);
-      images = [];
-    }
+  let staticImages = [];
+  try {
+    const response = await fetch("./images/players/players-manifest.json", { cache: "no-store" });
+    if (!response.ok) throw new Error("Players image manifest unavailable");
+    const manifest = await response.json();
+    staticImages = (Array.isArray(manifest.images) ? manifest.images : []).map((item, index) => ({
+      ...item,
+      src: item.src,
+      label: item.caption || `لاعب الأكاديمية رقم ${index + 1}`,
+      index: index + 1
+    }));
+  } catch (error) {
+    console.warn("[Academia] Players image manifest unavailable.", error);
   }
+
+  // اعرض اللاعبين المسجلين أولاً، ثم صور الألبوم الثابت؛ مع منع تكرار الصورة نفسها.
+  const seenPhotos = new Set();
+  let images = [...registeredPlayers, ...staticImages].filter(item => {
+    const src = String(item.src || "").trim();
+    if (!src || /^(javascript:|vbscript:)/i.test(src) || seenPhotos.has(src)) return false;
+    seenPhotos.add(src);
+    return true;
+  });
 
   // لا نعرض إلا الصور التي تم تحميلها فعلياً.
   images = (await Promise.all(images.map(item => new Promise(resolve => {
