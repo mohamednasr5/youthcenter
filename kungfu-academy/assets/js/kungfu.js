@@ -225,45 +225,64 @@
   let playersCarouselTouchStartX = 0;
   let playersCarouselBound = false;
 
-  function kungfuPlayerFile(number) {
-    // Naming convention used in the uploaded folder:
-    // player-01.jpg ... player-09.jpg, then player-010.jpg ... player-052.jpg
-    const suffix = number < 10 ? String(number).padStart(2, '0') : String(number).padStart(3, '0');
-    return 'assets/images/photos/player-' + suffix + '.jpg';
-  }
-
   async function loadKungfuPlayersGallery() {
     const root = document.getElementById('playersGallery');
     const track = document.getElementById('players-carousel-track');
     if (!root || !track) return;
 
-    const candidates = Array.from({length:52}, function(_, index) {
-      const number = index + 1;
-      return {src: kungfuPlayerFile(number), number:number};
-    });
+    // اقرأ قائمة الصور الفعلية؛ فهي تشمل JPG وPNG والأسماء القديمة والجديدة.
+    let manifestImages = [];
+    try {
+      const response = await fetch('assets/images/photos/images-manifest.json', { cache: 'no-store' });
+      if (!response.ok) throw new Error('تعذر تحميل قائمة صور الكونغ فو');
+      const manifest = await response.json();
+      manifestImages = Array.isArray(manifest.images) ? manifest.images : [];
+    } catch (error) {
+      console.warn('[Kungfu] Photo manifest unavailable; using player manifest.', error);
+      try {
+        const response = await fetch('assets/images/photos/players-manifest.json', { cache: 'no-store' });
+        if (response.ok) {
+          const manifest = await response.json();
+          manifestImages = Array.isArray(manifest.images) ? manifest.images : [];
+        }
+      } catch (_) {}
+    }
 
-    const checked = await Promise.all(candidates.map(function(item) {
-      return new Promise(function(resolve) {
-        const probe = new Image();
-        probe.onload = function(){ resolve(item); };
-        probe.onerror = function(){ resolve(null); };
-        probe.src = item.src;
-      });
-    }));
-    const photos = checked.filter(Boolean);
+    const candidates = manifestImages.map((item, index) => {
+      const raw = typeof item === 'string' ? item : item && item.src;
+      if (!raw) return null;
+      const src = /^(https?:|data:image\/)/i.test(raw)
+        ? raw
+        : (raw.startsWith('assets/images/photos/') ? raw : 'assets/images/photos/' + raw.replace(/^\.\//, ''));
+      const caption = typeof item === 'object' && item.caption ? item.caption : 'لاعب الكونغ فو رقم ' + (index + 1);
+      return { src, caption, number: index + 1 };
+    }).filter(Boolean);
+
+    const photos = (await Promise.all(candidates.map(item => new Promise(resolve => {
+      const probe = new Image();
+      probe.onload = () => resolve(item);
+      probe.onerror = () => resolve(null);
+      probe.src = item.src;
+    })))).filter(Boolean);
 
     if (!photos.length) {
-      track.innerHTML = '<p class="players-carousel-loading">لم يتم العثور على صور اللاعبين. تأكد من وجود player-01.jpg حتى player-052.jpg داخل assets/images/photos/</p>';
+      track.innerHTML = '<p class="players-carousel-loading">لم يتم العثور على صور صالحة في قائمة صور الأكاديمية.</p>';
+      const counter = document.getElementById('players-carousel-counter');
+      if (counter) counter.textContent = '0 / 0';
+      const dots = document.getElementById('players-carousel-dots');
+      if (dots) dots.innerHTML = '';
       return;
     }
 
-    track.innerHTML = photos.map(function(photo, index) {
-      const label = 'لاعب الكونغ فو رقم ' + String(photo.number);
+    track.innerHTML = photos.map((photo, index) => {
+      const label = String(photo.caption || ('لاعب الكونغ فو رقم ' + photo.number)).replace(/[&<>"']/g, '');
       return '<button class="players-carousel-slide" type="button" data-slide-index="' + index + '" aria-label="' + label + '" tabindex="-1">' +
         '<span class="players-carousel-image-frame"><img src="' + photo.src + '" alt="' + label + '" loading="' + (index < 3 ? 'eager' : 'lazy') + '" decoding="async" draggable="false"></span>' +
         '<span class="players-carousel-slide-number">' + label + '</span></button>';
     }).join('');
 
+    const dots = document.getElementById('players-carousel-dots');
+    if (dots) dots.innerHTML = '';
     root.classList.add('players-carousel');
     root.setAttribute('aria-label', 'معرض لاعبي أكاديمية الكونغ فو');
     playersCarouselIndex = 0;
