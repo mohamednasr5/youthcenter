@@ -1,6 +1,6 @@
 /* live.js — لوحة «مباشر من المركز» في الصفحة الرئيسية
    كل البيانات من Firebase Realtime Database الموحدة (academia-e6d7b) عبر مستمعين لحظيين محدودين:
-   - pitch_booking/bookings        (من أمس إلى +4 أيام فقط)
+   - pitch_booking/availability    (النسخة العامة الآمنة، من أمس إلى +4 أيام فقط)
    - pitch_booking/matchResults    (آخر 5 تواريخ)
    - upcomingMatches / matchResults (أكاديمية كرة القدم — مسارات الأكاديمية الحالية)
    - karate_academy/news           (آخر 4 أخبار)
@@ -199,7 +199,7 @@
     if (bookingsRef && bookingsCb) bookingsRef.off("value", bookingsCb);   // منع تسرب المستمعين
     subDay = dateKey(now());
     const y = dateKey(now() - 86400000);                                      // أمس: لحجوزات تعبر منتصف الليل
-    bookingsRef = db.ref("pitch_booking/bookings").orderByKey().startAt(y).limitToFirst(6);
+    bookingsRef = db.ref("pitch_booking/availability").orderByKey().startAt(y).limitToFirst(6);
     bookingsCb = (snap) => { S.bookings = snap.val() || {}; S.loaded.bookings = true; saveCache(); render(["pitchNow", "pitchNext"]); };
     bookingsRef.on("value", bookingsCb, () => { S.loaded.bookings = true; render(["pitchNow", "pitchNext"]); });
   }
