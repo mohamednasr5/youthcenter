@@ -463,66 +463,72 @@ let playersCarouselPaused = false;
 let playersCarouselTouchStartX = 0;
 let playersCarouselBound = false;
 
-async function renderPlayers() {
+async function renderPlayers(players = []) {
   const track = document.getElementById("players-carousel-track");
   const root = document.getElementById("players-carousel");
   if (!track || !root) return;
 
-  let images = [];
-  try {
-    const response = await fetch("./images/players/players-manifest.json", { cache: "no-store" });
-    if (!response.ok) throw new Error("Players image manifest unavailable");
-    const manifest = await response.json();
-    images = Array.isArray(manifest.images) ? manifest.images : [];
-  } catch (error) {
-    console.warn("[Academia] Players manifest unavailable; checking numbered files.", error);
-    const extensions = ["png", "jpg", "jpeg", "webp", "avif"];
-    const checks = [];
-    for (let index = 0; index <= 100; index++) {
-      for (const ext of extensions) {
-        const src = `./images/players/${index}.${ext}`;
-        checks.push(new Promise(resolve => {
-          const probe = new Image();
-          probe.onload = () => resolve({ src, index });
-          probe.onerror = () => resolve(null);
-          probe.src = src;
-        }));
-      }
+  // المصدر الأساسي هو سجل اللاعبين الحي القادم من Firebase، وليس ملف manifest
+  // الثابت الذي يحتوي على ثلاث صور تجريبية فقط.
+  const registeredPlayers = (Array.isArray(players) ? players : [])
+    .filter(player => player && player.registrationStatus !== "inactive" && player.photo)
+    .map((player, index) => ({
+      src: player.photo,
+      label: player.name || player.fullName || `اللاعب رقم ${index + 1}`,
+      index
+    }));
+
+  let images = registeredPlayers;
+  if (!images.length) {
+    try {
+      const response = await fetch("./images/players/players-manifest.json", { cache: "no-store" });
+      if (!response.ok) throw new Error("Players image manifest unavailable");
+      const manifest = await response.json();
+      images = (Array.isArray(manifest.images) ? manifest.images : []).map((item, index) => ({
+        ...item,
+        src: item.src.startsWith("http") ? item.src : item.src,
+        label: item.caption || `اللاعب رقم ${index + 1}`,
+        index
+      }));
+    } catch (error) {
+      console.warn("[Academia] Players images unavailable.", error);
+      images = [];
     }
-    images = (await Promise.all(checks)).filter(Boolean)
-      .sort((a,b) => a.index - b.index)
-      .map(item => ({ src: item.src, index: item.index }));
   }
 
-  // Confirm files load successfully, then omit missing files from the carousel.
-  images = (await Promise.all(images.map((item, order) => new Promise(resolve => {
+  // لا نعرض إلا الصور التي تم تحميلها فعلياً.
+  images = (await Promise.all(images.map(item => new Promise(resolve => {
     const image = new Image();
-    image.onload = () => resolve({ ...item, _order: order });
+    image.onload = () => resolve(item);
     image.onerror = () => resolve(null);
     image.src = item.src;
   })))).filter(Boolean);
 
   if (!images.length) {
-    track.innerHTML = '<p class="players-empty">لا توجد صور لاعبين مرفوعة في مجلد images/players حتى الآن.</p>';
+    track.innerHTML = '<p class="players-empty">لا توجد صور لاعبين متاحة للعرض حالياً.</p>';
+    const counter = document.getElementById("players-carousel-counter");
+    if (counter) counter.textContent = "0 / 0";
+    const dots = document.getElementById("players-carousel-dots");
+    if (dots) dots.innerHTML = "";
     return;
   }
 
   const slides = images.map((item, index) => {
-    const numeric = Number.isInteger(item.index) ? item.index : Number((item.src.match(/(\\d+)(?=\\.[^.]+$)/) || [])[1]);
-    const isCoach = numeric === 0;
-    const label = isCoach ? "المدرب الفني" : `اللاعب رقم ${String(Number.isFinite(numeric) ? numeric : index).padStart(2, "0")}`;
+    const label = item.label || `اللاعب رقم ${index + 1}`;
     return `
       <button class="players-carousel-slide" type="button"
-        data-slide-index="${index}" aria-label="${label}" tabindex="-1">
+        data-slide-index="${index}" aria-label="${String(label).replace(/["<>]/g, "")}" tabindex="-1">
         <span class="players-carousel-image-frame">
-          <img src="${item.src}" alt="${label}"
+          <img src="${item.src}" alt="${String(label).replace(/["<>]/g, "")}"
             loading="${index < 3 ? "eager" : "lazy"}" decoding="async" draggable="false">
         </span>
-        <span class="players-carousel-slide-number">${label}</span>
+        <span class="players-carousel-slide-number">${String(label).replace(/[&<>"]/g, "")}</span>
       </button>`;
   });
   track.innerHTML = slides.join("");
   playersCarouselIndex = 0;
+  const dots = document.getElementById("players-carousel-dots");
+  if (dots) dots.innerHTML = "";
   updatePlayersCarousel();
   setupPlayersCarouselControls();
   startPlayersCarousel();
