@@ -4,7 +4,7 @@
 (function () {
   "use strict";
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const safeUrl = u => /^https?:\/\//i.test(u || "") ? u : "";
+  const safeUrl = u => { const value = String(u || "").trim(); if (/^https?:\/\//i.test(value)) return value; if (/^(?:\.\.\/|\.\/|\/)?[A-Za-z0-9_./%-]+\.(?:png|jpe?g|webp|gif|avif)(?:\?[^\s]*)?$/i.test(value)) return value; return ""; };
   const ROOT = "kungfu_academy";
 
   /* ═══ 1) قسم الأخبار والإنجازات (يُدرج قبل قسم المواعيد) ═══ */
