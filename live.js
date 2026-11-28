@@ -1,6 +1,6 @@
 /* live.js — لوحة «مباشر من المركز» في الصفحة الرئيسية
    كل البيانات من Firebase Realtime Database الموحدة (academia-e6d7b) عبر مستمعين لحظيين محدودين:
-   - pitch_booking/bookings        (من أمس إلى +4 أيام فقط)
+   - pitch_booking/availability    (النسخة العامة الآمنة، من أمس إلى +4 أيام فقط)
    - pitch_booking/matchResults    (آخر 5 تواريخ)
    - upcomingMatches / matchResults (أكاديمية كرة القدم — مسارات الأكاديمية الحالية)
    - karate_academy/news           (آخر 4 أخبار)
